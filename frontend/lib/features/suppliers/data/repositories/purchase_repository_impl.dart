@@ -1,0 +1,50 @@
+import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/features/suppliers/domain/entities/purchase.dart';
+import 'package:frontend/features/suppliers/domain/repositories/purchase_repository.dart';
+
+// PurchaseRepositoryImpl handles all restocking transactions between the shop and its suppliers.
+class PurchaseRepositoryImpl implements PurchaseRepository {
+  // Fetches the complete history of all stock purchases made by the shop.
+  @override
+  Future<List<Purchase>> getAllPurchases() async {
+    final response = await ApiClient.get('/purchases');
+    return (response['data'] as List)
+        .map((json) => Purchase.fromJson(json))
+        .toList();
+  }
+
+  @override
+  Future<Purchase?> getPurchaseById(String id) async {
+    final response = await ApiClient.get('/purchases/$id');
+    return Purchase.fromJson(response['data']);
+  }
+
+  // Records a new purchase transaction once stock is received from a supplier.
+  @override
+  Future<Purchase> createPurchase(Map<String, dynamic> data) async {
+    final response = await ApiClient.post('/purchases', data);
+    return Purchase.fromJson(response['data']);
+  }
+
+  @override
+  Future<Purchase?> updatePurchase(String id, Map<String, dynamic> data) async {
+    final response = await ApiClient.put('/purchases/$id', data);
+    return Purchase.fromJson(response['data']);
+  }
+
+  // Deletes a specific purchase record from the history.
+  @override
+  Future<bool> deletePurchase(String id) async {
+    final response = await ApiClient.delete('/purchases/$id');
+    return response['success'] ?? false;
+  }
+
+  // Shows all purchases linked to a single supplier, useful for debt tracking.
+  @override
+  Future<List<Purchase>> getPurchasesBySupplier(String supplierId) async {
+    final response = await ApiClient.get('/purchases/supplier/$supplierId');
+    return (response['data'] as List)
+        .map((json) => Purchase.fromJson(json))
+        .toList();
+  }
+}
