@@ -4,6 +4,8 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const PDFDocument = require('pdfkit');
 
+//comment
+
 const serviceAccount = require('./serviceAccountKey.json');
 
 admin.initializeApp({
@@ -137,7 +139,7 @@ app.post('/init-credit', verifyToken, (req, res) => {
 
 // CREATE Order - Updated to handle unpaid balance correctly
 app.post('/order', verifyToken, (req, res) => {
-  const { items, t-otal, paymentMethod, cashPaid = 0, creditsUsed = 0 } = req.body;
+  const { items, total, paymentMethod, cashPaid = 0, creditsUsed = 0 } = req.body;
   const orderId = db.ref(`users/${req.userId}/orders`).push().key;
   const orderRef = db.ref(`users/${req.userId}/orders/${orderId}`);
   const date = new Date().toISOString();
