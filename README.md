@@ -1,1 +1,0 @@
-# ITP_KANDY_7
