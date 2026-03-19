@@ -109,3 +109,4 @@ key.properties
 .swiftpm/
 migrate_working_dir/
 /tmp/
+walkthrough.md
