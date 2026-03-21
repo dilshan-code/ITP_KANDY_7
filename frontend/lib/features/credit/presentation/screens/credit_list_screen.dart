@@ -5,6 +5,7 @@ import 'package:frontend/core/utils/snackbar_utils.dart';
 import 'package:frontend/features/credit/presentation/providers/credit_provider.dart';
 import 'package:frontend/features/credit/domain/entities/customer.dart';
 import 'package:frontend/features/credit/presentation/screens/credit_detail_screen.dart';
+import 'package:frontend/features/credit/presentation/utils/export_utils.dart';
 
 class CreditListScreen extends StatefulWidget {
   final bool isSelectionMode;
@@ -47,7 +48,18 @@ class _CreditListScreenState extends State<CreditListScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Customer Credit'),
-          actions: const [],
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              onPressed: () {
+                final outstanding = context.read<CreditProvider>().outstandingCustomers;
+                if (outstanding.isNotEmpty) {
+                  CreditExportUtils.exportActiveCreditsPdf(outstanding);
+                }
+              },
+              tooltip: 'Download PDF',
+            ),
+          ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(48),
             child: Container(
