@@ -9,7 +9,6 @@ import 'package:frontend/features/account/presentation/screens/reports_screen.da
 import 'package:frontend/features/account/presentation/screens/profile_settings_screen.dart';
 import 'package:frontend/features/sales/presentation/screens/invoice_history_screen.dart';
 import 'package:frontend/features/account/presentation/screens/help_support_screen.dart';
-import 'package:frontend/features/suppliers/presentation/screens/supplier_purchase_record_screen.dart';
 
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});
@@ -143,20 +142,6 @@ class AccountScreen extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder: (_) => const SupplierManagementScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    Icons.add_shopping_cart_outlined,
-                    'Record Purchase',
-                    'Log a new purchase from a supplier',
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const SupplierPurchaseRecordScreen(),
                         ),
                       );
                     },

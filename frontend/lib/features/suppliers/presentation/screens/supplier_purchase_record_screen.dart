@@ -3,13 +3,15 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/core/utils/snackbar_utils.dart';
+import 'package:frontend/features/suppliers/domain/entities/purchase.dart';
 import 'package:frontend/features/suppliers/presentation/providers/purchase_provider.dart';
 import 'package:frontend/features/suppliers/presentation/providers/supplier_provider.dart';
 import 'package:frontend/features/products/presentation/providers/product_provider.dart';
 import 'package:frontend/features/products/domain/entities/product.dart';
 
 class SupplierPurchaseRecordScreen extends StatefulWidget {
-  const SupplierPurchaseRecordScreen({super.key});
+  final Purchase? purchase;
+  const SupplierPurchaseRecordScreen({super.key, this.purchase});
 
   @override
   State<SupplierPurchaseRecordScreen> createState() => _SupplierPurchaseRecordScreenState();
@@ -21,6 +23,7 @@ class _SupplierPurchaseRecordScreenState extends State<SupplierPurchaseRecordScr
   final _priceController = TextEditingController();
   final _notesController = TextEditingController();
   final _dateController = TextEditingController();
+  final _invoiceController = TextEditingController();
   
   String? _selectedSupplierId;
   String _selectedSupplierName = '';
@@ -32,6 +35,24 @@ class _SupplierPurchaseRecordScreenState extends State<SupplierPurchaseRecordScr
   @override
   void initState() {
     super.initState();
+    if (widget.purchase != null) {
+      final p = widget.purchase!;
+      _selectedSupplierId = p.supplierId;
+      _selectedSupplierName = p.supplierName;
+      _selectedDate = DateTime.tryParse(p.purchaseDate) ?? DateTime.now();
+      _paymentStatus = p.status.isNotEmpty 
+          ? p.status[0].toUpperCase() + p.status.substring(1).toLowerCase()
+          : 'Paid';
+      _notesController.text = p.notes;
+      _invoiceController.text = p.invoiceNumber;
+      
+      if (p.items.isNotEmpty && p.items[0] is Map) {
+        final item = p.items[0] as Map<String, dynamic>;
+        _selectedProductId = item['productId']?.toString();
+        _quantityController.text = item['quantity']?.toString() ?? '';
+        _priceController.text = item['costPrice']?.toString() ?? '';
+      }
+    }
     _dateController.text = DateFormat('yyyy-MM-dd').format(_selectedDate);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -47,6 +68,7 @@ class _SupplierPurchaseRecordScreenState extends State<SupplierPurchaseRecordScr
     _priceController.dispose();
     _notesController.dispose();
     _dateController.dispose();
+    _invoiceController.dispose();
     super.dispose();
   }
 
@@ -84,23 +106,18 @@ class _SupplierPurchaseRecordScreenState extends State<SupplierPurchaseRecordScr
     final price = double.tryParse(_priceController.text) ?? selectedProduct.sellingPrice;
     final totalAmount = quantity * price;
     
-    // Determine amountPaid based on payment status
     double amountPaid = 0;
     if (_paymentStatus == 'Paid') {
       amountPaid = totalAmount;
     } else if (_paymentStatus == 'Partial') {
-      // For simplicity in this UI, partial could mean half or we could add another field.
-      // But based on request, let's keep it simple. If 'Partial', we'll default to 0 for now
-      // or maybe the user wants to enter amount paid. 
-      // To keep it "beginner friendly", let's just stick to Paid/Pending for now or 
-      // assume 'Paid' means amountPaid = totalAmount.
-      amountPaid = totalAmount / 2; // Dummy logic for partial
+      amountPaid = totalAmount / 2;
     }
 
     final purchaseData = {
       'supplierId': _selectedSupplierId,
       'supplierName': _selectedSupplierName,
       'purchaseDate': _selectedDate.toIso8601String(),
+      'invoiceNumber': _invoiceController.text.trim(),
       'items': [
         {
           'productId': selectedProduct.id,
@@ -113,29 +130,35 @@ class _SupplierPurchaseRecordScreenState extends State<SupplierPurchaseRecordScr
       'totalAmount': totalAmount,
       'amountPaid': amountPaid,
       'notes': _notesController.text.trim(),
+      'status': _paymentStatus.toLowerCase(),
     };
 
     final purchaseProvider = Provider.of<PurchaseProvider>(context, listen: false);
-    final success = await purchaseProvider.addPurchase(purchaseData);
+    
+    bool success;
+    if (widget.purchase != null) {
+      success = await purchaseProvider.updatePurchase(widget.purchase!.id, purchaseData);
+    } else {
+      success = await purchaseProvider.addPurchase(purchaseData);
+    }
 
     if (success && mounted) {
-      final productProvider = context.read<ProductProvider>();
       final supplierProvider = context.read<SupplierProvider>();
       
-      // Store the ID to find the updated product later
       final productId = _selectedProductId;
 
-      // Reset state BEFORE fetching new data to avoid dropdown assertion errors
       setState(() {
         _isSubmitting = false;
-        _selectedProductId = null;
-        _selectedSupplierId = null;
-        _quantityController.clear();
-        _priceController.clear();
-        _notesController.clear();
+        if (widget.purchase == null) {
+          _selectedProductId = null;
+          _selectedSupplierId = null;
+          _quantityController.clear();
+          _priceController.clear();
+          _notesController.clear();
+          _invoiceController.clear();
+        }
       });
 
-      // Re-fetch data to reflect updated stock levels
       await Future.wait([
         productProvider.fetchProducts(),
         supplierProvider.fetchSuppliers(),
@@ -143,10 +166,8 @@ class _SupplierPurchaseRecordScreenState extends State<SupplierPurchaseRecordScr
 
       if (!mounted) return;
       
-      // Find the updated product from the new list
       final updatedProduct = productProvider.products.firstWhere(
         (p) => p.id == productId,
-        // Fallback to a dummy product if not found (unexpected)
         orElse: () => productProvider.products.isNotEmpty 
           ? productProvider.products.first 
           : Product(id: 'err', name: 'Product', category: '', sellingPrice: 0, stockQuantity: 0, minimumStockLevel: 0, unit: 'un', isLowStock: false, inventoryValue: 0),
@@ -241,53 +262,77 @@ class _SupplierPurchaseRecordScreenState extends State<SupplierPurchaseRecordScr
               _buildSectionTitle('Transaction Details'),
               const SizedBox(height: 16),
               
-              // Supplier Dropdown
-              _buildLabel('Supplier *'),
-              Consumer<SupplierProvider>(
-                builder: (context, provider, _) {
-                  if (provider.isLoading) {
-                    return _buildLoadingDropdown('Loading Suppliers...');
-                  }
-                  return Container(
-                    decoration: _containerDecoration(Icons.local_shipping_outlined),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        key: ValueKey('supplier_dropdown_${provider.isLoading}_${_selectedSupplierId == null}'),
-                        isExpanded: true,
-                        value: _selectedSupplierId,
-                        hint: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('Select Supplier'),
-                        ),
-                        items: provider.suppliers
-                            .map((s) => s.id)
-                            .toSet() // Ensure unique IDs
-                            .map((id) {
-                          final s = provider.suppliers.firstWhere((sup) => sup.id == id);
-                          return DropdownMenuItem(
-                            value: id.toString(),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: Text(s.name),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          setState(() {
-                            _selectedSupplierId = val;
-                            if (val != null) {
-                              _selectedSupplierName = provider.suppliers.firstWhere((s) => s.id == val).name;
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Supplier *'),
+                        Consumer<SupplierProvider>(
+                          builder: (context, provider, _) {
+                            if (provider.isLoading) {
+                              return _buildLoadingDropdown('Loading...');
                             }
-                          });
-                        },
-                        icon: const Padding(
-                          padding: EdgeInsets.only(right: 12),
-                          child: Icon(Icons.arrow_drop_down, color: AppColors.primary),
+                            return Container(
+                              decoration: _containerDecoration(Icons.local_shipping_outlined),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  key: ValueKey('supplier_dropdown_${provider.isLoading}_${_selectedSupplierId == null}'),
+                                  isExpanded: true,
+                                  value: _selectedSupplierId,
+                                  hint: const Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 16),
+                                    child: Text('Select Supplier'),
+                                  ),
+                                  items: provider.suppliers
+                                      .map((s) => s.id)
+                                      .toSet()
+                                      .map((id) {
+                                    final s = provider.suppliers.firstWhere((sup) => sup.id == id);
+                                    return DropdownMenuItem(
+                                      value: id.toString(),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                                        child: Text(s.name),
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _selectedSupplierId = val;
+                                      if (val != null) {
+                                        _selectedSupplierName = provider.suppliers.firstWhere((s) => s.id == val).name;
+                                      }
+                                    });
+                                  },
+                                  icon: const Padding(
+                                    padding: EdgeInsets.only(right: 12),
+                                    child: Icon(Icons.arrow_drop_down, color: AppColors.primary),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      ),
+                      ],
                     ),
-                  );
-                },
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('Invoice #'),
+                        TextFormField(
+                          controller: _invoiceController,
+                          decoration: _inputDecoration(Icons.receipt_long_outlined),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
 

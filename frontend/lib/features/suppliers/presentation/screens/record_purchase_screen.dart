@@ -251,8 +251,15 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.attach_money, color: AppColors.textLight),
-                  const SizedBox(width: 12),
+                  const Text(
+                    'Rs ',
+                    style: TextStyle(
+                      color: AppColors.textLight,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   Text(
                     _subtotal.toStringAsFixed(2),
                     style: const TextStyle(

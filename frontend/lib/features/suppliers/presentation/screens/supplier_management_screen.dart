@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/core/utils/snackbar_utils.dart';
 import 'package:frontend/features/suppliers/presentation/providers/supplier_provider.dart';
-import 'package:frontend/features/suppliers/presentation/screens/supplier_tabs_screen.dart';
+import 'package:frontend/features/suppliers/presentation/providers/purchase_provider.dart';
 import 'package:frontend/features/suppliers/presentation/screens/add_supplier_screen.dart';
 import 'package:frontend/features/suppliers/presentation/screens/supplier_purchase_record_screen.dart';
+import 'package:frontend/features/suppliers/presentation/utils/export_utils.dart';
 
 class SupplierManagementScreen extends StatefulWidget {
   const SupplierManagementScreen({super.key});
@@ -15,178 +17,148 @@ class SupplierManagementScreen extends StatefulWidget {
       _SupplierManagementScreenState();
 }
 
-class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
-  final _searchController = TextEditingController();
-  bool _isSearching = false;
+class _SupplierManagementScreenState extends State<SupplierManagementScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() => setState(() {}));
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<SupplierProvider>().fetchSuppliers();
+      if (mounted) {
+        context.read<SupplierProvider>().fetchSuppliers();
+        context.read<PurchaseProvider>().fetchPurchases();
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  hintText: 'Search suppliers...',
-                  border: InputBorder.none,
-                  hintStyle: TextStyle(color: Colors.white70),
-                ),
-                style: const TextStyle(color: Colors.white),
-                onChanged: (_) => setState(() {}),
-              )
-            : const Text('Supplier Management'),
-        actions: [
-          IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search),
-            onPressed: () {
-              setState(() {
-                if (_isSearching) _searchController.clear();
-                _isSearching = !_isSearching;
-              });
-            },
-          ),
-        ],
-      ),
-      body: Consumer<SupplierProvider>(
-        builder: (context, provider, _) {
-          if (provider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Summary cards
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildSummaryCard(
-                        'Active Suppliers',
-                        provider.activeCount.toString(),
-                        Icons.people_outline,
-                        AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildSummaryCard(
-                        'Total Payable',
-                        'Rs ${provider.totalPayable.toStringAsFixed(0)}',
-                        Icons.account_balance_wallet_outlined,
-                        AppColors.warning,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // Quick actions
-                const Text(
-                  'Quick Actions',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textDark,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SupplierPurchaseRecordScreen(),
-                    ),
-                  ),
-                  icon: const Icon(Icons.add_shopping_cart_outlined),
-                  label: const Text('Record New Purchase'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accentGreen,
-                    foregroundColor: AppColors.primary,
-                    minimumSize: const Size(double.infinity, 52),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    elevation: 0,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Recent suppliers header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Recent Suppliers',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const SupplierTabsScreen(),
-                        ),
-                      ),
-                      child: const Text('View All'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Supplier list
-                if (provider.suppliers.isEmpty)
-                  _buildEmptyState()
-                else
-                  ...() {
-                    final query = _searchController.text.toLowerCase();
-                    final filtered = query.isEmpty
-                        ? provider.suppliers
-                        : provider.suppliers
-                              .where(
-                                (s) =>
-                                    s.name.toLowerCase().contains(query) ||
-                                    s.phone.contains(query),
-                              )
-                              .toList();
-
-                    if (filtered.isEmpty) {
-                      return [_buildNoResultsState()];
+      backgroundColor: AppColors.background,
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverAppBar(
+              title: const Text('Supplier Management'),
+              floating: true,
+              pinned: true,
+              expandedHeight: 0,
+              forceElevated: innerBoxIsScrolled,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  onPressed: () {
+                    if (_tabController.index == 0) {
+                      final suppliers = context.read<SupplierProvider>().suppliers;
+                      if (suppliers.isNotEmpty) {
+                        SupplierExportUtils.exportSuppliersPdf(suppliers);
+                      }
+                    } else {
+                      final purchases = context.read<PurchaseProvider>().purchases;
+                      if (purchases.isNotEmpty) {
+                        SupplierExportUtils.exportPurchasesPdf(purchases);
+                      }
                     }
-
-                    return (query.isEmpty ? filtered.take(5) : filtered).map(
-                      (supplier) => _buildSupplierCard(supplier),
-                    );
-                  }(),
+                  },
+                  tooltip: 'Download PDF',
+                ),
               ],
             ),
-          );
+            SliverToBoxAdapter(
+              child: Consumer<SupplierProvider>(
+                builder: (context, provider, _) => _buildSummaryCards(provider),
+              ),
+            ),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _SliverAppBarDelegate(
+                TabBar(
+                  controller: _tabController,
+                  dividerColor: Colors.transparent,
+                  indicatorColor: AppColors.primary,
+                  indicatorWeight: 3,
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: AppColors.textLight,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                  tabs: const [
+                    Tab(text: 'Suppliers'),
+                    Tab(text: 'Purchase Records'),
+                  ],
+                ),
+              ),
+            ),
+          ];
         },
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            _buildSuppliersTab(),
+            _buildPurchaseRecordsTab(),
+          ],
+        ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const AddSupplierScreen()),
-        ),
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          'Add Supplier',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-        ),
+      floatingActionButton: _tabController.index == 0
+          ? FloatingActionButton.extended(
+              heroTag: 'fab_supplier_prod_id_unique_1',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AddSupplierScreen()),
+              ),
+              icon: const Icon(Icons.person_add_outlined),
+              label: const Text('Add Supplier'),
+              backgroundColor: AppColors.primary,
+            )
+          : FloatingActionButton.extended(
+              heroTag: 'fab_purchase_prod_id_unique_2',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SupplierPurchaseRecordScreen(),
+                ),
+              ),
+              icon: const Icon(Icons.add_shopping_cart_outlined),
+              label: const Text('Record New Purchase'),
+              backgroundColor: AppColors.primary,
+            ),
+    );
+  }
+
+  Widget _buildSummaryCards(SupplierProvider provider) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildSummaryCard(
+              'Active Suppliers',
+              provider.suppliers.length.toString(),
+              Icons.people_outline,
+              [AppColors.primary, AppColors.primaryDark],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildSummaryCard(
+              'Total Payable',
+              'Rs ${NumberFormat('#,###').format(provider.totalPayable)}',
+              Icons.account_balance_wallet_outlined,
+              [Colors.green.shade600, Colors.green.shade400],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -195,273 +167,368 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
     String title,
     String value,
     IconData icon,
-    Color color,
+    List<Color> colors,
   ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: colors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: colors[0].withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 24),
-          ),
+          Icon(icon, color: Colors.white, size: 24),
           const SizedBox(height: 12),
           Text(
-            value,
+            title,
             style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: color,
+              color: Colors.white.withValues(alpha: 0.9),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(fontSize: 13, color: AppColors.textMedium),
+          FittedBox(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSupplierCard(dynamic supplier) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: InkWell(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const SupplierTabsScreen(),
-          ),
-        ),
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 20,
-                    backgroundColor: AppColors.accentGreen,
-                    child: Text(
-                      supplier.name.isNotEmpty
-                          ? supplier.name[0].toUpperCase()
-                          : '?',
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildSuppliersTab() {
+    return Consumer<SupplierProvider>(
+      builder: (context, provider, _) {
+        if (provider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (provider.suppliers.isEmpty) {
+          return _buildEmptyState(
+            'No Suppliers',
+            'Start by adding your first supplier.',
+            Icons.person_add_disabled_outlined,
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          itemCount: provider.suppliers.length,
+          itemBuilder: (context, index) {
+            final supplier = provider.suppliers[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              elevation: 4,
+              shadowColor: Colors.black.withValues(alpha: 0.05),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    Row(
                       children: [
-                        Text(
-                          supplier.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                            color: AppColors.textDark,
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
                           ),
+                          child: const Icon(Icons.person_outline,
+                              color: AppColors.primary),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          supplier.phone,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textMedium,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                supplier.name,
+                                style:
+                                    const TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                              Text(
+                                supplier.phone,
+                                style: TextStyle(
+                                  color: AppColors.textLight,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    AddSupplierScreen(supplier: supplier),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          label: const Text('Edit'),
+                          style: TextButton.styleFrom(
+                              foregroundColor: Colors.green),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton.icon(
+                          onPressed: () => _confirmDeleteSupplier(supplier),
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          label: const Text('Delete'),
+                          style:
+                              TextButton.styleFrom(foregroundColor: Colors.red),
+                        ),
+                      ],
                     ),
-                    decoration: BoxDecoration(
-                      color: supplier.status == 'active'
-                          ? AppColors.accentGreen
-                          : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      supplier.status == 'active' ? 'Active' : 'Inactive',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: supplier.status == 'active'
-                            ? AppColors.primary
-                            : AppColors.textLight,
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton.icon(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AddSupplierScreen(supplier: supplier),
-                      ),
-                    ),
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    label: const Text('Edit'),
-                    style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-                  ),
-                  const SizedBox(width: 8),
-                  TextButton.icon(
-                    onPressed: () => _confirmDelete(supplier),
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    label: const Text('Delete'),
-                    style: TextButton.styleFrom(foregroundColor: AppColors.error),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
-  void _confirmDelete(dynamic supplier) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Supplier'),
-        content: Text(
-          'Are you sure you want to delete "${supplier.name}"? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              final success = await context
-                  .read<SupplierProvider>()
-                  .removeSupplier(supplier.id);
-              if (success && context.mounted) {
-                SnackBarUtils.showTopSnackBar(
-                  context,
-                  'Supplier deleted successfully',
-                );
-              } else if (context.mounted) {
-                SnackBarUtils.showTopSnackBar(
-                  context,
-                  context.read<SupplierProvider>().error ?? 'Failed to delete',
-                  isError: true,
-                );
-              }
-            },
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: AppColors.error),
+  Widget _buildPurchaseRecordsTab() {
+    return Consumer<PurchaseProvider>(
+      builder: (context, provider, _) {
+        if (provider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (provider.purchases.isEmpty) {
+          return _buildEmptyState(
+            'No Records',
+            'Your purchase history will appear here.',
+            Icons.receipt_outlined,
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          itemCount: provider.purchases.length,
+          itemBuilder: (context, index) {
+            final purchase = provider.purchases[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              elevation: 4,
+              shadowColor: Colors.black.withValues(alpha: 0.05),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.add_shopping_cart_outlined,
+                              color: Colors.blue, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                purchase.supplierName,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700),
+                              ),
+                              Text(
+                                DateFormat('MMM dd, yyyy').format(
+                                    DateTime.tryParse(purchase.purchaseDate) ??
+                                        DateTime.now()),
+                                style: TextStyle(
+                                  color: AppColors.textLight,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          'Rs ${NumberFormat('#,###').format(purchase.totalAmount)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SupplierPurchaseRecordScreen(
+                                  purchase: purchase),
+                            ),
+                          ),
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          label: const Text('Edit'),
+                          style: TextButton.styleFrom(
+                              foregroundColor: Colors.green),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton.icon(
+                          onPressed: () => _confirmDeletePurchase(purchase),
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          label: const Text('Delete'),
+                          style:
+                              TextButton.styleFrom(foregroundColor: Colors.red),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyState(String title, String subtitle, IconData icon) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 64, color: AppColors.textLight.withValues(alpha: 0.3)),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textMedium,
             ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.textLight),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNoResultsState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Column(
-          children: [
-            Icon(
-              Icons.search_off_outlined,
-              size: 64,
-              color: Colors.grey.shade300,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No matching suppliers',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textMedium,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Try a different search term',
-              style: TextStyle(fontSize: 14, color: AppColors.textLight),
-            ),
-          ],
-        ),
+  void _confirmDeleteSupplier(dynamic supplier) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Supplier'),
+        content: Text('Are you sure you want to delete ${supplier.name}?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await context
+                  .read<SupplierProvider>()
+                  .removeSupplier(supplier.id);
+              if (context.mounted) {
+                SnackBarUtils.showTopSnackBar(context, 'Supplier removed');
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Column(
-          children: [
-            Icon(
-              Icons.local_shipping_outlined,
-              size: 64,
-              color: Colors.grey.shade300,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No suppliers yet',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textMedium,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Add your first supplier to get started',
-              style: TextStyle(fontSize: 14, color: AppColors.textLight),
-            ),
-          ],
-        ),
+  void _confirmDeletePurchase(dynamic purchase) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Record'),
+        content: const Text('Are you sure you want to delete this purchase record?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await context
+                  .read<PurchaseProvider>()
+                  .deletePurchase(purchase.id);
+              if (context.mounted) {
+                SnackBarUtils.showTopSnackBar(context, 'Record deleted');
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
+  }
+}
+
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  _SliverAppBarDelegate(this._tabBar);
+
+  final TabBar _tabBar;
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: AppColors.background,
+      child: _tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
   }
 }
