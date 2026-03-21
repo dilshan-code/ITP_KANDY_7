@@ -289,10 +289,8 @@ class _NotificationListTile extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textMedium,
-                      height: 1.4,
+                      height: 1.5,
                     ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
                   Text(
