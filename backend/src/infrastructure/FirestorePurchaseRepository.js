@@ -42,6 +42,7 @@ class FirestorePurchaseRepository extends IPurchaseRepository {
             amountPaid: purchaseData.amountPaid || 0,
             remaining: remaining,
             status: status,
+            notes: purchaseData.notes || '',
             createdAt: now,
             updatedAt: now,
         };

@@ -13,6 +13,7 @@ class Purchase {
         amountPaid, // How much has been paid upfront
         remaining, // Amount still owed to the supplier
         status, // 'pending' or 'completed'
+        notes, // Optional notes about the purchase
         createdAt, 
         updatedAt 
     }) {
@@ -28,6 +29,7 @@ class Purchase {
         this.amountPaid = amountPaid || 0;
         this.remaining = remaining || 0;
         this.status = status || 'pending';
+        this.notes = notes || '';
         this.createdAt = createdAt || new Date().toISOString();
         this.updatedAt = updatedAt || new Date().toISOString();
     }
@@ -46,6 +48,7 @@ class Purchase {
             amountPaid: this.amountPaid,
             remaining: this.remaining,
             status: this.status,
+            notes: this.notes,
             createdAt: this.createdAt,
             updatedAt: this.updatedAt,
         };

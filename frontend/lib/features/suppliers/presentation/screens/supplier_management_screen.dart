@@ -5,6 +5,7 @@ import 'package:frontend/core/utils/snackbar_utils.dart';
 import 'package:frontend/features/suppliers/presentation/providers/supplier_provider.dart';
 import 'package:frontend/features/suppliers/presentation/screens/supplier_tabs_screen.dart';
 import 'package:frontend/features/suppliers/presentation/screens/add_supplier_screen.dart';
+import 'package:frontend/features/suppliers/presentation/screens/supplier_purchase_record_screen.dart';
 
 class SupplierManagementScreen extends StatefulWidget {
   const SupplierManagementScreen({super.key});
@@ -87,6 +88,37 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 24),
+
+                // Quick actions
+                const Text(
+                  'Quick Actions',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SupplierPurchaseRecordScreen(),
+                    ),
+                  ),
+                  icon: const Icon(Icons.add_shopping_cart_outlined),
+                  label: const Text('Record New Purchase'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accentGreen,
+                    foregroundColor: AppColors.primary,
+                    minimumSize: const Size(double.infinity, 52),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
                 ),
                 const SizedBox(height: 24),
 
@@ -211,7 +243,6 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
   Widget _buildSupplierCard(dynamic supplier) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
@@ -223,97 +254,109 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen> {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          Row(
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SupplierTabsScreen(),
+          ),
+        ),
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColors.accentGreen,
-                child: Text(
-                  supplier.name.isNotEmpty
-                      ? supplier.name[0].toUpperCase()
-                      : '?',
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      supplier.name,
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: AppColors.accentGreen,
+                    child: Text(
+                      supplier.name.isNotEmpty
+                          ? supplier.name[0].toUpperCase()
+                          : '?',
                       style: const TextStyle(
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        color: AppColors.textDark,
+                        fontSize: 16,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      supplier.phone,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          supplier.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          supplier.phone,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textMedium,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: supplier.status == 'active'
+                          ? AppColors.accentGreen
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      supplier.status == 'active' ? 'Active' : 'Inactive',
                       style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textMedium,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: supplier.status == 'active'
+                            ? AppColors.primary
+                            : AppColors.textLight,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: supplier.status == 'active'
-                      ? AppColors.accentGreen
-                      : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  supplier.status == 'active' ? 'Active' : 'Inactive',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: supplier.status == 'active'
-                        ? AppColors.primary
-                        : AppColors.textLight,
                   ),
-                ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton.icon(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AddSupplierScreen(supplier: supplier),
+                      ),
+                    ),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('Edit'),
+                    style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: () => _confirmDelete(supplier),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Delete'),
+                    style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AddSupplierScreen(supplier: supplier),
-                  ),
-                ),
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                label: const Text('Edit'),
-                style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-              ),
-              const SizedBox(width: 8),
-              TextButton.icon(
-                onPressed: () => _confirmDelete(supplier),
-                icon: const Icon(Icons.delete_outline, size: 18),
-                label: const Text('Delete'),
-                style: TextButton.styleFrom(foregroundColor: AppColors.error),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

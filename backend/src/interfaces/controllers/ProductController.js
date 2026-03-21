@@ -184,22 +184,10 @@ class ProductController {
 
             sales.forEach(sale => {
                 totalRevenue += (sale.totalAmount || 0);
-                
-                // Profit calculation: Revenue - (Cost Price * Quantity)
-                if (sale.items) {
-                    sale.items.forEach(item => {
-                        const product = productMap[item.productId];
-                        if (product) {
-                            const itemRevenue = (item.price || 0) * (item.quantity || 1);
-                            const itemCost = (product.costPrice || 0) * (item.quantity || 1);
-                            totalProfit += (itemRevenue - itemCost);
-                        }
-                    });
-                }
             });
 
             // 2. Inventory Health
-            const totalInventoryValue = products.reduce((sum, p) => sum + ((p.stockQuantity || 0) * (p.costPrice || 0)), 0);
+            const totalInventoryValue = products.reduce((sum, p) => sum + ((p.stockQuantity || 0) * (p.sellingPrice || 0)), 0);
             const totalStockItems = products.reduce((sum, p) => sum + (p.stockQuantity || 0), 0);
             const lowStockItemsCount = products.filter(p => p.stockQuantity <= (p.minimumStockLevel || 0)).length;
 
@@ -243,7 +231,6 @@ class ProductController {
                 data: {
                     summary: {
                         totalRevenue,
-                        totalProfit,
                         totalCreditOutstanding,
                         totalPurchases: purchases.reduce((sum, p) => sum + (p.totalAmount || 0), 0)
                     },

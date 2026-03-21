@@ -47,7 +47,6 @@ class FirestoreProductRepository extends IProductRepository {
             name: productData.name,
             category: productData.category,
             sellingPrice: productData.sellingPrice,
-            costPrice: productData.costPrice,
             stockQuantity: productData.stockQuantity,
             minimumStockLevel: productData.minimumStockLevel,
             description: productData.description || '',

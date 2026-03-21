@@ -63,7 +63,7 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
         'productId': product.id,
         'name': product.name,
         'quantity': 1,
-        'costPrice': product.costPrice, // Default to product's defined cost price
+        'costPrice': product.sellingPrice, // Default to product's selling price if cost not known
       });
     });
   }
@@ -110,11 +110,27 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
       'totalAmount': _totalAmount,
       'amountPaid': _amountPaid,
     });
-    setState(() => _isSubmitting = false);
     if (success && mounted) {
+      final productProvider = context.read<ProductProvider>();
+      
+      // Reset state BEFORE fetching new data to avoid dropdown assertion errors
+      setState(() {
+        _isSubmitting = false;
+        _selectedSupplierId = null;
+        _purchasedItems.clear();
+        _invoiceController.clear();
+        _taxController.clear();
+        _amountPaidController.clear();
+      });
+
       // Refresh products to show updated stock
-      context.read<ProductProvider>().fetchProducts();
-      Navigator.pop(context, true);
+      await productProvider.fetchProducts();
+      
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
+    } else {
+      setState(() => _isSubmitting = false);
     }
   }
 
@@ -132,35 +148,49 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
             const SizedBox(height: 8),
             Consumer<SupplierProvider>(
               builder: (context, supplierProvider, _) {
-                return DropdownButtonFormField<String>(
-                  initialValue: _selectedSupplierId,
-                  hint: const Text('Choose a supplier'),
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(
-                      Icons.local_shipping_outlined,
-                      color: AppColors.textLight,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                if (supplierProvider.isLoading && supplierProvider.suppliers.isEmpty) {
+                  return _buildLoadingDropdown('Loading Suppliers...');
+                }
+                return Container(
+                  decoration: _containerDecoration(Icons.local_shipping_outlined),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      key: ValueKey('supplier_id_dropdown_${supplierProvider.isLoading}_${_selectedSupplierId == null}'),
+                      isExpanded: true,
+                      value: _selectedSupplierId,
+                      hint: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Text('Choose a supplier'),
+                      ),
+                      items: supplierProvider.suppliers
+                          .map((s) => s.id)
+                          .toSet()
+                          .map((id) {
+                        final s = supplierProvider.suppliers.firstWhere((sup) => sup.id == id);
+                        return DropdownMenuItem(
+                          value: id,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(s.name),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setState(() {
+                          _selectedSupplierId = value;
+                          final supplier = supplierProvider.suppliers.firstWhere(
+                            (s) => s.id == value,
+                          );
+                          _selectedSupplierName = supplier.name;
+                        });
+                      },
+                      icon: const Padding(
+                        padding: EdgeInsets.only(right: 12),
+                        child: Icon(Icons.arrow_drop_down, color: AppColors.primary),
+                      ),
                     ),
                   ),
-                  items: supplierProvider.suppliers.map((s) {
-                    return DropdownMenuItem(value: s.id, child: Text(s.name));
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() {
-                      _selectedSupplierId = value;
-                      final supplier = supplierProvider.suppliers.firstWhere(
-                        (s) => s.id == value,
-                      );
-                      _selectedSupplierName = supplier.name;
-                    });
-                  },
                 );
               },
             ),
@@ -378,6 +408,23 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
   Widget _buildProductSelector() {
     return Consumer<ProductProvider>(
       builder: (context, productProvider, _) {
+        if (productProvider.isLoading) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.sync, color: AppColors.textLight, size: 20),
+                SizedBox(width: 12),
+                Text('Loading products...', style: TextStyle(color: AppColors.textLight)),
+              ],
+            ),
+          );
+        }
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -385,8 +432,10 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
             border: Border.all(color: Colors.grey.shade300),
           ),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton<Product>(
+            child: DropdownButton<String>(
+              key: ValueKey('product_selector_${productProvider.isLoading}'),
               isExpanded: true,
+              value: null, // Reset after each selection
               hint: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
                 child: Text('Select product to add'),
@@ -395,17 +444,24 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
                 padding: EdgeInsets.only(right: 12),
                 child: Icon(Icons.add_circle_outline, color: AppColors.primary),
               ),
-              items: productProvider.products.map((p) {
+              items: productProvider.products
+                  .map((p) => p.id)
+                  .toSet()
+                  .map((id) {
+                final p = productProvider.products.firstWhere((prod) => prod.id == id);
                 return DropdownMenuItem(
-                  value: p,
+                  value: id,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(p.name),
                   ),
                 );
               }).toList(),
-              onChanged: (product) {
-                if (product != null) _addItem(product);
+              onChanged: (productId) {
+                if (productId != null) {
+                  final product = productProvider.products.firstWhere((p) => p.id == productId);
+                  _addItem(product);
+                }
               },
             ),
           ),
@@ -523,6 +579,45 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  BoxDecoration _containerDecoration(IconData icon) {
+    return BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.grey.shade300),
+    );
+  }
+
+  Widget _buildLoadingDropdown(String hint) {
+    return Container(
+      decoration: _containerDecoration(Icons.sync),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          items: const [],
+          onChanged: null,
+          hint: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 12),
+                Text(hint),
+              ],
+            ),
+          ),
+          icon: const Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: Icon(Icons.arrow_drop_down, color: Colors.grey),
+          ),
+        ),
       ),
     );
   }

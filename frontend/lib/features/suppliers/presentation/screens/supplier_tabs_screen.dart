@@ -5,7 +5,7 @@ import 'package:frontend/core/utils/snackbar_utils.dart';
 import 'package:frontend/features/suppliers/presentation/providers/supplier_provider.dart';
 import 'package:frontend/features/suppliers/presentation/providers/purchase_provider.dart';
 import 'package:frontend/features/suppliers/presentation/screens/add_supplier_screen.dart';
-import 'package:frontend/features/suppliers/presentation/screens/record_purchase_screen.dart';
+import 'package:frontend/features/suppliers/presentation/screens/supplier_purchase_record_screen.dart';
 
 class SupplierTabsScreen extends StatefulWidget {
   const SupplierTabsScreen({super.key});
@@ -164,7 +164,6 @@ class _SupplierTabsScreenState extends State<SupplierTabsScreen>
             final supplier = filtered[index];
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
@@ -176,112 +175,121 @@ class _SupplierTabsScreenState extends State<SupplierTabsScreen>
                   ),
                 ],
               ),
-              child: Column(
-                children: [
-                  Row(
+              child: InkWell(
+                onTap: () {
+                  _tabController.animateTo(1);
+                },
+                borderRadius: BorderRadius.circular(14),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundColor: AppColors.accentGreen,
-                        child: Text(
-                          supplier.name.isNotEmpty
-                              ? supplier.name[0].toUpperCase()
-                              : '?',
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              supplier.name,
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: AppColors.accentGreen,
+                            child: Text(
+                              supplier.name.isNotEmpty
+                                  ? supplier.name[0].toUpperCase()
+                                  : '?',
                               style: const TextStyle(
+                                color: AppColors.primary,
                                 fontWeight: FontWeight.w700,
-                                fontSize: 15,
+                                fontSize: 16,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              supplier.phone,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColors.textMedium,
-                              ),
-                            ),
-                            if (supplier.totalPayable > 0) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                'Rs ${supplier.totalPayable.toStringAsFixed(0)} payable',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.warning,
-                                  fontWeight: FontWeight.w600,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  supplier.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                  ),
                                 ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  supplier.phone,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.textMedium,
+                                  ),
+                                ),
+                                if (supplier.totalPayable > 0) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Rs ${supplier.totalPayable.toStringAsFixed(0)} payable',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.warning,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: supplier.status == 'active'
+                                  ? AppColors.accentGreen
+                                  : Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              supplier.status == 'active' ? 'Active' : 'Inactive',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: supplier.status == 'active'
+                                    ? AppColors.primary
+                                    : AppColors.error,
                               ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: supplier.status == 'active'
-                              ? AppColors.accentGreen
-                              : Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          supplier.status == 'active' ? 'Active' : 'Inactive',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: supplier.status == 'active'
-                                ? AppColors.primary
-                                : AppColors.error,
+                            ),
                           ),
-                        ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton.icon(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    AddSupplierScreen(supplier: supplier),
+                              ),
+                            ),
+                            icon: const Icon(Icons.edit_outlined, size: 18),
+                            label: const Text('Edit'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: () => _confirmDelete(supplier),
+                            icon: const Icon(Icons.delete_outline, size: 18),
+                            label: const Text('Delete'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.error,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton.icon(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                AddSupplierScreen(supplier: supplier),
-                          ),
-                        ),
-                        icon: const Icon(Icons.edit_outlined, size: 18),
-                        label: const Text('Edit'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      TextButton.icon(
-                        onPressed: () => _confirmDelete(supplier),
-                        icon: const Icon(Icons.delete_outline, size: 18),
-                        label: const Text('Delete'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.error,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             );
           },
@@ -383,7 +391,7 @@ class _SupplierTabsScreenState extends State<SupplierTabsScreen>
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const RecordPurchaseScreen(),
+                      builder: (_) => const SupplierPurchaseRecordScreen(),
                     ),
                   ),
                   icon: const Icon(Icons.add),

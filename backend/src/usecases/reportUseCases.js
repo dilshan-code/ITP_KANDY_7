@@ -16,21 +16,18 @@ class GetBusinessReport {
             this.customerRepository.getAll()
         ]);
 
-        // 1. Financial Summary: Calculates total money made and profit.
         let totalRevenue = 0;
-        let totalProfit = 0;
         let totalItemsSold = 0;
 
         sales.forEach(sale => {
             totalRevenue += sale.totalAmount || 0;
-            totalProfit += (sale.totalAmount || 0) - (sale.costPrice || 0); // Assuming costPrice is stored or calculated
             totalItemsSold += sale.items ? sale.items.reduce((sum, item) => sum + (item.quantity || 0), 0) : 0;
         });
 
         // 2. Inventory Health: Identifies products that are running low or out of stock.
         const lowStockProducts = products.filter(p => p.stock <= (p.lowStockThreshold || 5)).length;
         const outOfStockProducts = products.filter(p => p.stock <= 0).length;
-        const totalStockValue = products.reduce((sum, p) => sum + (p.stock * (p.costPrice || 0)), 0);
+        const totalStockValue = products.reduce((sum, p) => sum + (p.stock * (p.sellingPrice || 0)), 0);
 
         // 3. Top Selling Products: Ranks items based on how many have been sold.
         const productSales = {};
@@ -64,7 +61,6 @@ class GetBusinessReport {
         return {
             summary: {
                 totalRevenue,
-                totalProfit,
                 totalCreditOutstanding: totalOutstanding,
                 totalPurchases: totalPurchasesAmount,
                 totalItemsSold,

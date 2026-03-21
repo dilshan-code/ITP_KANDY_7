@@ -5,7 +5,6 @@ class Product {
     name,
     category,
     sellingPrice,
-    costPrice,
     stockQuantity,
     minimumStockLevel,
     description,
@@ -18,7 +17,6 @@ class Product {
     this.name = name;
     this.category = category;
     this.sellingPrice = sellingPrice;
-    this.costPrice = costPrice;
     this.stockQuantity = stockQuantity;
     this.minimumStockLevel = minimumStockLevel;
     // Set default values if not provided
@@ -36,7 +34,7 @@ class Product {
   }
 
   // A calculated field (getter) for the total monetary value of current stock
-  // Calculates how much all the current stock of this product is worth to the business.
+  // Calculates how much all the current stock of this product is worth to the business based on selling price.
   get inventoryValue() {
     return this.sellingPrice * this.stockQuantity;
   }
@@ -48,14 +46,12 @@ class Product {
       name: this.name,
       category: this.category,
       sellingPrice: this.sellingPrice,
-      costPrice: this.costPrice,
       stockQuantity: this.stockQuantity,
       minimumStockLevel: this.minimumStockLevel,
       description: this.description,
       imageUrl: this.imageUrl,
       unit: this.unit,
       isLowStock: this.isLowStock, // Includes the calculated getter
-      inventoryValue: this.inventoryValue, // Includes the calculated getter
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

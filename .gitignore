@@ -110,3 +110,5 @@ key.properties
 migrate_working_dir/
 /tmp/
 walkthrough.md
+backend/check_user.js
+frontend/lib/main_test.dart

@@ -12,6 +12,7 @@ class Purchase {
   final double amountPaid;
   final double remaining;
   final String status;
+  final String notes;
   final String createdAt;
 
   Purchase({
@@ -27,6 +28,7 @@ class Purchase {
     this.amountPaid = 0, // How much of the total has already been paid
     this.remaining = 0, // The leftover debt to the supplier for this purchase
     this.status = 'pending',
+    this.notes = '',
     this.createdAt = '',
   });
 
@@ -44,6 +46,7 @@ class Purchase {
       amountPaid: (json['amountPaid'] ?? 0).toDouble(),
       remaining: (json['remaining'] ?? 0).toDouble(),
       status: json['status'] ?? 'pending',
+      notes: json['notes'] ?? '',
       createdAt: json['createdAt'] ?? '',
     );
   }
@@ -59,6 +62,7 @@ class Purchase {
       'tax': tax,
       'totalAmount': totalAmount,
       'amountPaid': amountPaid,
+      'notes': notes,
     };
   }
 }
