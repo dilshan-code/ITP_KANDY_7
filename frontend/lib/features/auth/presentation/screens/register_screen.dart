@@ -180,6 +180,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextField(
                     controller: _nameController,
                     decoration: const InputDecoration(
+                      hintText: 'Enter your full name',
                       prefixIcon: Icon(
                         Icons.person_outline,
                         color: AppColors.textLight,
@@ -194,6 +195,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextField(
                     controller: _shopNameController,
                     decoration: const InputDecoration(
+                      hintText: 'Enter your grocery store name',
                       prefixIcon: Icon(
                         Icons.store_outlined,
                         color: AppColors.textLight,
@@ -209,6 +211,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
+                      hintText: 'Enter your phone number',
                       prefixIcon: Icon(
                         Icons.phone_outlined,
                         color: AppColors.textLight,
@@ -238,6 +241,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
+                      hintText: 'Enter your email address (optional)',
                       prefixIcon: Icon(
                         Icons.mail_outline,
                         color: AppColors.textLight,
@@ -253,6 +257,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
+                      hintText: 'Create a strong password (min 8 characters)',
                       prefixIcon: const Icon(
                         Icons.lock_outline,
                         color: AppColors.textLight,

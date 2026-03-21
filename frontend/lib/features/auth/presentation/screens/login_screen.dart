@@ -167,6 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
+                      hintText: 'Enter your email or phone number',
                       prefixIcon: Icon(
                         Icons.mail_outline,
                         color: AppColors.textLight,
@@ -189,6 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
+                      hintText: 'Enter your password',
                       prefixIcon: Icon(
                         Icons.lock_outline,
                         color: AppColors.textLight,
