@@ -1,0 +1,326 @@
+{
+  "customers": {
+    "cust_001": {
+      "name": "Marcus Aurelius",
+      "creditBalance": 2265.00,
+      "creditLimit": 5000.00,
+      "dueDate": "2026-03-19",
+      "phone": "+94771234567",
+      "totalPaid": 500.00,
+      "isOverdue": true,
+      "lastPayment": 1711000000
+    },
+    "cust_002": {
+      "name": "David Miller",
+      "creditBalance": 4900.00,
+      "creditLimit": 5000.00,
+      "dueDate": "2026-03-21",
+      "phone": "+94779876543",
+      "totalPaid": 0.00,
+      "isOverdue": true,
+      "lastPayment": 0
+    },
+    "cust_003": {
+      "name": "Sarah Johnson",
+      "creditBalance": 1500.00,
+      "creditLimit": 3000.00,
+      "dueDate": "2026-03-20",
+      "phone": "+94772345678",
+      "totalPaid": 200.00,
+      "isOverdue": true,
+      "lastPayment": 1711000000
+    },
+    "cust_004": {
+      "name": "Rohan Perera",
+      "creditBalance": 3200.00,
+      "creditLimit": 4000.00,
+      "dueDate": "2026-03-15",
+      "phone": "+94773456789",
+      "totalPaid": 800.00,
+      "isOverdue": true,
+      "lastPayment": 1710000000
+    },
+    "cust_005": {
+      "name": "Anika Fernando",
+      "creditBalance": 750.00,
+      "creditLimit": 2000.00,
+      "dueDate": "2026-03-18",
+      "phone": "+94774567890",
+      "totalPaid": 1250.00,
+      "isOverdue": true,
+      "lastPayment": 1710500000
+    },
+    "cust_006": {
+      "name": "James Wilson",
+      "creditBalance": 5000.00,
+      "creditLimit": 5000.00,
+      "dueDate": "2026-03-10",
+      "phone": "+94775678901",
+      "totalPaid": 0.00,
+      "isOverdue": true,
+      "lastPayment": 0
+    },
+    "cust_007": {
+      "name": "Priya Sharma",
+      "creditBalance": 0.00,
+      "creditLimit": 3000.00,
+      "dueDate": "2026-04-01",
+      "phone": "+94776789012",
+      "totalPaid": 3000.00,
+      "isOverdue": false,
+      "lastPayment": 1711500000
+    },
+    "cust_008": {
+      "name": "Kasun Silva",
+      "creditBalance": 1800.00,
+      "creditLimit": 2500.00,
+      "dueDate": "2026-03-17",
+      "phone": "+94777890123",
+      "totalPaid": 700.00,
+      "isOverdue": true,
+      "lastPayment": 1710000000
+    }
+  },
+  "products": {
+    "prod_001": {
+      "name": "Valencia Oranges",
+      "stock": 3,
+      "unit": "units",
+      "lowStockThreshold": 5,
+      "category": "Fruits",
+      "price": 120.00,
+      "lastRestocked": 1711000000
+    },
+    "prod_002": {
+      "name": "Whole Milk 1L",
+      "stock": 4,
+      "unit": "units",
+      "lowStockThreshold": 10,
+      "category": "Dairy",
+      "price": 95.00,
+      "lastRestocked": 1711000000
+    },
+    "prod_003": {
+      "name": "Basmati Rice 5kg",
+      "stock": 2,
+      "unit": "bags",
+      "lowStockThreshold": 5,
+      "category": "Grains",
+      "price": 850.00,
+      "lastRestocked": 1711000000
+    },
+    "prod_004": {
+      "name": "Coconut Oil 1L",
+      "stock": 8,
+      "unit": "bottles",
+      "lowStockThreshold": 10,
+      "category": "Oils",
+      "price": 450.00,
+      "lastRestocked": 1711000000
+    },
+    "prod_005": {
+      "name": "Sugar 1kg",
+      "stock": 0,
+      "unit": "packets",
+      "lowStockThreshold": 5,
+      "category": "Essentials",
+      "price": 180.00,
+      "lastRestocked": 1711000000
+    },
+    "prod_006": {
+      "name": "Eggs (12 pack)",
+      "stock": 3,
+      "unit": "packs",
+      "lowStockThreshold": 10,
+      "category": "Dairy",
+      "price": 360.00,
+      "lastRestocked": 1710500000
+    },
+    "prod_007": {
+      "name": "Bread Loaf",
+      "stock": 2,
+      "unit": "loaves",
+      "lowStockThreshold": 8,
+      "category": "Bakery",
+      "price": 150.00,
+      "lastRestocked": 1710800000
+    },
+    "prod_008": {
+      "name": "Chicken Breast 1kg",
+      "stock": 1,
+      "unit": "kg",
+      "lowStockThreshold": 5,
+      "category": "Meat",
+      "price": 950.00,
+      "lastRestocked": 1710900000
+    },
+    "prod_009": {
+      "name": "Tomatoes 1kg",
+      "stock": 4,
+      "unit": "kg",
+      "lowStockThreshold": 8,
+      "category": "Vegetables",
+      "price": 180.00,
+      "lastRestocked": 1711000000
+    },
+    "prod_010": {
+      "name": "Bottled Water 1L",
+      "stock": 0,
+      "unit": "bottles",
+      "lowStockThreshold": 20,
+      "category": "Beverages",
+      "price": 80.00,
+      "lastRestocked": 1710000000
+    },
+    "prod_011": {
+      "name": "Instant Noodles",
+      "stock": 6,
+      "unit": "packets",
+      "lowStockThreshold": 15,
+      "category": "Essentials",
+      "price": 95.00,
+      "lastRestocked": 1710500000
+    },
+    "prod_012": {
+      "name": "Cheddar Cheese 200g",
+      "stock": 2,
+      "unit": "packs",
+      "lowStockThreshold": 5,
+      "category": "Dairy",
+      "price": 520.00,
+      "lastRestocked": 1710800000
+    }
+  },
+  "notifications": {
+    "notif_001": {
+      "type": "credit",
+      "category": "Credit",
+      "title": "⚠️ Credit Overdue",
+      "message": "Marcus Aurelius owes LKR 2,265 — 3 days overdue.",
+      "isRead": false,
+      "timestamp": 1742600000000,
+      "relatedId": "cust_001",
+      "amount": 2265.00,
+      "daysOverdue": 3,
+      "severity": "medium",
+      "createdBy": "system"
+    },
+    "notif_002": {
+      "type": "stock",
+      "category": "Stock",
+      "title": "📦 Low Stock Alert",
+      "message": "Valencia Oranges — only 3 units remaining. Restock soon.",
+      "isRead": false,
+      "timestamp": 1742599000000,
+      "relatedId": "prod_001",
+      "amount": null,
+      "daysOverdue": null,
+      "severity": "medium",
+      "createdBy": "system"
+    },
+    "notif_003": {
+      "type": "stock",
+      "category": "Stock",
+      "title": "📦 Low Stock Alert",
+      "message": "Whole Milk 1L — only 4 units remaining. Restock soon.",
+      "isRead": false,
+      "timestamp": 1742598000000,
+      "relatedId": "prod_002",
+      "amount": null,
+      "daysOverdue": null,
+      "severity": "medium",
+      "createdBy": "system"
+    },
+    "notif_004": {
+      "type": "credit",
+      "category": "Credit",
+      "title": "⚠️ Credit Overdue",
+      "message": "David Miller owes LKR 4,900 — 1 day overdue.",
+      "isRead": false,
+      "timestamp": 1742597000000,
+      "relatedId": "cust_002",
+      "amount": 4900.00,
+      "daysOverdue": 1,
+      "severity": "low",
+      "createdBy": "system"
+    },
+    "notif_005": {
+      "type": "report",
+      "category": "Reports",
+      "title": "📊 Monthly Report",
+      "message": "March sales report is ready. Sales grew by 19.9%.",
+      "isRead": true,
+      "timestamp": 1742500000000,
+      "relatedId": null,
+      "amount": null,
+      "daysOverdue": null,
+      "severity": "low",
+      "createdBy": "system"
+    },
+    "notif_006": {
+      "type": "payment",
+      "category": "System",
+      "title": "💳 Payment Received",
+      "message": "Marcus Aurelius paid LKR 500 towards credit balance.",
+      "isRead": true,
+      "timestamp": 1742400000000,
+      "relatedId": "cust_001",
+      "amount": 500.00,
+      "daysOverdue": null,
+      "severity": "low",
+      "createdBy": "system"
+    },
+    "notif_007": {
+      "type": "stock",
+      "category": "Stock",
+      "title": "📦 Out of Stock",
+      "message": "Sugar 1kg — 0 packets remaining. Restock immediately!",
+      "isRead": false,
+      "timestamp": 1742596000000,
+      "relatedId": "prod_005",
+      "amount": null,
+      "daysOverdue": null,
+      "severity": "high",
+      "createdBy": "system"
+    },
+    "notif_008": {
+      "type": "credit",
+      "category": "Credit",
+      "title": "⚠️ Credit Overdue",
+      "message": "James Wilson owes LKR 5,000 — 12 days overdue.",
+      "isRead": false,
+      "timestamp": 1742595000000,
+      "relatedId": "cust_006",
+      "amount": 5000.00,
+      "daysOverdue": 12,
+      "severity": "high",
+      "createdBy": "system"
+    },
+    "notif_009": {
+      "type": "stock",
+      "category": "Stock",
+      "title": "📦 Out of Stock",
+      "message": "Bottled Water 1L — 0 bottles remaining. Restock immediately!",
+      "isRead": false,
+      "timestamp": 1742594000000,
+      "relatedId": "prod_010",
+      "amount": null,
+      "daysOverdue": null,
+      "severity": "high",
+      "createdBy": "system"
+    },
+    "notif_010": {
+      "type": "credit",
+      "category": "Credit",
+      "title": "⚠️ Credit Overdue",
+      "message": "Rohan Perera owes LKR 3,200 — 7 days overdue.",
+      "isRead": false,
+      "timestamp": 1742593000000,
+      "relatedId": "cust_004",
+      "amount": 3200.00,
+      "daysOverdue": 7,
+      "severity": "high",
+      "createdBy": "system"
+    }
+  }
+}
