@@ -48,7 +48,10 @@ small_store_app/
 ### Prerequisites
 - [Flutter SDK](https://docs.flutter.dev/get-started/install)
 - [Node.js](https://nodejs.org/) (v14+)
-- **Firebase Service Account**: Ensure `serviceAccountKey.json` is placed in the `backend` root.
+- **Firebase Service Account**: 
+    > [!IMPORTANT]
+    > For security, `serviceAccountKey.json` is **not** included in this repository. 
+    > You must obtain this file from the Firebase Console (Settings -> Service Accounts) and place it in the `backend/` folder before running the server.
 
 ### Setup
 

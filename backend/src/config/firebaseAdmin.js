@@ -15,7 +15,12 @@ try {
     // If the file is missing, log an error and stop the server
     console.error('❌ Firebase service account key not found!');
     console.error(`   Expected at: ${serviceAccountPath}`);
-    console.error('   Download it from: Firebase Console → Project Settings → Service accounts → Generate new private key');
+    console.error('\n   --- FIX STEPS FOR TEAM ---');
+    console.error('   1. Go to: Firebase Console → Project Settings → Service accounts');
+    console.error('   2. Click "Generate new private key"');
+    console.error('   3. Rename the downloaded file to "serviceAccountKey.json"');
+    console.error('   4. Place it in the "backend/" folder root');
+    console.error('   --------------------------\n');
     process.exit(1);
 }
 
