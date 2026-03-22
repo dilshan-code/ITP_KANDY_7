@@ -4,6 +4,31 @@ A roadmap of architectural enhancements and user experience updates implemented 
 
 ---
 
+## 📅 March 22, 2026
+> *Focus: Data Export and Visual Refinement*
+
+### `[FEAT]` Universal PDF Export
+- **Feature**: PDF download capability for Credit Customers, Suppliers, and Purchase Records.
+- **Description**: Integrated `pdf` and `printing` packages to generate professional documents from application data.
+- **Benefit**: shop owners can now keep physical records or share transaction histories via external platforms, adding a "pro" tier feature to the app.
+
+### `[UI]` Supplier Lifecycle Enhancements
+- **Feature**: Refined Supplier Management UI and Profile editing.
+- **Description**: Updated the "Total Payable" card to a success-green theme, added supplier editing capabilities, and standardized currency symbols ($).
+- **Benefit**: Makes financial data more intuitive (Green = Settled/Calculated) and gives users better control over their contact database.
+
+### `[UX]` Contextual Placeholders
+- **Feature**: Auth Screen hint text integration.
+- **Description**: Added descriptive placeholders (e.g., "Enter your email") to all input fields in Login and Registration screens.
+- **Benefit**: reduces cognitive load for new users and prevents input errors by providing immediate visual cues on what information is required.
+
+### `[UI]` Global Notification Branding
+- **Feature**: Consistent Notification Icons.
+- **Description**: Added a uniform notification bell icon across all primary dashboard screens.
+- **Benefit**: Provides a predictable anchor point for users to check their activity logs, improving navigation "muscle memory."
+
+---
+
 ## 📅 March 21, 2026
 > *Focus: UX Resilience and Shell Architecture*
 
@@ -83,4 +108,4 @@ A roadmap of architectural enhancements and user experience updates implemented 
 - **Benefit**: Gives the user full control over their data. Mistakes happen—now they can be fixed.
 
 ---
-*Last Update: 2026-03-21 • Status: Stable (Beta)*
+*Last Update: 2026-03-22 • Status: Stable (Beta)*

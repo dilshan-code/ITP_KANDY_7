@@ -4,6 +4,16 @@ A professional record of technical challenges encountered and resolved during th
 
 ---
 
+## 📅 March 22, 2026
+> *Focus: Notification UX and Layout Consistency*
+
+### `[FIXED]` Notification Alignment & Clipping
+- **Issue**: Top popup notifications were misaligned, and long messages were clipped in the notification list.
+- **Fix**: Re-centered the notification overlay and implemented expanded text layouts for the notification history screen.
+- **Context**: Information should be readable at a glance. Ensuring notifications don't cut off important context improves user awareness of system actions.
+
+---
+
 ## 📅 March 21, 2026
 > *Focus: Stabilizing UI State and Backend Error Parsing*
 
@@ -83,4 +93,4 @@ A professional record of technical challenges encountered and resolved during th
 - **Context**: Technical debt cleanup. We moved to a simpler price-only model to streamline the user interface.
 
 ---
-*Last Review: 2026-03-21 • Total Issues Logged: 14*
+*Last Review: 2026-03-22 • Total Issues Logged: 15*
