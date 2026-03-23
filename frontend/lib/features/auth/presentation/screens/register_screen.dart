@@ -4,6 +4,7 @@ import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/shared/main_shell.dart';
 import 'package:frontend/core/utils/snackbar_utils.dart';
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart';
+import 'package:frontend/core/utils/phone_utils.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -55,8 +56,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       return;
     }
-    if (_phoneController.text.trim().isEmpty ||
-        _phoneController.text.trim() == '+94') {
+    final phone = normalizePhoneNumber(_phoneController.text.trim());
+    if (phone.isEmpty || phone == '+94') {
       SnackBarUtils.showTopSnackBar(
         context,
         'Phone number is required',
@@ -84,7 +85,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final success = await authProvider.register({
       'name': _nameController.text.trim(),
       'shopName': _shopNameController.text.trim(),
-      'phone': _phoneController.text.trim(),
+      'phone': phone,
       'email': _emailController.text.trim(),
       'password': _passwordController.text.trim(),
     });

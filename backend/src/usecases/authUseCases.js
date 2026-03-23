@@ -1,11 +1,23 @@
 const bcrypt = require('bcryptjs');
 
+function normalizePhone(phone) {
+    if (!phone) return phone;
+    const trimmed = phone.trim();
+    if (trimmed.startsWith('0') && trimmed.length === 10) {
+        return '+94' + trimmed.substring(1);
+    }
+    return trimmed;
+}
+
+
 // This use case handles the registration of a new shop owner.
 class RegisterOwner {
     constructor(ownerRepository) {
         this.ownerRepository = ownerRepository;
     }
     async execute(ownerData) {
+        const normalizedPhone = normalizePhone(ownerData.phone);
+        
         // Check if email already exists, if provided
         if (ownerData.email) {
             const existingEmail = await this.ownerRepository.findByEmail(ownerData.email);
@@ -14,15 +26,15 @@ class RegisterOwner {
             }
         }
         // Check if phone already exists
-        if (ownerData.phone) {
-            const existingPhone = await this.ownerRepository.findByPhone(ownerData.phone);
+        if (normalizedPhone) {
+            const existingPhone = await this.ownerRepository.findByPhone(normalizedPhone);
             if (existingPhone) {
                 throw new Error('An account with this phone number already exists');
             }
         }
         // Hash the password before saving
         const hashedPassword = await bcrypt.hash(ownerData.password, 10);
-        return this.ownerRepository.create({ ...ownerData, password: hashedPassword });
+        return this.ownerRepository.create({ ...ownerData, phone: normalizedPhone, password: hashedPassword });
     }
 }
 
@@ -37,7 +49,8 @@ class LoginOwner {
         if (identifier && identifier.includes('@')) {
             owner = await this.ownerRepository.findByEmail(identifier);
         } else {
-            owner = await this.ownerRepository.findByPhone(identifier);
+            const normalizedPhone = normalizePhone(identifier);
+            owner = await this.ownerRepository.findByPhone(normalizedPhone);
         }
         
         if (!owner) {
@@ -60,6 +73,11 @@ class UpdateOwnerProfile {
     async execute(id, profileData) {
         // Do not allow updating password through this use case
         const { password, ...updateData } = profileData;
+        
+        if (updateData.phone) {
+            updateData.phone = normalizePhone(updateData.phone);
+        }
+        
         return this.ownerRepository.update(id, updateData);
     }
 }

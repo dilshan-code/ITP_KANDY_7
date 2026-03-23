@@ -7,6 +7,7 @@ import 'package:frontend/features/auth/presentation/providers/auth_provider.dart
 import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart';
 import 'package:frontend/features/auth/presentation/screens/register_screen.dart';
 import 'package:frontend/features/admin/presentation/screens/admin_shell.dart';
+import 'package:frontend/core/utils/phone_utils.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -34,8 +35,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _login() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final identifier = normalizePhoneNumber(_emailController.text.trim());
     final success = await authProvider.login(
-      _emailController.text.trim(),
+      identifier,
       _passwordController.text.trim(),
     );
     if (!mounted) return;

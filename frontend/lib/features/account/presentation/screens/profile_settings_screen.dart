@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/core/utils/snackbar_utils.dart';
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart';
+import 'package:frontend/core/utils/phone_utils.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -48,7 +49,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     final success = await context.read<AuthProvider>().updateProfile({
       'name': _nameController.text,
       'shopName': _shopNameController.text,
-      'phone': _phoneController.text,
+      'phone': normalizePhoneNumber(_phoneController.text),
     });
 
     if (mounted) {

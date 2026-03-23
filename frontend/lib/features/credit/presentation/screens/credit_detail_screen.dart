@@ -255,7 +255,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
     // Combine sales and transactions into a single list sorted by date
     final List<dynamic> combined = [
       ...provider.transactions,
-      ...provider.customerSales.where((s) => s['paymentMethod'] == 'credit'),
+      ...provider.customerSales,
     ];
 
     combined.sort((a, b) {
@@ -286,6 +286,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
     final customerName = sale['customerName'] ?? 'Walk-in Customer';
     final invoiceId = sale['id']?.toString().toUpperCase() ?? 'N/A';
     final paymentMethod = sale['paymentMethod'] ?? 'credit';
+    final isCredit = paymentMethod.toLowerCase() == 'credit';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -321,12 +322,12 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
+                    color: (isCredit ? Colors.orange : AppColors.primary).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.receipt_long_outlined,
-                    color: Colors.orange,
+                    color: isCredit ? Colors.orange : AppColors.primary,
                     size: 22,
                   ),
                 ),
@@ -359,11 +360,11 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                   ),
                 ),
                 Text(
-                  '- Rs ${amount.toStringAsFixed(0)}',
-                  style: const TextStyle(
+                  '${isCredit ? '-' : ''} Rs ${amount.toStringAsFixed(0)}',
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.error,
+                    color: isCredit ? AppColors.error : AppColors.textDark,
                   ),
                 ),
               ],
