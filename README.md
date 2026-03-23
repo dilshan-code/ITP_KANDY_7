@@ -53,6 +53,13 @@ small_store_app/
     > For security, `serviceAccountKey.json` is **not** included in this repository. 
     > You must obtain this file from the Firebase Console (Settings -> Service Accounts) and place it in the `backend/` folder before running the server.
 
+- **Cloudinary Account**:
+    > [!IMPORTANT]
+    > For product image uploads, you need a Cloudinary account. 
+    > 1. Create a free account at [Cloudinary](https://cloudinary.com/).
+    > 2. Create an **Unsigned** upload preset in Cloudinary Settings -> Upload.
+    > 3. Update the configuration in `frontend/lib/core/config/cloudinary_config.dart` with your `cloudName` and `uploadPreset`.
+
 ### Setup
 
 1. **Backend Setup**:
