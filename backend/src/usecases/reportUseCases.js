@@ -51,7 +51,8 @@ class GetBusinessReport {
                         productSales[item.productId] = { 
                             name: item.name, 
                             quantity: 0, 
-                            revenue: 0 
+                            revenue: 0,
+                            unit: item.unit || 'ea'
                         };
                     }
                     productSales[item.productId].quantity += (item.quantity || 0);

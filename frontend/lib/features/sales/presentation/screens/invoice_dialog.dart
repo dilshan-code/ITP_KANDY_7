@@ -109,7 +109,7 @@ class InvoiceDialog extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            '${item['name']} (x$qty)',
+                            '${item['name']} (x$qty ${item['unit'] ?? ''})',
                             style: const TextStyle(fontSize: 14),
                           ),
                         ),

@@ -225,7 +225,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -272,8 +272,8 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                     show: true,
                     gradient: LinearGradient(
                       colors: [
-                        AppColors.primary.withOpacity(0.2),
-                        AppColors.primary.withOpacity(0.0),
+                        AppColors.primary.withValues(alpha: 0.2),
+                        AppColors.primary.withValues(alpha: 0.0),
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -283,7 +283,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               ],
               lineTouchData: LineTouchData(
                 touchTooltipData: LineTouchTooltipData(
-                  getTooltipColor: (spot) => AppColors.textDark.withOpacity(0.8),
+                  getTooltipColor: (spot) => AppColors.textDark.withValues(alpha: 0.8),
                   getTooltipItems: (touchedSpots) {
                     return touchedSpots.map((spot) {
                       return LineTooltipItem(
@@ -368,7 +368,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -426,7 +426,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.divider.withOpacity(0.5)),
+        border: Border.all(color: AppColors.divider.withValues(alpha: 0.5)),
       ),
       child: Column(
         children: [
@@ -484,7 +484,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
     return Expanded(
       child: Row(
         children: [
-          Icon(icon, size: 14, color: color.withOpacity(0.5)),
+          Icon(icon, size: 14, color: color.withValues(alpha: 0.5)),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -525,7 +525,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.divider.withOpacity(0.3)),
+                border: Border.all(color: AppColors.divider.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -559,7 +559,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                           ),
                         ),
                         Text(
-                          '${product['quantity']} units moved',
+                          '${product['quantity']} ${product['unit'] ?? 'units'} moved',
                           style: GoogleFonts.inter(
                             fontSize: 12,
                             color: AppColors.textLight,

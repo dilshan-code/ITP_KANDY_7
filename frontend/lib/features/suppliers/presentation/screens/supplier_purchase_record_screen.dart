@@ -123,6 +123,7 @@ class _SupplierPurchaseRecordScreenState extends State<SupplierPurchaseRecordScr
           'productId': selectedProduct.id,
           'name': selectedProduct.name,
           'quantity': quantity,
+          'unit': selectedProduct.unit,
           'costPrice': price,
         }
       ],

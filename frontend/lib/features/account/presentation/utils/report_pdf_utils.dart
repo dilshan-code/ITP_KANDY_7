@@ -34,7 +34,7 @@ class ReportPdfUtils {
                       style: pw.TextStyle(
                         fontSize: 28,
                         fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.blue900,
+                        color: PdfColor.fromInt(0xFF2563EB), // App primary color
                       ),
                     ),
                     pw.Text(
@@ -78,7 +78,7 @@ class ReportPdfUtils {
               border: pw.TableBorder.all(color: PdfColors.grey200, width: 0.5),
               children: [
                 _buildTableRow('Total Stock Value', currencyFormat.format(inventory['totalValue'] ?? 0)),
-                _buildTableRow('Total Items in Stock', '${inventory['itemCount'] ?? 0} units'),
+                _buildTableRow('Total Items in Stock', '${inventory['itemCount'] ?? 0} items'),
                 _buildTableRow('Low Stock Alerts', '${inventory['lowStockCount'] ?? 0} items'),
               ],
             ),
@@ -113,7 +113,7 @@ class ReportPdfUtils {
                       children: [
                         _buildTableCell((index + 1).toString()),
                         _buildTableCell(product['name'] ?? 'Unknown'),
-                        _buildTableCell(product['quantity'].toString()),
+                        _buildTableCell('${product['quantity']} ${product['unit'] ?? ''}'),
                         _buildTableCell(currencyFormat.format(product['revenue'] ?? 0)),
                       ],
                     );
@@ -148,14 +148,14 @@ class ReportPdfUtils {
 
   static pw.Widget _buildSectionHeader(String title) {
     return pw.Container(
-      padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 10),
       decoration: const pw.BoxDecoration(
-        border: pw.Border(left: pw.BorderSide(color: PdfColors.blue900, width: 4)),
-        color: PdfColors.grey100,
+        border: pw.Border(left: pw.BorderSide(color: PdfColor.fromInt(0xFF2563EB), width: 4)),
+        color: PdfColors.grey50,
       ),
       child: pw.Text(
         title,
-        style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900),
+        style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF2563EB)),
       ),
     );
   }

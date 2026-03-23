@@ -18,7 +18,7 @@ class SupplierExportUtils {
             children: [
               pw.Header(
                 level: 0,
-                child: pw.Text('Suppliers List', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                child: pw.Text('Suppliers List', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF2563EB))),
               ),
               pw.SizedBox(height: 16),
               pw.TableHelper.fromTextArray(
@@ -58,7 +58,7 @@ class SupplierExportUtils {
             children: [
               pw.Header(
                 level: 0,
-                child: pw.Text('Purchase Records', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                child: pw.Text('Purchase Records', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF2563EB))),
               ),
               pw.SizedBox(height: 16),
               pw.TableHelper.fromTextArray(

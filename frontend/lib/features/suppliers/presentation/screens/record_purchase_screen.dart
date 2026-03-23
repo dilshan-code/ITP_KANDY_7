@@ -63,6 +63,7 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
         'productId': product.id,
         'name': product.name,
         'quantity': 1,
+        'unit': product.unit,
         'costPrice': product.sellingPrice, // Default to product's selling price if cost not known
       });
     });
@@ -521,8 +522,8 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Qty',
-                        style: TextStyle(
+                    Text('Qty (${item['unit'] ?? ''})',
+                        style: const TextStyle(
                             fontSize: 12, color: AppColors.textMedium)),
                     const SizedBox(height: 4),
                     TextFormField(

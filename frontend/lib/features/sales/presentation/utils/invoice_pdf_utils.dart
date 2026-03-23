@@ -39,7 +39,7 @@ class InvoicePdfUtils {
                           style: pw.TextStyle(
                             fontSize: 32,
                             fontWeight: pw.FontWeight.bold,
-                            color: PdfColors.blue900,
+                            color: PdfColor.fromInt(0xFF2563EB), // App primary color
                           ),
                         ),
                         pw.Text(
@@ -125,7 +125,7 @@ class InvoicePdfUtils {
                       return pw.TableRow(
                         children: [
                           _buildTableCell(item['name'] ?? 'Unknown Item'),
-                          _buildTableCell(qty.toString()),
+                          _buildTableCell('$qty ${item['unit'] ?? ''}'),
                           _buildTableCell('Rs ${price.toStringAsFixed(0)}'),
                           _buildTableCell(
                             'Rs ${(price * qty).toStringAsFixed(0)}',

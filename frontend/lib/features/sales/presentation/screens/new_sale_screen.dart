@@ -193,14 +193,28 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                                 ),
                               ),
                               Container(
-                                width: 36,
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                constraints: const BoxConstraints(minWidth: 40),
                                 alignment: Alignment.center,
-                                child: Text(
-                                  '${item['quantity']}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                  ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '${item['quantity']}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${item['unit']}',
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        color: AppColors.textMedium,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                               _buildQuantityButton(

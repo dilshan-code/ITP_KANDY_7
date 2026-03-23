@@ -24,6 +24,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   late TextEditingController _minStockController;
   late TextEditingController _descriptionController;
   late String _selectedCategory;
+  late String _selectedUnit;
   late int _stockQuantity;
   bool _saving = false;
   File? _imageFile;
@@ -31,14 +32,21 @@ class _EditProductScreenState extends State<EditProductScreen> {
   bool _imageRemoved = false;
 
   final List<String> _categories = [
-    'Fruits & Vegetables',
-    'Dairy & Eggs',
-    'Bakery',
-    'Meat & Seafood',
-    'Beverages',
+    'Grains & Staples',
     'Fruits',
     'Vegetables',
+    'Dairy & Eggs',
+    'Bakery',
+    'Household / Personal Care',
   ];
+
+  final Map<String, String> _unitExamples = {
+    'kg': 'rice and vegetables',
+    'pcs': 'apples and eggs',
+    'items': 'bread, toothpaste, oil bottles',
+    'packs': 'bundled goods',
+    'trays': 'egg trays',
+  };
 
   @override
   void initState() {
@@ -56,6 +64,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _selectedCategory = _categories.contains(widget.product.category)
         ? widget.product.category
         : _categories.first;
+    _selectedUnit = widget.product.unit.isNotEmpty ? widget.product.unit : 'pcs';
     _stockQuantity = widget.product.stockQuantity;
   }
 
@@ -117,6 +126,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
       'minimumStockLevel': int.tryParse(_minStockController.text) ?? 0,
       'description': _descriptionController.text.trim(),
       'imageUrl': _imageRemoved ? '' : widget.product.imageUrl,
+      'unit': _selectedUnit,
     };
 
     final success = await context.read<ProductProvider>().updateProduct(
@@ -560,6 +570,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
       ),
       child: Row(
         children: [
+          _buildUnitSelector(),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: () {
               if (_stockQuantity > 0) setState(() => _stockQuantity--);
@@ -608,6 +620,92 @@ class _EditProductScreenState extends State<EditProductScreen> {
               ),
               child: const Icon(Icons.add, color: Colors.white),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUnitSelector() {
+    return GestureDetector(
+      onTap: _showUnitSelectionDialog,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _selectedUnit,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 2),
+            const Icon(Icons.arrow_drop_down, color: AppColors.primary, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showUnitSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'Select Unit',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(8, 20, 8, 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: _unitExamples.entries.map((entry) {
+              final isSelected = _selectedUnit == entry.key;
+              return ListTile(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                selected: isSelected,
+                selectedTileColor: AppColors.primary.withValues(alpha: 0.05),
+                title: Text(
+                  entry.key,
+                  style: TextStyle(
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected ? AppColors.primary : AppColors.textDark,
+                  ),
+                ),
+                subtitle: Text(
+                  'e.g. ${entry.value}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isSelected ? AppColors.primary.withValues(alpha: 0.7) : AppColors.textLight,
+                  ),
+                ),
+                trailing: isSelected
+                    ? const Icon(Icons.check_circle, color: AppColors.primary)
+                    : null,
+                onTap: () {
+                  setState(() => _selectedUnit = entry.key);
+                  Navigator.pop(context);
+                },
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textMedium)),
           ),
         ],
       ),

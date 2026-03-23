@@ -21,19 +21,29 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _sellingPriceController = TextEditingController();
   final _minStockController = TextEditingController();
   final _descriptionController = TextEditingController();
-  String _selectedCategory = 'Fruits & Vegetables';
+  String _selectedCategory = 'Fruits';
+  String _selectedUnit = 'pcs';
   int _initialStock = 0;
   bool _saving = false;
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
 
   final List<String> _categories = [
-    'Fruits & Vegetables',
+    'Grains & Staples',
+    'Fruits',
+    'Vegetables',
     'Dairy & Eggs',
     'Bakery',
-    'Meat & Seafood',
-    'Beverages',
+    'Household / Personal Care',
   ];
+
+  final Map<String, String> _unitExamples = {
+    'kg': 'rice and vegetables',
+    'pcs': 'apples and eggs',
+    'items': 'bread, toothpaste, oil bottles',
+    'packs': 'bundled goods',
+    'trays': 'egg trays',
+  };
 
   @override
   void dispose() {
@@ -58,11 +68,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
         });
       }
     } catch (e) {
-      SnackBarUtils.showTopSnackBar(
-        context,
-        'Error picking image: $e',
-        isError: true,
-      );
+      if (mounted) {
+        SnackBarUtils.showTopSnackBar(
+          context,
+          'Error picking image: $e',
+          isError: true,
+        );
+      }
     }
   }
 
@@ -88,7 +100,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       'stockQuantity': _initialStock,
       'minimumStockLevel': int.tryParse(_minStockController.text) ?? 0,
       'description': _descriptionController.text.trim(),
-      'unit': 'ea',
+      'unit': _selectedUnit,
     };
 
     // Ask the provider to execute an API POST request with this data
@@ -203,7 +215,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 ),
                               ],
                             ),
-                            _buildStockStepper(),
+                            Row(
+                              children: [
+                                _buildUnitSelector(),
+                                const SizedBox(width: 12),
+                                _buildStockStepper(),
+                              ],
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -473,6 +491,92 @@ class _AddProductScreenState extends State<AddProductScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildUnitSelector() {
+    return GestureDetector(
+      onTap: _showUnitSelectionDialog,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _selectedUnit,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down, color: AppColors.primary, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showUnitSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'Select Unit',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(8, 20, 8, 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: _unitExamples.entries.map((entry) {
+              final isSelected = _selectedUnit == entry.key;
+              return ListTile(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                selected: isSelected,
+                selectedTileColor: AppColors.primary.withValues(alpha: 0.05),
+                title: Text(
+                  entry.key,
+                  style: TextStyle(
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected ? AppColors.primary : AppColors.textDark,
+                  ),
+                ),
+                subtitle: Text(
+                  'e.g. ${entry.value}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isSelected ? AppColors.primary.withValues(alpha: 0.7) : AppColors.textLight,
+                  ),
+                ),
+                trailing: isSelected
+                    ? const Icon(Icons.check_circle, color: AppColors.primary)
+                    : null,
+                onTap: () {
+                  setState(() => _selectedUnit = entry.key);
+                  Navigator.pop(context);
+                },
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textMedium)),
+          ),
+        ],
+      ),
     );
   }
 

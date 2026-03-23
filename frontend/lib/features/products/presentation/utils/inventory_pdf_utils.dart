@@ -30,7 +30,7 @@ class InventoryPdfUtils {
                       style: pw.TextStyle(
                         fontSize: 24,
                         fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.blue900,
+                        color: PdfColor.fromInt(0xFF2563EB), // App primary color
                       ),
                     ),
                     pw.Text(
@@ -61,7 +61,7 @@ class InventoryPdfUtils {
               },
               children: [
                 pw.TableRow(
-                  decoration: const pw.BoxDecoration(color: PdfColors.grey100),
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey50),
                   children: [
                     _buildTableCell('Product Name', isHeader: true),
                     _buildTableCell('Category', isHeader: true),

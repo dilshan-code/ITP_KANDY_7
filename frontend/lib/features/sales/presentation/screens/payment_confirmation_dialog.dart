@@ -117,7 +117,7 @@ class PaymentConfirmationDialog extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            '${item['name']} x${item['quantity']}',
+                            '${item['name']} x${item['quantity']} ${item['unit'] ?? ''}',
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,

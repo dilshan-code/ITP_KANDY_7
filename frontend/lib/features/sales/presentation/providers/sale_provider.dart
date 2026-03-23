@@ -78,6 +78,7 @@ class SaleProvider extends ChangeNotifier {
           'name': product.name,
           'price': product.sellingPrice,
           'quantity': 1,
+          'unit': product.unit,
           'stockQuantity': product.stockQuantity, // Store for local validation
         });
       } else {
