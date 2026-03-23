@@ -9,7 +9,7 @@ void main() {
   testWidgets('App should launch without errors', (WidgetTester tester) async {
     // Build the ClickBuyApp and trigger a frame.
     await tester.pumpWidget(const ClickBuyApp());
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     // Verify the app renders successfully (no crash).
     expect(find.byType(MaterialApp), findsOneWidget);

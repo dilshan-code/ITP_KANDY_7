@@ -10,8 +10,6 @@ function createProductRoutes(productController) {
     // GET /api/transactions -> getTransactions()
     router.get('/transactions', (req, res) => productController.getTransactions(req, res));
 
-    // GET /api/reports -> getReports()
-    router.get('/reports', (req, res) => productController.getReports(req, res));
 
     // GET /api/products -> getAll()
     router.get('/products', (req, res) => productController.getAll(req, res));
