@@ -29,20 +29,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
     });
     try {
       final response = await ApiClient.get('/reports');
-      if (response['success'] == true) {
-        setState(() {
-          _reportData = response['data'];
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _error = response['error'] ?? 'Failed to load reports';
-          _isLoading = false;
-        });
-      }
+      setState(() {
+        _reportData = response;
+        _isLoading = false;
+      });
     } catch (e) {
       setState(() {
-        _error = 'Error connecting to server';
+        _error = e.toString().contains('Exception:') 
+            ? e.toString().substring(e.toString().indexOf('Exception:') + 10).trim()
+            : 'Error connecting to server';
         _isLoading = false;
       });
     }
