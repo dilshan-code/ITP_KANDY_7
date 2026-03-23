@@ -188,13 +188,6 @@ class AccountScreen extends StatelessWidget {
                       );
                     },
                   ),
-                  _buildMenuItem(
-                    context,
-                    Icons.inventory_2_outlined,
-                    'Inventory',
-                    'Manage your product stock',
-                    () {},
-                  ),
 
                   const SizedBox(height: 24),
                   _buildMenuItem(
