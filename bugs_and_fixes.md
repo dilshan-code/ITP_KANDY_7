@@ -4,6 +4,21 @@ A professional record of technical challenges encountered and resolved during th
 
 ---
 
+## 📅 March 23, 2026
+> *Focus: Data Normalization and Backend Auditing*
+
+### `[FIXED]` Phone Number Inconsistency
+- **Issue**: Variations in phone number formats (spaces, dashes, country codes) caused search failures and duplicate records.
+- **Fix**: Implemented a unified `normalizePhoneNumber` utility and added a comprehensive test suite to handle various edge cases.
+- **Context**: Data integrity starts at the input level. Standardizing phone numbers ensures that "077 123 4567" and "0771234567" are treated as the same entity.
+
+### `[RESOLVED]` Sale Record Discrepancies
+- **Issue**: Minor discrepancies were found in some sale records during high-concurrency testing.
+- **Fix**: Refactored `SaleController.js` to ensure atomic operations and created a `check_sales.js` audit script for field verification.
+- **Context**: Trust is the foundation of a POS system. These backend safeguards ensure that every cent is accounted for and records matches the physical transactions.
+
+---
+
 ## 📅 March 22, 2026
 > *Focus: Notification UX and Layout Consistency*
 
@@ -93,4 +108,4 @@ A professional record of technical challenges encountered and resolved during th
 - **Context**: Technical debt cleanup. We moved to a simpler price-only model to streamline the user interface.
 
 ---
-*Last Review: 2026-03-22 • Total Issues Logged: 15*
+*Last Review: 2026-03-23 • Total Issues Logged: 17*

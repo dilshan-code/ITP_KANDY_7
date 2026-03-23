@@ -4,6 +4,26 @@ A roadmap of architectural enhancements and user experience updates implemented 
 
 ---
 
+## 📅 March 23, 2026
+> *Focus: Developer Tooling and Data Integrity*
+
+### `[ARCH]` Phone Normalization Engine
+- **Feature**: Core utility for sanitizing and standardizing phone number inputs.
+- **Description**: Centralized normalization logic that strips non-numeric characters and enforces a standard format across the app.
+- **Benefit**: dramatically improves the reliability of customer searches and SMS notification delivery.
+
+### `[DEVOPS]` Backend Audit Utilities
+- **Feature**: `check_sales.js` Sales Verification Script.
+- **Description**: A CLI tool for backend developers to quickly scan and validate the integrity of sale and credit records in Firestore.
+- **Benefit**: Reduces the time needed to debug data issues and provides a safety net during large-scale database migrations.
+
+### `[UX]` Refined Credit History View
+- **Feature**: Enhanced layout for `credit_list_screen.dart`.
+- **Description**: Optimized the rendering of credit transactions for better readability and performance.
+- **Benefit**: Provides shop owners with a clearer view of their outstanding balance and payment history, facilitating faster decision-making.
+
+---
+
 ## 📅 March 22, 2026
 > *Focus: Data Export and Visual Refinement*
 
@@ -108,4 +128,4 @@ A roadmap of architectural enhancements and user experience updates implemented 
 - **Benefit**: Gives the user full control over their data. Mistakes happen—now they can be fixed.
 
 ---
-*Last Update: 2026-03-22 • Status: Stable (Beta)*
+*Last Update: 2026-03-23 • Status: Stable (Beta)*
