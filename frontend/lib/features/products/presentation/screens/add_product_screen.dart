@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/core/utils/snackbar_utils.dart';
@@ -22,6 +24,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
   String _selectedCategory = 'Fruits & Vegetables';
   int _initialStock = 0;
   bool _saving = false;
+  File? _imageFile;
+  final ImagePicker _picker = ImagePicker();
 
   final List<String> _categories = [
     'Fruits & Vegetables',
@@ -38,6 +42,28 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _minStockController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 1000,
+        maxHeight: 1000,
+        imageQuality: 85,
+      );
+      if (pickedFile != null) {
+        setState(() {
+          _imageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      SnackBarUtils.showTopSnackBar(
+        context,
+        'Error picking image: $e',
+        isError: true,
+      );
+    }
   }
 
   Future<void> _saveProduct() async {
@@ -66,9 +92,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
     };
 
     // Ask the provider to execute an API POST request with this data
-    final success = await context.read<ProductProvider>().createProduct(data);
+    final success = await context.read<ProductProvider>().createProduct(
+          data,
+          imageFile: _imageFile,
+        );
 
     // Guard against the widget being unmounted out from under us during the async call
+    if (!context.mounted) return;
+
     if (mounted) {
       setState(() => _saving = false);
       if (success && mounted) {
@@ -303,11 +334,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.add_a_photo,
-                size: 36,
-                color: AppColors.textLight.withValues(alpha: 0.6),
-              ),
+              if (_imageFile != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.file(
+                    _imageFile!,
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.cover,
+                  ),
+                )
+              else
+                Icon(
+                  Icons.add_a_photo,
+                  size: 36,
+                  color: AppColors.textLight.withValues(alpha: 0.6),
+                ),
             ],
           ),
         ),
@@ -318,7 +360,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: () => _pickImage(ImageSource.camera),
                   icon: const Icon(Icons.camera_alt, size: 18),
                   label: const Text(
                     'Take Photo',
@@ -339,7 +381,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: () => _pickImage(ImageSource.gallery),
                   icon: const Icon(Icons.image, size: 18),
                   label: const Text(
                     'Gallery',

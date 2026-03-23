@@ -223,6 +223,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'credit_add_transaction_btn',
         onPressed: () => _showAddTransactionDialog(context),
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: Colors.white),

@@ -23,7 +23,6 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Demo data removed for brand new experience
   }
 
   @override

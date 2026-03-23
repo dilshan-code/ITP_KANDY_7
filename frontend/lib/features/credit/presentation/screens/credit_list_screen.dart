@@ -126,6 +126,7 @@ class _CreditListScreenState extends State<CreditListScreen> {
           },
         ),
         floatingActionButton: FloatingActionButton(
+          heroTag: 'credit_add_customer_btn',
           onPressed: () => _showAddCustomerDialog(context),
           backgroundColor: AppColors.primary,
           child: const Icon(Icons.person_add, color: Colors.white),

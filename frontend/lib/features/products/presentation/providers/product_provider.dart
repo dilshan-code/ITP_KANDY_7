@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:cloudinary_public/cloudinary_public.dart';
+import 'package:frontend/core/config/cloudinary_config.dart';
 import 'package:frontend/features/products/domain/entities/product.dart';
 import 'package:frontend/features/products/data/repositories/product_repository_impl.dart';
 
@@ -48,9 +51,46 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners(); // Tells the UI to hide the spinner and show data
   }
 
-  // Creates a new product, saves it via backend, and refreshes the list
-  Future<bool> createProduct(Map<String, dynamic> data) async {
+  // Helper: Upload file to Cloudinary and return the secure URL
+  Future<String?> _uploadImage(File imageFile) async {
+    if (CloudinaryConfig.cloudName.isEmpty ||
+        CloudinaryConfig.uploadPreset.isEmpty) {
+      debugPrint('Cloudinary config is missing. Skipping upload.');
+      return null;
+    }
+
     try {
+      final cloudinary = CloudinaryPublic(
+        CloudinaryConfig.cloudName,
+        CloudinaryConfig.uploadPreset,
+        cache: false,
+      );
+
+      final CloudinaryResponse response = await cloudinary.uploadFile(
+        CloudinaryFile.fromFile(
+          imageFile.path,
+          folder: 'products',
+          resourceType: CloudinaryResourceType.Image,
+        ),
+      );
+
+      return response.secureUrl;
+    } catch (e) {
+      debugPrint('Cloudinary Upload Error: $e');
+      _error = 'Image upload failed: $e';
+      return null;
+    }
+  }
+
+  // Creates a new product, saves it via backend, and refreshes the list
+  Future<bool> createProduct(Map<String, dynamic> data, {File? imageFile}) async {
+    try {
+      if (imageFile != null) {
+        final url = await _uploadImage(imageFile);
+        if (url != null) {
+          data['imageUrl'] = url;
+        }
+      }
       await _repository.createProduct(data);
       await fetchProducts(); // Refresh list to include the new product
       return true;
@@ -62,8 +102,14 @@ class ProductProvider extends ChangeNotifier {
   }
 
   // Updates an existing product, saves it via backend, and refreshes the list
-  Future<bool> updateProduct(String id, Map<String, dynamic> data) async {
+  Future<bool> updateProduct(String id, Map<String, dynamic> data, {File? imageFile}) async {
     try {
+      if (imageFile != null) {
+        final url = await _uploadImage(imageFile);
+        if (url != null) {
+          data['imageUrl'] = url;
+        }
+      }
       await _repository.updateProduct(id, data);
       await fetchProducts(); // Refresh list to reflect updates
       return true;

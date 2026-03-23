@@ -154,6 +154,7 @@ class InventoryScreenState extends State<InventoryScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'inventory_add_btn',
         onPressed: () {
           Navigator.push(
             context,

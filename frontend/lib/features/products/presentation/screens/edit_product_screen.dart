@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/core/utils/snackbar_utils.dart';
@@ -24,6 +26,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
   late String _selectedCategory;
   late int _stockQuantity;
   bool _saving = false;
+  File? _imageFile;
+  final ImagePicker _picker = ImagePicker();
+  bool _imageRemoved = false;
 
   final List<String> _categories = [
     'Fruits & Vegetables',
@@ -63,6 +68,35 @@ class _EditProductScreenState extends State<EditProductScreen> {
     super.dispose();
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 1000,
+        maxHeight: 1000,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _imageFile = File(pickedFile.path);
+          _imageRemoved = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.showTopSnackBar(context, 'Error picking image: $e', isError: true);
+      }
+    }
+  }
+
+  void _removeImage() {
+    setState(() {
+      _imageFile = null;
+      _imageRemoved = true;
+    });
+  }
+
   Future<void> _updateProduct() async {
     if (_nameController.text.trim().isEmpty) {
       SnackBarUtils.showTopSnackBar(
@@ -82,11 +116,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
       'stockQuantity': _stockQuantity,
       'minimumStockLevel': int.tryParse(_minStockController.text) ?? 0,
       'description': _descriptionController.text.trim(),
+      'imageUrl': _imageRemoved ? '' : widget.product.imageUrl,
     };
 
     final success = await context.read<ProductProvider>().updateProduct(
       widget.product.id,
       data,
+      imageFile: _imageFile,
     );
 
     if (mounted) {
@@ -304,70 +340,101 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: widget.product.imageUrl.isNotEmpty
-                        ? Image.network(
-                            widget.product.imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Center(
-                                  child: Icon(
-                                    Icons.image_outlined,
-                                    size: 40,
-                                    color: AppColors.textLight,
-                                  ),
+                    child: _imageFile != null
+                        ? Image.file(_imageFile!, fit: BoxFit.cover)
+                        : (!_imageRemoved && widget.product.imageUrl.isNotEmpty)
+                            ? Image.network(
+                                widget.product.imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Center(
+                                      child: Icon(
+                                        Icons.image_outlined,
+                                        size: 40,
+                                        color: AppColors.textLight,
+                                      ),
+                                    ),
+                              )
+                            : const Center(
+                                child: Icon(
+                                  Icons.image_outlined,
+                                  size: 40,
+                                  color: AppColors.textLight,
                                 ),
-                          )
-                        : const Center(
-                            child: Icon(
-                              Icons.image_outlined,
-                              size: 40,
-                              color: AppColors.textLight,
-                            ),
-                          ),
+                              ),
                   ),
                 ),
                 Positioned(
                   bottom: -8,
                   right: -8,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.surface, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          blurRadius: 6,
+                  child: GestureDetector(
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (context) => Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.camera_alt),
+                              title: const Text('Take Photo'),
+                              onTap: () {
+                                Navigator.pop(context);
+                                _pickImage(ImageSource.camera);
+                              },
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.image),
+                              title: const Text('Gallery'),
+                              onTap: () {
+                                Navigator.pop(context);
+                                _pickImage(ImageSource.gallery);
+                              },
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.photo_camera,
-                      size: 16,
-                      color: Colors.white,
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.surface, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.photo_camera,
+                        size: 16,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            TextButton.icon(
-              onPressed: () {},
-              icon: const Icon(
-                Icons.delete_outline,
-                size: 16,
-                color: AppColors.error,
-              ),
-              label: const Text(
-                'Remove Image',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
+            if (_imageFile != null || (!_imageRemoved && widget.product.imageUrl.isNotEmpty))
+              TextButton.icon(
+                onPressed: _removeImage,
+                icon: const Icon(
+                  Icons.delete_outline,
+                  size: 16,
                   color: AppColors.error,
                 ),
+                label: const Text(
+                  'Remove Image',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.error,
+                  ),
+                ),
               ),
-            ),
           ],
         ),
       ),

@@ -45,7 +45,7 @@ class SnackBarUtils {
         behavior: SnackBarBehavior.floating,
         dismissDirection: DismissDirection.up,
         margin: EdgeInsets.only(
-          bottom: MediaQuery.of(context).size.height - topPadding - 90,
+          bottom: (MediaQuery.of(context).size.height - topPadding - 120).clamp(16.0, 4000.0),
           left: 16,
           right: 16,
         ),
