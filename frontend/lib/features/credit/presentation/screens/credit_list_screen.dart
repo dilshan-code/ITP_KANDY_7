@@ -86,7 +86,7 @@ class _CreditListScreenState extends State<CreditListScreen> {
                 unselectedLabelColor: AppColors.textMedium,
                 labelStyle: const TextStyle(fontWeight: FontWeight.w700),
                 tabs: const [
-                  Tab(text: 'Outstanding'),
+                  Tab(text: 'Credit Users'),
                   Tab(text: 'Settled / Paid'),
                 ],
               ),
@@ -114,7 +114,7 @@ class _CreditListScreenState extends State<CreditListScreen> {
                 _buildCustomerList(
                   context,
                   outstanding,
-                  'No outstanding credits',
+                  'No active credit users',
                 ),
                 _buildCustomerList(
                   context,
@@ -142,7 +142,7 @@ class _CreditListScreenState extends State<CreditListScreen> {
   ) {
     return Column(
       children: [
-        if (emptyMessage == 'No outstanding credits')
+        if (emptyMessage == 'No active credit users')
           _buildSummaryCard(context),
 
         // Search bar
@@ -258,7 +258,7 @@ class _CreditListScreenState extends State<CreditListScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     customer.totalOutstanding > 0
-                                        ? 'Rs ${customer.totalOutstanding.toStringAsFixed(0)} outstanding'
+                                        ? 'Rs ${customer.totalOutstanding.toStringAsFixed(0)} active credit'
                                         : 'All clear / Paid',
                                     style: TextStyle(
                                       fontSize: 13,
@@ -415,7 +415,7 @@ class _CreditListScreenState extends State<CreditListScreen> {
         title: const Text('Delete Customer'),
         content: Text(
           customer.totalOutstanding > 0
-              ? 'Warning: This customer has Rs ${customer.totalOutstanding.toStringAsFixed(0)} outstanding credit. Are you sure you want to delete them?'
+              ? 'Warning: This customer has Rs ${customer.totalOutstanding.toStringAsFixed(0)} active credit. Are you sure you want to delete them?'
               : 'Are you sure you want to delete ${customer.name}?',
         ),
         actions: [
@@ -474,7 +474,7 @@ class _CreditListScreenState extends State<CreditListScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Total Outstanding',
+                  'Total Active Credit',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.white.withValues(alpha: 0.8),

@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/core/utils/snackbar_utils.dart';
 import 'package:frontend/features/credit/domain/entities/customer.dart';
+import 'package:frontend/features/credit/domain/entities/credit_transaction.dart';
 import 'package:frontend/features/credit/presentation/providers/credit_provider.dart';
+import 'package:frontend/features/sales/presentation/providers/sale_provider.dart';
 import 'package:frontend/features/sales/presentation/screens/invoice_dialog.dart';
 
 class CreditDetailScreen extends StatefulWidget {
@@ -28,6 +30,10 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
           context,
           listen: false,
         ).fetchTransactions(_currentCustomer.id);
+        Provider.of<SaleProvider>(
+          context,
+          listen: false,
+        ).fetchSales();
       }
     });
   }
@@ -49,8 +55,15 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: Consumer<CreditProvider>(
-        builder: (context, provider, _) {
+      body: Consumer2<CreditProvider, SaleProvider>(
+        builder: (context, provider, saleProvider, _) {
+          final customerSales = saleProvider.sales.where((sale) {
+            if (sale is Map) {
+              return sale['customerId'] == _currentCustomer.id;
+            }
+            return false;
+          }).toList();
+
           // Update character if found in provider list (to reflect edits)
           final updatedCustomer = provider.customers.isEmpty
               ? null
@@ -62,6 +75,10 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
           if (updatedCustomer != null) {
             _currentCustomer = updatedCustomer;
           }
+
+          final filteredTransactions = provider.transactions.where(
+            (txn) => !(txn.type == 'credit' && txn.title.startsWith('Purchase Loan')),
+          ).toList();
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -118,7 +135,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           _buildStatItem(
-                            'Outstanding',
+                            'Active Credit',
                             'Rs ${_currentCustomer.totalOutstanding.toStringAsFixed(0)}',
                           ),
                           Container(
@@ -137,7 +154,9 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                           ),
                           _buildStatItem(
                             'Status',
-                            _currentCustomer.status.toUpperCase(),
+                            _currentCustomer.totalOutstanding <= 0 
+                                ? 'PAID' 
+                                : _currentCustomer.status.toUpperCase(),
                           ),
                         ],
                       ),
@@ -194,8 +213,9 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                 const SizedBox(height: 12),
 
                 if (!provider.isLoading &&
-                    provider.transactions.isEmpty &&
-                    provider.customerSales.isEmpty)
+                    !saleProvider.isLoading &&
+                    filteredTransactions.isEmpty &&
+                    customerSales.isEmpty)
                   Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 40),
@@ -216,7 +236,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                     ),
                   )
                 else
-                  _buildCombinedHistory(context, provider),
+                  _buildCombinedHistory(context, filteredTransactions, customerSales),
               ],
             ),
           );
@@ -251,11 +271,11 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
     );
   }
 
-  Widget _buildCombinedHistory(BuildContext context, CreditProvider provider) {
+  Widget _buildCombinedHistory(BuildContext context, List<CreditTransaction> transactions, List<dynamic> customerSales) {
     // Combine sales and transactions into a single list sorted by date
     final List<dynamic> combined = [
-      ...provider.transactions,
-      ...provider.customerSales,
+      ...transactions,
+      ...customerSales,
     ];
 
     combined.sort((a, b) {

@@ -54,10 +54,5 @@ class CreditRepositoryImpl {
   }
 
   // Sales methods (for credit history)
-  Future<List<Map<String, dynamic>>> getSalesByCustomer(
-    String customerId,
-  ) async {
-    final response = await ApiClient.get('/sales/customer/$customerId');
-    return (response['data'] as List).cast<Map<String, dynamic>>();
-  }
+  // Removed getSalesByCustomer as we now use SaleProvider directly.
 }

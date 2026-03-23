@@ -10,13 +10,11 @@ class CreditProvider extends ChangeNotifier {
 
   List<Customer> _customers = []; // The complete list of shop customers
   List<CreditTransaction> _transactions = []; // History of debts and payments for a selected customer
-  List<Map<String, dynamic>> _customerSales = []; // List of sales linked to a specific customer
   bool _isLoading = false; // Flag to show a progress spinner during network calls
   String? _error; // Holds any error message from the backend
 
   List<Customer> get customers => _customers;
   List<CreditTransaction> get transactions => _transactions;
-  List<Map<String, dynamic>> get customerSales => _customerSales;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -51,7 +49,6 @@ class CreditProvider extends ChangeNotifier {
     notifyListeners();
     try {
       _transactions = await _repository.getTransactionsByCustomer(customerId);
-      _customerSales = await _repository.getSalesByCustomer(customerId);
       _isLoading = false;
       notifyListeners();
     } catch (e) {
