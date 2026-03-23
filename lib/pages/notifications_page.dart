@@ -132,4 +132,4 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         child: Text('No notifications'));
                   }
                   return ListView.builder(
-                    padding: const EdgeInsets.all(12
+                    padding: const EdgeInsets.all(12))
