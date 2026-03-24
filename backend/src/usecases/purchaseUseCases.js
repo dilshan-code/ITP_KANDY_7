@@ -11,23 +11,27 @@ class GetPurchaseById {
 
 // Records a new purchase from a supplier and automatically increases the stock levels of the items bought.
 class CreatePurchase {
+    // We need both the purchase repository (for the record) and product repository (for the stock update).
     constructor(purchaseRepository, productRepository) {
         this.purchaseRepository = purchaseRepository;
         this.productRepository = productRepository;
     }
 
     async execute(purchaseData) {
-        // 1. Create the purchase record
+        // Step 1: Save the purchase transaction to the 'purchases' collection.
         const purchase = await this.purchaseRepository.create(purchaseData);
 
-        // 2. Increase inventory for each item
+        // Step 2: Loop through the purchased items and adjust inventory upwards.
         if (purchaseData.items && purchaseData.items.length > 0) {
             for (const item of purchaseData.items) {
                 if (!item.productId) continue;
                 
+                // Retrieve the product to find out how many we currently have.
                 const product = await this.productRepository.getById(item.productId);
                 if (product) {
+                    // Add the newly purchased quantity to the current stock.
                     const newStock = product.stockQuantity + (item.quantity || 0);
+                    // Update the product record with the new inventory count.
                     await this.productRepository.update(product.id, { stockQuantity: newStock });
                     console.log(`📈 Increased ${product.name} stock: ${product.stockQuantity} -> ${newStock}`);
                 }

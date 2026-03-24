@@ -2,13 +2,14 @@
 
 // Retrieves every single product in the shop's inventory.
 class GetAllProducts {
+    // We inject the productRepository here so this use case doesn't depend on a specific database like Firestore.
     constructor(productRepository) {
         // Store the injected repository instance to use for data fetching
         this.productRepository = productRepository;
     }
-    // Retrieves all products from the repository
+    // This is the core 'action' method that the controller calls.
     async execute() {
-        // Delegate the actual database calling logic to the repository
+        // We simply delegate the work to the repository which knows HOW to talk to the DB.
         return this.productRepository.getAll();
     }
 }
@@ -25,12 +26,14 @@ class GetProductById {
 
 // Adds a brand new product to the shop's stock.
 class CreateProduct {
+    // Injects the repository to handle the actual persistence logic.
     constructor(productRepository) {
         this.productRepository = productRepository;
     }
-    // Validates/creates a new product based on the incoming data
+    // This method takes the raw product data (name, price, etc.) and saves it.
     async execute(productData) {
-        // Here we could add business rules (e.g., throw error if price < 0), then save
+        // Business Rule Reminder: We could add validation here (e.g., check if name is unique).
+        // For now, we trust the incoming data and pass it to the repository.
         return this.productRepository.create(productData);
     }
 }

@@ -54,20 +54,24 @@ class _AddProductScreenState extends State<AddProductScreen> {
     super.dispose();
   }
 
+  // Opens the camera or gallery to let the user pick a product image.
   Future<void> _pickImage(ImageSource source) async {
     try {
+      // Use the ImagePicker to select a file.
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
-        maxWidth: 1000,
+        maxWidth: 1000, // Downscale large images to save bandwidth and storage.
         maxHeight: 1000,
-        imageQuality: 85,
+        imageQuality: 85, // Slightly compress to reduce file size without losing much detail.
       );
       if (pickedFile != null) {
+        // If the user picked a file, update the state to show the preview on screen.
         setState(() {
           _imageFile = File(pickedFile.path);
         });
       }
     } catch (e) {
+      // If something goes wrong (like permission denied), show a top snackbar alert.
       if (mounted) {
         SnackBarUtils.showTopSnackBar(
           context,
@@ -78,8 +82,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
+  // Validates the form and sends the new product data to the backend.
   Future<void> _saveProduct() async {
-    // Basic validation to ensure we don't save an unnamed product
+    // Step 1: Basic validation. We can't have a product without a name.
     if (_nameController.text.trim().isEmpty) {
       SnackBarUtils.showTopSnackBar(
         context,
@@ -88,22 +93,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
       );
       return;
     }
-
-    // Trigger a rebuild to show the loading spinner on the submit button
+ 
+    // Step 2: Show a loading state so the user knows work is happening.
     setState(() => _saving = true);
-
-    // Bundle the text field strings and parsed numbers into a JSON-like Map
+ 
+    // Step 3: Bundle all the form fields into a Map for the API.
     final data = {
       'name': _nameController.text.trim(),
       'category': _selectedCategory,
+      // Use double.tryParse to handle empty or invalid price inputs gracefully.
       'sellingPrice': double.tryParse(_sellingPriceController.text) ?? 0.0,
       'stockQuantity': _initialStock,
       'minimumStockLevel': int.tryParse(_minStockController.text) ?? 0,
       'description': _descriptionController.text.trim(),
       'unit': _selectedUnit,
     };
-
-    // Ask the provider to execute an API POST request with this data
+ 
+    // Step 4: Call the ProductProvider to handle the image upload and API POST request.
     final success = await context.read<ProductProvider>().createProduct(
           data,
           imageFile: _imageFile,
@@ -580,6 +586,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
+  // A custom UI widget that lets the user tap - or + to change the stock count.
   Widget _buildStockStepper() {
     return Container(
       decoration: BoxDecoration(
@@ -590,8 +597,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // The 'Minus' button.
           InkWell(
             onTap: () {
+              // Decrement, but stop at zero (we can't have negative initial stock).
               if (_initialStock > 0) setState(() => _initialStock--);
             },
             child: Padding(
@@ -599,6 +608,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               child: Icon(Icons.remove, color: AppColors.primary, size: 18),
             ),
           ),
+          // The current count display.
           SizedBox(
             width: 36,
             child: Text(
@@ -611,6 +621,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ),
             ),
           ),
+          // The 'Plus' button.
           InkWell(
             onTap: () => setState(() => _initialStock++),
             child: Padding(

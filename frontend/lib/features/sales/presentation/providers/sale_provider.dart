@@ -59,32 +59,40 @@ class SaleProvider extends ChangeNotifier {
     }
   }
 
-  // Adds a product to the cart or increases its quantity if already there.
+  // Adds a product to the temporary shopping cart before finalizing the sale.
   void addToCart(Product product) {
+    // Step 1: Check if this item is already in the cart using its unique ID.
     final existingIndex = _cartItems.indexWhere(
       (item) => item['productId'] == product.id,
     );
+
     if (existingIndex >= 0) {
+      // Step 2: If it IS in the cart, check if adding one more exceeds available stock.
       final currentQty = _cartItems[existingIndex]['quantity'] as int;
       if (currentQty < product.stockQuantity) {
+        // Increment the quantity for the existing item.
         _cartItems[existingIndex]['quantity'] = currentQty + 1;
       } else {
+        // Throw an error if the user tries to sell more than they have.
         throw Exception('Stock limit reached for ${product.name}');
       }
     } else {
+      // Step 3: If it's a NEW item, ensure there is at least one in stock.
       if (product.stockQuantity > 0) {
+        // Add a new Map representing the line item with necessary product details.
         _cartItems.add({
           'productId': product.id,
           'name': product.name,
           'price': product.sellingPrice,
           'quantity': 1,
           'unit': product.unit,
-          'stockQuantity': product.stockQuantity, // Store for local validation
+          'stockQuantity': product.stockQuantity, // Keep for local limit checks.
         });
       } else {
         throw Exception('${product.name} is out of stock');
       }
     }
+    // Step 4: Tell the UI to refresh to show the updated cart state.
     notifyListeners();
   }
 
@@ -106,16 +114,19 @@ class SaleProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Sends the cart data to the backend to create a permanent sale record.
+  // Sends the finalized cart data to the backend to record a sale and update inventory.
   Future<Map<String, dynamic>?> completeSale({
-    String? id, // Optional pre-generated ID
+    String? id,
     String paymentMethod = 'cash',
     String customerId = '',
     String customerName = '',
   }) async {
     try {
+      // Step 1: Show a loading spinner in the UI.
       _isLoading = true;
       notifyListeners();
+
+      // Step 2: Execute the network POST request to /sales with the cart contents.
       final response = await ApiClient.post('/sales', {
         'id': id,
         'items': _cartItems,
@@ -125,15 +136,20 @@ class SaleProvider extends ChangeNotifier {
         'customerId': customerId,
         'customerName': customerName,
       });
+
+      // Step 3: Clear the local cart now that the sale is recorded in the database.
       _cartItems.clear();
       _isLoading = false;
 
-      // Auto-refresh sales history when a new sale is completed
+      // Step 4: Refresh local history so the user sees the new sale immediately.
       fetchSales();
+      fetchProducts(); // Refresh products to show updated stock counts.
 
       notifyListeners();
+      // Return the recorded sale data back to the UI.
       return response['data'] as Map<String, dynamic>?;
     } catch (e) {
+      // If the API call fails, capture the error and stop the loading spinner.
       _error = e.toString();
       _isLoading = false;
       notifyListeners();

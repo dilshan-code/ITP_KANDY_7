@@ -47,8 +47,11 @@ const createNotificationRoutes = require('./interfaces/routes/notificationRoutes
 const createAdminRoutes = require('./interfaces/routes/adminRoutes');
 const createReportRoutes = require('./interfaces/routes/reportRoutes');
 
-// --- Dependency Injection ---
-// Product
+// --- Dependency Injection (DI) ---
+// This section is where we choose which database (repository) and logic (use cases) to use.
+// By doing this here instead of inside the classes, we can easily swap components later.
+
+// 1. Setup Product Related Logic
 const productRepository = new FirestoreProductRepository();
 const productUseCases = {
     getAllProducts: new GetAllProducts(productRepository),
@@ -57,7 +60,7 @@ const productUseCases = {
     updateProduct: new UpdateProduct(productRepository),
     deleteProduct: new DeleteProduct(productRepository),
 };
-// ProductController will be defined below after all dependencies are ready.
+// Note: ProductController is instantiated at the bottom because it depends on multiple other use cases.
 
 // Auth
 const ownerRepository = new FirestoreOwnerRepository();

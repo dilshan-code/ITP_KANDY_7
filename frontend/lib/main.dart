@@ -20,15 +20,25 @@ class ClickBuyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The MultiProvider is the 'brain' of the app's state. 
+    // It initializes all our Providers at once so any screen can access them.
     return MultiProvider(
       providers: [
+        // Manages inventory, stock levels, and product details.
         ChangeNotifierProvider(create: (_) => ProductProvider()),
+        // Handles user login, registration, and profile state.
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        // Manages the list of wholesalers/suppliers.
         ChangeNotifierProvider(create: (_) => SupplierProvider()),
+        // Tracks bulk stock purchases from suppliers.
         ChangeNotifierProvider(create: (_) => PurchaseProvider()),
+        // Manages customer loans and credit transaction history.
         ChangeNotifierProvider(create: (_) => CreditProvider()),
+        // Handles the shopping cart and finalizes customer sales.
         ChangeNotifierProvider(create: (_) => SaleProvider()),
+        // Manages in-app alerts (e.g., low stock notifications).
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        // Provides admin-level data (like owner lists).
         ChangeNotifierProvider(create: (_) => AdminProvider()),
       ],
       child: MaterialApp(

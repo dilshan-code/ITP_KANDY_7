@@ -26,14 +26,20 @@ class ProductProvider extends ChangeNotifier {
       _products.where((p) => p.isLowStock).toList();
 
   // Derived getter: calculates the total monetary value of all stock
+  // Returns the grand total value of all items currently sitting in the shop.
   double get totalInventoryValue =>
-      // fold(initialValue, function) acts like reduce; sums up the 'inventoryValue' of every product
       _products.fold(0.0, (sum, p) => sum + p.inventoryValue);
-
-  // Derived getter: calculates the total number of items currently in stock
+ 
+  // Calculates the sum of all individual items currently on the shelves.
   int get totalItemsInStock =>
-      // sums up the raw 'stockQuantity' integer for all products
       _products.fold(0, (sum, p) => sum + p.stockQuantity);
+ 
+  // Identifies products that have reached or dropped below their 'minimumStockLevel'.
+  // This is used for the 'Low Stock' alert badge on the dashboard.
+  int get lowStockCount => _products.where((p) => p.isLowStock).length;
+ 
+  // Returns a filtered list of products that need reordering.
+  List<Product> get lowStockItems => _products.where((p) => p.isLowStock).toList();
 
   // Fetches the latest products from the backend
   Future<void> fetchProducts() async {
@@ -51,8 +57,9 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners(); // Tells the UI to hide the spinner and show data
   }
 
-  // Helper: Upload file to Cloudinary and return the secure URL
+  // Private helper to upload an image file to the Cloudinary cloud storage.
   Future<String?> _uploadImage(File imageFile) async {
+    // Check if Cloudinary configuration is available.
     if (CloudinaryConfig.cloudName.isEmpty ||
         CloudinaryConfig.uploadPreset.isEmpty) {
       debugPrint('Cloudinary config is missing. Skipping upload.');
@@ -60,12 +67,14 @@ class ProductProvider extends ChangeNotifier {
     }
 
     try {
+      // Initialize the Cloudinary client with our API credentials.
       final cloudinary = CloudinaryPublic(
         CloudinaryConfig.cloudName,
         CloudinaryConfig.uploadPreset,
-        cache: false,
+        cache: false, // Disable caching for fresh uploads
       );
 
+      // Upload the file as a 'product' resource to the 'products' folder.
       final CloudinaryResponse response = await cloudinary.uploadFile(
         CloudinaryFile.fromFile(
           imageFile.path,
@@ -74,10 +83,11 @@ class ProductProvider extends ChangeNotifier {
         ),
       );
 
+      // Return the secure URL provided by Cloudinary to store in our database.
       return response.secureUrl;
     } catch (e) {
-      debugPrint('Cloudinary Upload Error: $e');
-      _error = 'Image upload failed: $e';
+      debugPrint('❌ Cloudinary Upload Error: $e');
+      _error = 'Image upload failed: $e'; // Set error message for UI
       return null;
     }
   }

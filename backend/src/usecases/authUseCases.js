@@ -1,8 +1,11 @@
 const bcrypt = require('bcryptjs');
 
+// This helper ensures phone numbers are always in a consistent format (+94XX...).
+// It converts numbers starting with '0' to the international '+94' format.
 function normalizePhone(phone) {
     if (!phone) return phone;
     const trimmed = phone.trim();
+    // If it's a standard 10-digit local number (07xxxxxxxx), convert it.
     if (trimmed.startsWith('0') && trimmed.length === 10) {
         return '+94' + trimmed.substring(1);
     }
@@ -88,35 +91,23 @@ class ChangeOwnerPassword {
         this.ownerRepository = ownerRepository;
     }
     async execute(id, oldPassword, newPassword) {
-        const owner = await this.ownerRepository.getById(id);
-        if (!owner) {
-            throw new Error('Owner not found');
-        }
-
-        // We need the password from the repository (which might not be in the toJSON output)
-        // Let's check how getById is implemented in the repository.
-        // The repository getById returns owner.toJSON() which might exclude password.
-        // I should probably check the raw repository implementation or add a method.
-        
-        // Actually, looking at FirestoreOwnerRepository.js:
-        // getById returns owner.toJSON()
-        // findByPhone/findByEmail returns the raw data including password.
-        
-        // I'll use a internal method or fetch by id directly from collection if needed.
-        // For now, let's assume the repository needs a way to get the full data including password.
-        
+        // Step 1: Fetch the owner's raw record directly from Firestore.
+        // We do this because the standard repository 'getById' might strip out the encrypted password.
         const rawOwner = await this.ownerRepository.collection.doc(id).get();
         if (!rawOwner.exists) {
             throw new Error('Owner not found');
         }
         const ownerData = rawOwner.data();
         
+        // Step 2: Verify that the 'old password' provided matches the one in our database.
         const isMatch = await bcrypt.compare(oldPassword, ownerData.password);
         if (!isMatch) {
             throw new Error('Current password does not match');
         }
         
+        // Step 3: Hash the new password before saving it for security.
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+        // Step 4: Persist the new hashed password.
         return this.ownerRepository.update(id, { password: hashedNewPassword });
     }
 }

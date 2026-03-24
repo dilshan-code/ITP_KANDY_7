@@ -11,6 +11,7 @@ class GetSaleById {
 
 // This is a complex use case that handles creating a sale, updating stock, and managing customer credit if needed.
 class CreateSale {
+    // This use case requires 4 different repositories to complete a single transaction.
     constructor(saleRepository, productRepository, customerRepository, creditTransactionRepository) {
         this.saleRepository = saleRepository;
         this.productRepository = productRepository;
@@ -19,23 +20,26 @@ class CreateSale {
     }
 
     async execute(saleData) {
-        // 1. Create the sale record
+        // Step 1: Record the sale itself in the 'sales' collection.
         const sale = await this.saleRepository.create(saleData);
 
-        // 2. Reduce inventory for each item
+        // Step 2: Loop through every item in the sale and decrease its stock in the inventory.
         console.log('📦 Sale Items:', JSON.stringify(saleData.items));
         if (saleData.items && saleData.items.length > 0) {
             console.log(`📉 Reducing stock for ${saleData.items.length} items from Sale ${sale.id || 'N/A'}`);
             for (const item of saleData.items) {
-                console.log(`🔍 Processing item: ${item.name} (ID: ${item.productId}), Qty: ${item.quantity}`);
+                // Ensure we have a valid productId before trying to update it.
                 if (!item.productId) {
                     console.warn('⚠️ Missing productId for item in sale:', item);
                     continue;
                 }
+                // Fetch the current product details to get its current stock level.
                 const product = await this.productRepository.getById(item.productId);
                 if (product) {
+                    // Calculate the new stock (ensure it never goes below zero).
                     const newStock = Math.max(0, product.stockQuantity - item.quantity);
                     console.log(`   ✅ Updating ${product.name}: ${product.stockQuantity} -> ${newStock}`);
+                    // Save the updated stock back to the database.
                     await this.productRepository.update(product.id, { stockQuantity: newStock });
                 } else {
                     console.warn(`⚠️ Product NOT found in DB for ID: ${item.productId}`);
@@ -43,15 +47,15 @@ class CreateSale {
             }
         }
 
-        // 3. Handle credit (loan) logic if payment method is credit
+        // Step 3: Check if this was a credit sale. If so, update the customer's debt.
         if (saleData.paymentMethod === 'credit' && saleData.customerId) {
             const customer = await this.customerRepository.getById(saleData.customerId);
             if (customer) {
-                // Update customer outstanding balance
+                // Increase the 'totalOutstanding' amount by the total of this sale.
                 const newOutstanding = customer.totalOutstanding + (saleData.totalAmount || 0);
                 await this.customerRepository.update(customer.id, { totalOutstanding: newOutstanding });
 
-                // Create a credit transaction to record this loan
+                // Step 4: Create a 'credit' transaction record so the user can see history.
                 await this.creditTransactionRepository.create({
                     customerId: customer.id,
                     type: 'credit',

@@ -89,32 +89,34 @@ class ProductController {
     // Gathers all the important numbers for the Home Screen dashboard (like total sales today and low stock alerts).
     async getDashboard(req, res) {
         try {
-            // First, retrieve every product in the database to analyze the entire inventory
+            // Step 1: Run all data fetches in parallel (or sequential) to gather the raw ingredients for our stats.
             const products = await this.getAllProducts.execute();
             const sales = this.getAllSales ? await this.getAllSales.execute() : [];
             const customers = this.getAllCustomers ? await this.getAllCustomers.execute() : [];
             const purchases = this.getAllPurchases ? await this.getAllPurchases.execute() : [];
             
-            // Calculate aggregate values
+            // Step 2: Calculate overall inventory health metrics.
+            // Sum up the pre-calculated 'inventoryValue' property from each product entity.
             const totalInventoryValue = products.reduce((sum, p) => sum + p.inventoryValue, 0);
+            // Sum up all literal items currently on shelves.
             const totalItems = products.reduce((sum, p) => sum + p.stockQuantity, 0);
+            // Identify products that have fallen below their set 'minimumStockLevel'.
             const lowStockItems = products.filter(p => p.isLowStock);
             
-            // Calculate Today's Sales
+            // Step 3: Calculate 'Today's Sales' volume.
             const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            today.setHours(0, 0, 0, 0); // Reset time to midnight to catch every sale since 12:00 AM today.
             const todaysSales = sales
                 .filter(s => new Date(s.createdAt) >= today)
                 .reduce((sum, s) => sum + (s.totalAmount || 0), 0);
                 
-            // Calculate total customer credit outstanding
+            // Step 4: Aggregate financial liabilities (Customer credit and Supplier payments).
             const customerCredit = customers.reduce((sum, c) => sum + (c.totalOutstanding || 0), 0);
-            
-            // Calculate total purchases paid to suppliers
             const toSuppliers = purchases.reduce((sum, p) => sum + (p.totalAmount || 0), 0);
-
-            // Generate recent transactions
+ 
+            // Step 5: Merge Sales and Purchases into a single 'Recent Activity' timeline.
             let allTxns = [];
+            // Format sales as positive 'order' or 'credit' entries.
             sales.forEach(s => {
                 allTxns.push({
                     id: s.id,
@@ -125,6 +127,7 @@ class ProductController {
                     time: s.createdAt
                 });
             });
+            // Format purchases as negative transactions (money going out).
             purchases.forEach(p => {
                 allTxns.push({
                     id: p.id,
@@ -136,19 +139,20 @@ class ProductController {
                 });
             });
             
-            // Sort by time descending and take top 5
+            // Step 6: Sort by time descending and pick only the 5 most recent activities for the UI.
             allTxns.sort((a, b) => new Date(b.time) - new Date(a.time));
             const recentTransactions = allTxns.slice(0, 5).map(t => ({
                 ...t,
+                // Format the time string into a human-readable 12-hour format (e.g., 02:30 PM).
                 time: new Date(t.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             }));
 
-            // Send back dashboard statistics
+            // Step 7: Send the fully prepared dashboard bucket back to the mobile app.
             res.json({
                 success: true,
                 data: {
                     todaysSales: todaysSales,
-                    salesTrend: 0, // Could be calculated against yesterday
+                    salesTrend: 0, // Placeholder for future comparison logic.
                     lowStockCount: lowStockItems.length,
                     lowStockItems: lowStockItems,
                     customerCredit: customerCredit,
