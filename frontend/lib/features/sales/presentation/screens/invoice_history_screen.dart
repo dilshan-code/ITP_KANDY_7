@@ -208,7 +208,7 @@ class InvoiceHistoryScreenState extends State<InvoiceHistoryScreen> {
   Widget _buildInvoiceCard(Map<String, dynamic> sale) {
     final date = DateTime.parse(sale['createdAt'] ?? DateTime.now().toString());
     final formattedTime = DateFormat('hh:mm a').format(date);
-    final amount = (sale['totalAmount'] ?? 0.0) as double;
+    final amount = (sale['totalAmount'] ?? 0.0).toDouble();
     final customerName = sale['customerName'] ?? 'Walk-in Customer';
     final invoiceId = sale['id']?.toString().toUpperCase() ?? 'N/A';
     final paymentMethod = sale['paymentMethod'] ?? 'cash';

@@ -165,6 +165,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   TextField(
+                    key: const ValueKey('email_field'),
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
@@ -188,6 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   TextField(
+                    key: const ValueKey('password_field'),
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
@@ -269,6 +271,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 )
                               : const Row(
+                                  key: ValueKey('login_button'),
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(

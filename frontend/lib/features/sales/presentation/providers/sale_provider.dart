@@ -20,7 +20,7 @@ class SaleProvider extends ChangeNotifier {
   // Calculates the sum price of all items currently in the cart.
   double get subtotal => _cartItems.fold(
     0,
-    (sum, item) => sum + (item['price'] as double) * (item['quantity'] as int),
+    (sum, item) => sum + (item['price'] as num).toDouble() * (item['quantity'] as int),
   );
   double get totalAmount => subtotal;
   int get totalItems =>

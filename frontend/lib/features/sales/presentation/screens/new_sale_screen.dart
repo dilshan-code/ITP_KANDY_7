@@ -171,7 +171,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Rs. ${(item['price'] as double).toStringAsFixed(2)}',
+                                  'Rs. ${(item['price'] as num).toDouble().toStringAsFixed(2)}',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w700,
                                     color: AppColors.primary,

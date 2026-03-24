@@ -32,6 +32,14 @@ class FirestoreOwnerRepository extends IOwnerRepository {
         return { id: doc.id, ...data };
     }
 
+    async getAll() {
+        const snapshot = await this.collection.get();
+        return snapshot.docs.map(doc => {
+            const data = doc.data();
+            return { id: doc.id, ...data };
+        });
+    }
+
     async findByPhone(phone) {
         const snapshot = await this.collection.where('phone', '==', phone).get();
         if (snapshot.empty) return null;
@@ -41,10 +49,14 @@ class FirestoreOwnerRepository extends IOwnerRepository {
     }
 
     async getById(id) {
+        const owner = await this.getByIdWithPassword(id);
+        return owner ? owner.toJSON() : null;
+    }
+
+    async getByIdWithPassword(id) {
         const doc = await this.collection.doc(id).get();
         if (!doc.exists) return null;
-        const owner = new Owner({ id: doc.id, ...doc.data() });
-        return owner.toJSON();
+        return new Owner({ id: doc.id, ...doc.data() });
     }
 
     async update(id, ownerData) {

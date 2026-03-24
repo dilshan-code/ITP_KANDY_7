@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 
 // AppTheme defines the global styling rules for the entire application.
@@ -23,8 +22,8 @@ class AppTheme {
         error: AppColors.error,
       ),
 
-      // Apply Google 'Inter' font globally to all text
-      textTheme: GoogleFonts.interTextTheme(),
+      // Using standard text theme to avoid expensive dynamic font loading
+      // textTheme: GoogleFonts.interTextTheme(),
 
       // Default styling for all top AppBars
       appBarTheme: AppBarTheme(
@@ -32,7 +31,7 @@ class AppTheme {
         foregroundColor: AppColors.textDark, // Color of icons/text on AppBar
         elevation: 0, // Flat design with no shadow
         centerTitle: true,
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: const TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.w700,
           color: AppColors.textDark,
@@ -49,7 +48,7 @@ class AppTheme {
           ),
           elevation: 2,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          textStyle: GoogleFonts.inter(
+          textStyle: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
           ),
