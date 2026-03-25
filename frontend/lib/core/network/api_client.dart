@@ -8,22 +8,37 @@ class ApiClient {
   // Use 10.0.2.2 for Android emulator, localhost for web/desktop
   static String get baseUrl {
     if (kIsWeb) {
-      return 'http://localhost:3000/api';
+      return 'http://localhost:5001/api';
     }
 
     // For Android emulator, 10.0.2.2 maps to host's localhost
     if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:3000/api';
+      return 'http://10.0.2.2:5001/api';
     }
 
     // Fallback for Windows/desktop testing
-    return 'http://localhost:3000/api';
+    return 'http://localhost:5001/api';
+  }
+
+  // Store the ownerId globally in the app after login
+  static String? ownerId;
+
+  // Helper to build headers with ownerId
+  static Map<String, String> get _headers {
+    final Map<String, String> headers = {'Content-Type': 'application/json'};
+    if (ownerId != null) {
+      headers['x-owner-id'] = ownerId!;
+    }
+    return headers;
   }
 
   // Perform an HTTP GET request to fetch data from the backend
   static Future<Map<String, dynamic>> get(String path) async {
     // Send a GET request to the concatenated URL
-    final response = await http.get(Uri.parse('$baseUrl$path'));
+    final response = await http.get(
+      Uri.parse('$baseUrl$path'),
+      headers: _headers,
+    );
     // 200 OK means the request was completely successful
     if (response.statusCode == 200) {
       // Decode the JSON response string into a Dart Map so Flutter can read the fields
@@ -53,7 +68,7 @@ class ApiClient {
     final response = await http.post(
       Uri.parse('$baseUrl$path'),
       // Tell the NodeJS backend we are sending JSON data
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers,
       // Encode the Dart Map into a JSON string before sending it over the network
       body: jsonEncode(body),
     );
@@ -86,7 +101,7 @@ class ApiClient {
   ) async {
     final response = await http.put(
       Uri.parse('$baseUrl$path'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _headers,
       body: jsonEncode(body),
     );
     if (response.statusCode == 200) {
@@ -108,7 +123,10 @@ class ApiClient {
 
   // Perform an HTTP DELETE request to remove data
   static Future<Map<String, dynamic>> delete(String path) async {
-    final response = await http.delete(Uri.parse('$baseUrl$path'));
+    final response = await http.delete(
+      Uri.parse('$baseUrl$path'),
+      headers: _headers,
+    );
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }

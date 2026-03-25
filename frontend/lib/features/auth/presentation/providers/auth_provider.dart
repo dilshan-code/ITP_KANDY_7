@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/features/auth/domain/entities/owner.dart';
 import 'package:frontend/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:frontend/core/network/api_client.dart';
 
 // AuthProvider manages the sign-in state of the shop owner.
 // It keeps track of who is logged in and handles login/registration actions.
@@ -24,6 +25,10 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     try {
       _currentOwner = await _repository.login(identifier, password);
+      // Set the global ownerId for API calls
+      if (_currentOwner != null) {
+        ApiClient.ownerId = _currentOwner!.id;
+      }
       _isLoggedIn = true;
       _isLoading = false;
       notifyListeners();
@@ -42,6 +47,10 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     try {
       _currentOwner = await _repository.register(data);
+      // Set the global ownerId for API calls
+      if (_currentOwner != null) {
+        ApiClient.ownerId = _currentOwner!.id;
+      }
       _isLoggedIn = true;
       _isLoading = false;
       notifyListeners();
@@ -58,6 +67,8 @@ class AuthProvider extends ChangeNotifier {
   void logout() {
     _currentOwner = null;
     _isLoggedIn = false;
+    // Clear the global ownerId
+    ApiClient.ownerId = null;
     notifyListeners();
   }
 

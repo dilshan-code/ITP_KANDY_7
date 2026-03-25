@@ -3,18 +3,19 @@ const { isValidPhone, isValidEmail } = require('../utils/validationUtils');
 // Retrieves all business partners who supply stock to the shop.
 class GetAllSuppliers {
     constructor(supplierRepository) { this.supplierRepository = supplierRepository; }
-    async execute() { return this.supplierRepository.getAll(); }
+    async execute(ownerId) { return this.supplierRepository.getAll(ownerId); }
 }
 
 class GetSupplierById {
     constructor(supplierRepository) { this.supplierRepository = supplierRepository; }
-    async execute(id) { return this.supplierRepository.getById(id); }
+    async execute(id, ownerId) { return this.supplierRepository.getById(id, ownerId); }
 }
 
 // Registers a new supplier in the system.
 class CreateSupplier {
     constructor(supplierRepository) { this.supplierRepository = supplierRepository; }
-    async execute(supplierData) {
+    async execute(supplierData, ownerId) {
+        if (!supplierData || !ownerId) throw new Error('Supplier data and Owner ID are required');
         if (!supplierData.name || supplierData.name.trim() === '') {
             throw new Error('Supplier name is required');
         }
@@ -24,14 +25,15 @@ class CreateSupplier {
         if (supplierData.email && !isValidEmail(supplierData.email)) {
             throw new Error('Invalid email format');
         }
-        return this.supplierRepository.create(supplierData);
+        return this.supplierRepository.create({ ...supplierData, ownerId });
     }
 }
 
 // Updates supplier details, like contact info or company name.
 class UpdateSupplier {
     constructor(supplierRepository) { this.supplierRepository = supplierRepository; }
-    async execute(id, supplierData) {
+    async execute(id, supplierData, ownerId) {
+        if (!id || !ownerId) throw new Error('Supplier ID and Owner ID are required');
         if (supplierData.name !== undefined && supplierData.name.trim() === '') {
             throw new Error('Supplier name cannot be empty');
         }
@@ -41,13 +43,13 @@ class UpdateSupplier {
         if (supplierData.email && !isValidEmail(supplierData.email)) {
             throw new Error('Invalid email format');
         }
-        return this.supplierRepository.update(id, supplierData);
+        return this.supplierRepository.update(id, supplierData, ownerId);
     }
 }
 
 class DeleteSupplier {
     constructor(supplierRepository) { this.supplierRepository = supplierRepository; }
-    async execute(id) { return this.supplierRepository.delete(id); }
+    async execute(id, ownerId) { return this.supplierRepository.delete(id, ownerId); }
 }
 
 module.exports = { GetAllSuppliers, GetSupplierById, CreateSupplier, UpdateSupplier, DeleteSupplier };

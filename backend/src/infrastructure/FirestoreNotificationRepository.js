@@ -8,8 +8,9 @@ class FirestoreNotificationRepository extends INotificationRepository {
         this.collection = db.collection('notifications');
     }
 
-    async getAll() {
-        const snapshot = await this.collection.orderBy('createdAt', 'desc').get();
+    async getAll(ownerId) {
+        if (!ownerId) throw new Error('Owner ID is required');
+        const snapshot = await this.collection.where('ownerId', '==', ownerId).orderBy('createdAt', 'desc').get();
         return snapshot.docs.map(doc => {
             const notification = new AppNotification({ id: doc.id, ...doc.data() });
             return notification.toJSON();
@@ -17,8 +18,10 @@ class FirestoreNotificationRepository extends INotificationRepository {
     }
 
     async create(notificationData) {
+        if (!notificationData.ownerId) throw new Error('Owner ID is required');
         const now = new Date().toISOString();
         const dataToSave = {
+            ownerId: notificationData.ownerId,
             type: notificationData.type || 'info',
             title: notificationData.title || '',
             message: notificationData.message || '',
@@ -30,16 +33,25 @@ class FirestoreNotificationRepository extends INotificationRepository {
         return notification.toJSON();
     }
 
-    async markAsRead(id) {
+    async markAsRead(id, ownerId) {
+        if (!ownerId) throw new Error('Owner ID is required');
         const docRef = this.collection.doc(id);
         const doc = await docRef.get();
         if (!doc.exists) return false;
+        
+        const data = doc.data();
+        if (data.ownerId !== ownerId) return false;
+
         await docRef.update({ isRead: true });
         return true;
     }
 
-    async markAllAsRead() {
-        const snapshot = await this.collection.where('isRead', '==', false).get();
+    async markAllAsRead(ownerId) {
+        if (!ownerId) throw new Error('Owner ID is required');
+        const snapshot = await this.collection
+            .where('ownerId', '==', ownerId)
+            .where('isRead', '==', false)
+            .get();
         const batch = db.batch();
         snapshot.docs.forEach(doc => {
             batch.update(doc.ref, { isRead: true });
@@ -48,16 +60,22 @@ class FirestoreNotificationRepository extends INotificationRepository {
         return true;
     }
 
-    async delete(id) {
+    async delete(id, ownerId) {
+        if (!ownerId) throw new Error('Owner ID is required');
         const docRef = this.collection.doc(id);
         const doc = await docRef.get();
         if (!doc.exists) return false;
+        
+        const data = doc.data();
+        if (data.ownerId !== ownerId) return false;
+
         await docRef.delete();
         return true;
     }
 
-    async deleteAll() {
-        const snapshot = await this.collection.get();
+    async deleteAll(ownerId) {
+        if (!ownerId) throw new Error('Owner ID is required');
+        const snapshot = await this.collection.where('ownerId', '==', ownerId).get();
         const batch = db.batch();
         snapshot.docs.forEach(doc => {
             batch.delete(doc.ref);

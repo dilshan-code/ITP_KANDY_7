@@ -1,12 +1,12 @@
 // Retrieves every sale record from the database.
 class GetAllSales {
     constructor(saleRepository) { this.saleRepository = saleRepository; }
-    async execute() { return this.saleRepository.getAll(); }
+    async execute(ownerId) { return this.saleRepository.getAll(ownerId); }
 }
 
 class GetSaleById {
     constructor(saleRepository) { this.saleRepository = saleRepository; }
-    async execute(id) { return this.saleRepository.getById(id); }
+    async execute(id, ownerId) { return this.saleRepository.getById(id, ownerId); }
 }
 
 // This is a complex use case that handles creating a sale, updating stock, and managing customer credit if needed.
@@ -20,54 +20,47 @@ class CreateSale {
         this.notificationRepository = notificationRepository;
     }
 
-    async execute(saleData) {
+    async execute(saleData, ownerId) {
+        if (!saleData || !ownerId) throw new Error('Sale data and Owner ID are required');
+
         // Step 1: Record the sale itself in the 'sales' collection.
-        const sale = await this.saleRepository.create(saleData);
+        const sale = await this.saleRepository.create({ ...saleData, ownerId });
 
         // Step 2: Loop through every item in the sale and decrease its stock in the inventory.
-        console.log('📦 Sale Items:', JSON.stringify(saleData.items));
         if (saleData.items && saleData.items.length > 0) {
-            console.log(`📉 Reducing stock for ${saleData.items.length} items from Sale ${sale.id || 'N/A'}`);
             for (const item of saleData.items) {
-                // Ensure we have a valid productId before trying to update it.
-                if (!item.productId) {
-                    console.warn('⚠️ Missing productId for item in sale:', item);
-                    continue;
-                }
+                if (!item.productId) continue;
+
                 // Fetch the current product details to get its current stock level.
-                const product = await this.productRepository.getById(item.productId);
+                const product = await this.productRepository.getById(item.productId, ownerId);
                 if (product) {
-                    // Calculate the new stock (ensure it never goes below zero).
                     const newStock = Math.max(0, product.stockQuantity - item.quantity);
-                    console.log(`   ✅ Updating ${product.name}: ${product.stockQuantity} -> ${newStock}`);
                     // Save the updated stock back to the database.
-                    await this.productRepository.update(product.id, { stockQuantity: newStock });
+                    await this.productRepository.update(product.id, { stockQuantity: newStock }, ownerId);
 
                     // --- NEW: Trigger Notification if Out of Stock ---
                     if (newStock === 0 && product.notifyOutOfStock) {
-                        console.log(`🚨 Product Out of Stock: ${product.name}`);
                         await this.notificationRepository.create({
+                            ownerId,
                             type: 'warning',
                             title: 'Product Out of Stock',
                             message: `The product "${product.name}" is now out of stock. Please restock soon.`,
                         });
                     }
-                } else {
-                    console.warn(`⚠️ Product NOT found in DB for ID: ${item.productId}`);
                 }
             }
         }
 
         // Step 3: Check if this was a credit sale. If so, update the customer's debt.
         if (saleData.paymentMethod === 'credit' && saleData.customerId) {
-            const customer = await this.customerRepository.getById(saleData.customerId);
+            const customer = await this.customerRepository.getById(saleData.customerId, ownerId);
             if (customer) {
-                // Increase the 'totalOutstanding' amount by the total of this sale.
                 const newOutstanding = customer.totalOutstanding + (saleData.totalAmount || 0);
-                await this.customerRepository.update(customer.id, { totalOutstanding: newOutstanding });
+                await this.customerRepository.update(customer.id, { totalOutstanding: newOutstanding }, ownerId);
 
                 // Step 4: Create a 'credit' transaction record so the user can see history.
                 await this.creditTransactionRepository.create({
+                    ownerId,
                     customerId: customer.id,
                     type: 'credit',
                     title: `Purchase Loan (Sale ${sale.id || 'N/A'})`,
@@ -77,8 +70,8 @@ class CreateSale {
 
                 // --- NEW: Trigger Notification if Limit Exceeded ---
                 if (newOutstanding >= customer.creditLimit) {
-                    console.log(`🚨 Credit Limit Exceeded for ${customer.name}: ${newOutstanding} >= ${customer.creditLimit}`);
                     await this.notificationRepository.create({
+                        ownerId,
                         type: 'alert',
                         title: 'Credit Limit Exceeded',
                         message: `${customer.name} has exceeded their credit limit of Rs ${customer.creditLimit}. Current debt: Rs ${newOutstanding}.`,
@@ -92,43 +85,58 @@ class CreateSale {
 
 class GetSalesByCustomer {
     constructor(saleRepository) { this.saleRepository = saleRepository; }
-    async execute(customerId) { return this.saleRepository.getByCustomer(customerId); }
+    async execute(customerId, ownerId) { return this.saleRepository.getByCustomer(customerId, ownerId); }
 }
 
-// Cancels a sale and reverts the stock levels for the items involved.
+// Cancels a sale and reverts the stock levels and customer credit for the items involved.
 class DeleteSale {
-    constructor(saleRepository, productRepository) {
+    constructor(saleRepository, productRepository, customerRepository, creditTransactionRepository) {
         this.saleRepository = saleRepository;
         this.productRepository = productRepository;
+        this.customerRepository = customerRepository;
+        this.creditTransactionRepository = creditTransactionRepository;
     }
 
-    async execute(id) {
-        // 1. Get the sale to know which items to revert
-        const sale = await this.saleRepository.getById(id);
+    async execute(id, ownerId) {
+        if (!id || !ownerId) throw new Error('Sale ID and Owner ID are required');
+
+        // 1. Get the sale to know which items and credit to revert
+        const sale = await this.saleRepository.getById(id, ownerId);
         if (!sale) return false;
 
         // 2. Add stock back for each item
         if (sale.items && sale.items.length > 0) {
-            console.log(`📈 Reverting stock for Sale ${id}`);
             for (const item of sale.items) {
                 if (!item.productId) continue;
-                const product = await this.productRepository.getById(item.productId);
+                const product = await this.productRepository.getById(item.productId, ownerId);
                 if (product) {
                     const newStock = product.stockQuantity + (item.quantity || 0);
-                    await this.productRepository.update(product.id, { stockQuantity: newStock });
-                    console.log(`   ✅ Reverted ${product.name}: ${product.stockQuantity} -> ${newStock}`);
+                    await this.productRepository.update(product.id, { stockQuantity: newStock }, ownerId);
                 }
             }
         }
 
-        // 3. Delete the sale record
-        return this.saleRepository.delete(id);
+        // 3. Revert customer credit if it was a credit sale
+        if (sale.paymentMethod === 'credit' && sale.customerId) {
+            const customer = await this.customerRepository.getById(sale.customerId, ownerId);
+            if (customer) {
+                const newOutstanding = Math.max(0, customer.totalOutstanding - (sale.totalAmount || 0));
+                await this.customerRepository.update(customer.id, { totalOutstanding: newOutstanding }, ownerId);
+                
+                // Also find and delete the associated credit transaction if possible
+                // (This is best effort, or we could just leave it as history but then it looks weird)
+                // For now, we rely on the balance update above.
+            }
+        }
+
+        // 4. Delete the sale record
+        return this.saleRepository.delete(id, ownerId);
     }
 }
 
 class UpdateSale {
     constructor(saleRepository) { this.saleRepository = saleRepository; }
-    async execute(id, saleData) { return this.saleRepository.update(id, saleData); }
+    async execute(id, saleData, ownerId) { return this.saleRepository.update(id, saleData, ownerId); }
 }
 
 module.exports = { GetAllSales, GetSaleById, CreateSale, GetSalesByCustomer, DeleteSale, UpdateSale };

@@ -23,11 +23,9 @@ class ProductController {
     // Handle GET /api/products
     async getAll(req, res) {
         try {
-            const products = await this.getAllProducts.execute();
-            // Send back a success JSON response
+            const products = await this.getAllProducts.execute(req.ownerId);
             res.json({ success: true, data: products });
         } catch (error) {
-            // If something went wrong, send a 500 server error
             res.status(500).json({ success: false, error: error.message });
         }
     }
@@ -35,10 +33,8 @@ class ProductController {
     // Handle GET /api/products/:id
     async getById(req, res) {
         try {
-            // req.params.id gets the ID from the URL (e.g., /api/products/123)
-            const product = await this.getProductById.execute(req.params.id);
+            const product = await this.getProductById.execute(req.params.id, req.ownerId);
             if (!product) {
-                // If not found, send a 404 response
                 return res.status(404).json({ success: false, error: 'Product not found' });
             }
             res.json({ success: true, data: product });
@@ -50,9 +46,7 @@ class ProductController {
     // Handle POST /api/products
     async create(req, res) {
         try {
-            // req.body contains the JSON data sent by the frontend
-            const product = await this.createProduct.execute(req.body);
-            // Send 201 Created status
+            const product = await this.createProduct.execute(req.body, req.ownerId);
             res.status(201).json({ success: true, data: product });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
@@ -62,7 +56,7 @@ class ProductController {
     // Handle PUT /api/products/:id
     async update(req, res) {
         try {
-            const product = await this.updateProduct.execute(req.params.id, req.body);
+            const product = await this.updateProduct.execute(req.params.id, req.body, req.ownerId);
             if (!product) {
                 return res.status(404).json({ success: false, error: 'Product not found' });
             }
@@ -75,7 +69,7 @@ class ProductController {
     // Handle DELETE /api/products/:id
     async delete(req, res) {
         try {
-            const deleted = await this.deleteProduct.execute(req.params.id);
+            const deleted = await this.deleteProduct.execute(req.params.id, req.ownerId);
             if (!deleted) {
                 return res.status(404).json({ success: false, error: 'Product not found' });
             }
@@ -86,16 +80,14 @@ class ProductController {
     }
 
     // Handle GET /api/dashboard (Calculates stats for the home screen)
-    // Gathers all the important numbers for the Home Screen dashboard (like total sales today and low stock alerts).
     async getDashboard(req, res) {
         try {
-            // Step 1: Run all data fetches in parallel (or sequential) to gather the raw ingredients for our stats.
-            const products = await this.getAllProducts.execute();
-            const sales = this.getAllSales ? await this.getAllSales.execute() : [];
-            const customers = this.getAllCustomers ? await this.getAllCustomers.execute() : [];
-            const purchases = this.getAllPurchases ? await this.getAllPurchases.execute() : [];
+            const products = await this.getAllProducts.execute(req.ownerId);
+            const sales = this.getAllSales ? await this.getAllSales.execute(req.ownerId) : [];
+            const customers = this.getAllCustomers ? await this.getAllCustomers.execute(req.ownerId) : [];
+            const purchases = this.getAllPurchases ? await this.getAllPurchases.execute(req.ownerId) : [];
             
-            // Step 2: Calculate overall inventory health metrics.
+            // ... rest of calculations as before ...
             // Sum up the pre-calculated 'inventoryValue' property from each product entity.
             const totalInventoryValue = products.reduce((sum, p) => sum + p.inventoryValue, 0);
             // Sum up all literal items currently on shelves.
@@ -173,8 +165,8 @@ class ProductController {
     // Retrieves a complete list of all transactions (both sales and purchases) for the history log.
     async getTransactions(req, res) {
         try {
-            const sales = this.getAllSales ? await this.getAllSales.execute() : [];
-            const purchases = this.getAllPurchases ? await this.getAllPurchases.execute() : [];
+            const sales = this.getAllSales ? await this.getAllSales.execute(req.ownerId) : [];
+            const purchases = this.getAllPurchases ? await this.getAllPurchases.execute(req.ownerId) : [];
 
             let allTxns = [];
             sales.forEach(s => {

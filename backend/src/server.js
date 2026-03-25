@@ -47,6 +47,9 @@ const createNotificationRoutes = require('./interfaces/routes/notificationRoutes
 const createAdminRoutes = require('./interfaces/routes/adminRoutes');
 const createReportRoutes = require('./interfaces/routes/reportRoutes');
 
+// --- Middlewares ---
+const authMiddleware = require('./middlewares/authMiddleware');
+
 // --- Dependency Injection (DI) ---
 // This section is where we choose which database (repository) and logic (use cases) to use.
 // By doing this here instead of inside the classes, we can easily swap components later.
@@ -118,7 +121,7 @@ const creditTransactionUseCases = {
     getCreditTransactionsByCustomer: new GetCreditTransactionsByCustomer(creditTransactionRepository),
     createCreditTransaction: new CreateCreditTransaction(creditTransactionRepository, customerRepository),
     updateCreditTransaction: new UpdateCreditTransaction(creditTransactionRepository),
-    deleteCreditTransaction: new DeleteCreditTransaction(creditTransactionRepository),
+    deleteCreditTransaction: new DeleteCreditTransaction(creditTransactionRepository, customerRepository),
 };
 const creditTransactionController = new CreditTransactionController(creditTransactionUseCases);
 
@@ -129,7 +132,7 @@ const saleUseCases = {
     createSale: new CreateSale(saleRepository, productRepository, customerRepository, creditTransactionRepository, notificationRepository),
     getSalesByCustomer: new GetSalesByCustomer(saleRepository),
     updateSale: new UpdateSale(saleRepository),
-    deleteSale: new DeleteSale(saleRepository, productRepository),
+    deleteSale: new DeleteSale(saleRepository, productRepository, customerRepository, creditTransactionRepository),
 };
 const saleController = new SaleController(saleUseCases);
 
@@ -166,14 +169,19 @@ const productController = new ProductController(
 
 // --- Express App Setup ---
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5001;
 
 app.use(cors());
 app.use(express.json());
 
 // --- Routes ---
-app.use('/api', createProductRoutes(productController));
+// Auth routes are public (no ownerId required)
 app.use('/api', createAuthRoutes(authController));
+
+// All other API routes require an ownerId header
+app.use('/api', authMiddleware);
+
+app.use('/api', createProductRoutes(productController));
 app.use('/api', createSupplierRoutes(supplierController));
 app.use('/api', createPurchaseRoutes(purchaseController));
 app.use('/api', createCustomerRoutes(customerController));
@@ -189,7 +197,7 @@ app.get('/health', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`✅ ClickBuy API server running on http://localhost:${PORT}`);
     console.log(`📦 Products API: http://localhost:${PORT}/api/products`);
     console.log(`🔑 Auth API: http://localhost:${PORT}/api/auth`);
@@ -201,3 +209,21 @@ app.listen(PORT, () => {
     console.log(`🔔 Notifications API: http://localhost:${PORT}/api/notifications`);
     console.log(`👤 Admin API: http://localhost:${PORT}/api/admin/owners`);
 });
+
+// Graceful shutdown handling
+const gracefulShutdown = () => {
+    console.log('🔄 Shutting down server...');
+    server.close(() => {
+        console.log('✅ Server stopped.');
+        process.exit(0);
+    });
+
+    // Force exit if server doesn't close in 5 seconds
+    setTimeout(() => {
+        console.error('⚠️ Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+    }, 5000);
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);

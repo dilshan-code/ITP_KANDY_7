@@ -7,7 +7,7 @@ class ReportController {
     // Generates a comprehensive report (revenue, profit, stock health) for the business.
     async getReport(req, res) {
         try {
-            const report = await this.reportUseCases.getBusinessReport.execute();
+            const report = await this.reportUseCases.getBusinessReport.execute(req.ownerId);
             res.json({ success: true, data: report });
         } catch (error) {
             console.error('Error generating report:', error);

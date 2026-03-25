@@ -2,15 +2,23 @@ const bcrypt = require('bcryptjs');
 const { isValidEmail, isValidPhone, isValidPassword } = require('../utils/validationUtils');
 
 // This helper ensures phone numbers are always in a consistent format (+94XX...).
-// It converts numbers starting with '0' to the international '+94' format.
+// It removes all non-digit characters (except the leading +) and converts numbers 
+// starting with '0' to the international '+94' format.
 function normalizePhone(phone) {
     if (!phone) return phone;
-    const trimmed = phone.trim();
+    // Remove all non-digit characters except for a leading '+'
+    const clean = phone.trim().replace(/(?!^\+)\D/g, '');
+    
     // If it's a standard 10-digit local number (07xxxxxxxx), convert it.
-    if (trimmed.startsWith('0') && trimmed.length === 10) {
-        return '+94' + trimmed.substring(1);
+    if (clean.startsWith('0') && clean.length === 10) {
+        return '+94' + clean.substring(1);
     }
-    return trimmed;
+    return clean;
+}
+
+function normalizeEmail(email) {
+    if (!email) return '';
+    return email.trim().toLowerCase();
 }
 
 
@@ -38,10 +46,11 @@ class RegisterOwner {
         }
 
         const normalizedPhone = normalizePhone(ownerData.phone);
+        const normalizedEmail = normalizeEmail(ownerData.email);
         
         // Check if email already exists, if provided
-        if (ownerData.email) {
-            const existingEmail = await this.ownerRepository.findByEmail(ownerData.email);
+        if (normalizedEmail) {
+            const existingEmail = await this.ownerRepository.findByEmail(normalizedEmail);
             if (existingEmail) {
                 throw new Error('An account with this email already exists');
             }
@@ -55,7 +64,7 @@ class RegisterOwner {
         }
         // Hash the password before saving
         const hashedPassword = await bcrypt.hash(ownerData.password, 10);
-        return this.ownerRepository.create({ ...ownerData, phone: normalizedPhone, password: hashedPassword });
+        return this.ownerRepository.create({ ...ownerData, phone: normalizedPhone, email: normalizedEmail, password: hashedPassword });
     }
 }
 
@@ -69,8 +78,9 @@ class LoginOwner {
         console.log(`[LOGIN] Attempt for: ${identifier}`);
         let owner;
         if (identifier && identifier.includes('@')) {
-            console.log(`[LOGIN] Finding by email: ${identifier}`);
-            owner = await this.ownerRepository.findByEmail(identifier);
+            const normalizedEmail = normalizeEmail(identifier);
+            console.log(`[LOGIN] Finding by email: ${normalizedEmail}`);
+            owner = await this.ownerRepository.findByEmail(normalizedEmail);
         } else {
             const normalizedPhone = normalizePhone(identifier);
             console.log(`[LOGIN] Finding by phone: ${normalizedPhone}`);
@@ -113,6 +123,10 @@ class UpdateOwnerProfile {
                 throw new Error('Valid phone number is required (start with 0 or +94 and have 9 digits after)');
             }
             updateData.phone = normalizePhone(updateData.phone);
+        }
+
+        if (updateData.email) {
+            updateData.email = normalizeEmail(updateData.email);
         }
         
         return this.ownerRepository.update(id, updateData);

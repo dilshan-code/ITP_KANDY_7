@@ -4,14 +4,15 @@ describe('CreatePurchase Use Case', () => {
     let mockPurchaseRepository;
     let mockProductRepository;
     let createPurchase;
+    const ownerId = 'test-owner-123';
 
     beforeEach(() => {
         mockPurchaseRepository = {
             create: jest.fn().mockImplementation(data => Promise.resolve({ id: 'p1', ...data }))
         };
         mockProductRepository = {
-            getById: jest.fn().mockImplementation(id => Promise.resolve({ id, name: 'Test Product', stockQuantity: 10 })),
-            update: jest.fn().mockImplementation((id, data) => Promise.resolve({ id, ...data }))
+            getById: jest.fn().mockImplementation((id, oid) => Promise.resolve({ id, name: 'Test Product', stockQuantity: 10, ownerId: oid })),
+            update: jest.fn().mockImplementation((id, data, oid) => Promise.resolve({ id, ...data, ownerId: oid }))
         };
         createPurchase = new CreatePurchase(mockPurchaseRepository, mockProductRepository);
     });
@@ -26,11 +27,11 @@ describe('CreatePurchase Use Case', () => {
             notes: 'Test purchase'
         };
 
-        const result = await createPurchase.execute(purchaseData);
+        const result = await createPurchase.execute(purchaseData, ownerId);
 
-        expect(mockPurchaseRepository.create).toHaveBeenCalledWith(purchaseData);
-        expect(mockProductRepository.getById).toHaveBeenCalledWith('prod1');
-        expect(mockProductRepository.update).toHaveBeenCalledWith('prod1', { stockQuantity: 15 });
+        expect(mockPurchaseRepository.create).toHaveBeenCalledWith({ ...purchaseData, ownerId });
+        expect(mockProductRepository.getById).toHaveBeenCalledWith('prod1', ownerId);
+        expect(mockProductRepository.update).toHaveBeenCalledWith('prod1', { stockQuantity: 15 }, ownerId);
         expect(result.notes).toBe('Test purchase');
     });
 
@@ -43,9 +44,9 @@ describe('CreatePurchase Use Case', () => {
           ]
         };
 
-        await createPurchase.execute(purchaseData);
+        await createPurchase.execute(purchaseData, ownerId);
 
-        expect(mockProductRepository.update).toHaveBeenCalledWith('prod1', { stockQuantity: 15 });
-        expect(mockProductRepository.update).toHaveBeenCalledWith('prod2', { stockQuantity: 13 });
+        expect(mockProductRepository.update).toHaveBeenCalledWith('prod1', { stockQuantity: 15 }, ownerId);
+        expect(mockProductRepository.update).toHaveBeenCalledWith('prod2', { stockQuantity: 13 }, ownerId);
     });
 });

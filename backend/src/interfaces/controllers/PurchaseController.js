@@ -12,7 +12,7 @@ class PurchaseController {
     // Shows every purchase made by the shop.
     async getAll(req, res) {
         try {
-            const purchases = await this.getAllPurchases.execute();
+            const purchases = await this.getAllPurchases.execute(req.ownerId);
             res.json({ success: true, data: purchases });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
@@ -22,7 +22,7 @@ class PurchaseController {
     // Finds the details of one specific purchase.
     async getById(req, res) {
         try {
-            const purchase = await this.getPurchaseById.execute(req.params.id);
+            const purchase = await this.getPurchaseById.execute(req.params.id, req.ownerId);
             if (!purchase) return res.status(404).json({ success: false, error: 'Purchase not found' });
             res.json({ success: true, data: purchase });
         } catch (error) {
@@ -33,7 +33,7 @@ class PurchaseController {
     // Records a new purchase from a supplier (this usually increases stock levels).
     async create(req, res) {
         try {
-            const purchase = await this.createPurchase.execute(req.body);
+            const purchase = await this.createPurchase.execute(req.body, req.ownerId);
             res.status(201).json({ success: true, data: purchase });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
@@ -43,7 +43,7 @@ class PurchaseController {
     // Finds all purchases made from a specific supplier.
     async getBySupplier(req, res) {
         try {
-            const purchases = await this.getPurchasesBySupplier.execute(req.params.supplierId);
+            const purchases = await this.getPurchasesBySupplier.execute(req.params.supplierId, req.ownerId);
             res.json({ success: true, data: purchases });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
@@ -53,7 +53,7 @@ class PurchaseController {
     // Updates the details of a past purchase.
     async update(req, res) {
         try {
-            const purchase = await this.updatePurchase.execute(req.params.id, req.body);
+            const purchase = await this.updatePurchase.execute(req.params.id, req.body, req.ownerId);
             if (!purchase) return res.status(404).json({ success: false, error: 'Purchase not found' });
             res.json({ success: true, data: purchase });
         } catch (error) {
@@ -64,7 +64,7 @@ class PurchaseController {
     // Removes a purchase record from the system.
     async delete(req, res) {
         try {
-            const success = await this.deletePurchase.execute(req.params.id);
+            const success = await this.deletePurchase.execute(req.params.id, req.ownerId);
             if (!success) return res.status(404).json({ success: false, error: 'Purchase not found' });
             res.json({ success: true, message: 'Purchase deleted successfully' });
         } catch (error) {

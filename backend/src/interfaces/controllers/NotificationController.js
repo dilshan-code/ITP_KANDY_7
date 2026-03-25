@@ -12,7 +12,7 @@ class NotificationController {
     // Fetches all notifications (both read and unread).
     async getAll(req, res) {
         try {
-            const notifications = await this.getAllNotifications.execute();
+            const notifications = await this.getAllNotifications.execute(req.ownerId);
             res.json({ success: true, data: notifications });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
@@ -22,7 +22,7 @@ class NotificationController {
     // Manually creates a new notification (usually triggered by system events).
     async create(req, res) {
         try {
-            const notification = await this.createNotification.execute(req.body);
+            const notification = await this.createNotification.execute(req.body, req.ownerId);
             res.status(201).json({ success: true, data: notification });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
@@ -32,7 +32,7 @@ class NotificationController {
     // Marks a single notification as read so it no longer appears as "new".
     async markAsRead(req, res) {
         try {
-            const result = await this.markNotificationAsRead.execute(req.params.id);
+            const result = await this.markNotificationAsRead.execute(req.params.id, req.ownerId);
             if (!result) return res.status(404).json({ success: false, error: 'Notification not found' });
             res.json({ success: true, message: 'Notification marked as read' });
         } catch (error) {
@@ -43,7 +43,7 @@ class NotificationController {
     // Clears the "new" status from all notifications at once.
     async markAllAsRead(req, res) {
         try {
-            await this.markAllNotificationsAsRead.execute();
+            await this.markAllNotificationsAsRead.execute(req.ownerId);
             res.json({ success: true, message: 'All notifications marked as read' });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
@@ -53,7 +53,7 @@ class NotificationController {
     // Permanently removes a specific notification alert.
     async delete(req, res) {
         try {
-            const result = await this.deleteNotification.execute(req.params.id);
+            const result = await this.deleteNotification.execute(req.params.id, req.ownerId);
             if (!result) return res.status(404).json({ success: false, error: 'Notification not found' });
             res.json({ success: true, message: 'Notification deleted' });
         } catch (error) {
@@ -64,7 +64,7 @@ class NotificationController {
     // Deletes every single notification in the system.
     async deleteAll(req, res) {
         try {
-            await this.deleteAllNotifications.execute();
+            await this.deleteAllNotifications.execute(req.ownerId);
             res.json({ success: true, message: 'All notifications deleted' });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });

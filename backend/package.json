@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+    "kill-port": "taskkill /F /IM node.exe /T",
     "lint": "eslint src/**",
     "test": "jest"
   },
@@ -17,6 +18,7 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "eslint": "^8.57.0",
     "jest": "^30.3.0",
     "nodemon": "^3.1.14"
   }

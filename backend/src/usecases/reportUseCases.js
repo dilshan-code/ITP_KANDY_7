@@ -7,13 +7,15 @@ class GetBusinessReport {
         this.customerRepository = customerRepository;
     }
 
-    async execute() {
+    async execute(ownerId) {
+        if (!ownerId) throw new Error('Owner ID is required for report generation');
+
         // Fetch all necessary data
         const [sales, purchases, products, customers] = await Promise.all([
-            this.saleRepository.getAll(),
-            this.purchaseRepository.getAll(),
-            this.productRepository.getAll(),
-            this.customerRepository.getAll()
+            this.saleRepository.getAll(ownerId),
+            this.purchaseRepository.getAll(ownerId),
+            this.productRepository.getAll(ownerId),
+            this.customerRepository.getAll(ownerId)
         ]);
 
         let totalRevenue = 0;

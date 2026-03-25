@@ -14,36 +14,39 @@ class FirestoreProductRepository extends IProductRepository {
         this.collection = db.collection('products');
     }
 
-    // Fetch all products from the database
-    async getAll() {
-        // Execute a 'get' query against the entire 'products' Firestore collection
-        const snapshot = await this.collection.get();
+    // Fetch all products from the database for a specific owner
+    async getAll(ownerId) {
+        if (!ownerId) throw new Error('Owner ID is required');
+        // Execute a 'get' query against products matching this ownerId
+        const snapshot = await this.collection.where('ownerId', '==', ownerId).get();
         // Loop over the snapshot documents, converting each to a domain Product object, then to a JSON map
         return snapshot.docs.map(doc => {
-            // Extract the raw fields (name, price, etc.) stored in the Firestore document
             const data = doc.data();
-            // Instantiate our Product class, merging the document ID with its raw data fields
             const product = new Product({ id: doc.id, ...data });
-            // Return only the generic JSON representation (hiding internal class methods)
             return product.toJSON();
         });
     }
 
-    // Fetch a single product by its unique string ID
-    async getById(id) {
+    // Fetch a single product by its unique string ID and owner ID
+    async getById(id, ownerId) {
+        if (!ownerId) throw new Error('Owner ID is required');
         const doc = await this.collection.doc(id).get();
-        // If it doesn't exist, return null
         if (!doc.exists) return null;
 
-        const product = new Product({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        if (data.ownerId !== ownerId) return null; // Security check
+
+        const product = new Product({ id: doc.id, ...data });
         return product.toJSON();
     }
 
     // Save a new product to the database
     async create(productData) {
-        // Generate an ISO string timestamp to mark when this record was created
+        if (!productData.ownerId) throw new Error('Owner ID is required');
+        
         const now = new Date().toISOString();
         const dataToSave = {
+            ownerId: productData.ownerId,
             name: productData.name,
             category: productData.category,
             sellingPrice: productData.sellingPrice,
@@ -54,46 +57,49 @@ class FirestoreProductRepository extends IProductRepository {
             unit: productData.unit || 'ea',
             notifyOutOfStock: productData.notifyOutOfStock !== undefined ? productData.notifyOutOfStock : true,
             createdAt: now,
-            updatedAt: now, // updated and created are the same initially
+            updatedAt: now,
         };
 
-        // .add() creates a new document inside the 'products' collection and auto-generates a unique string ID
         const docRef = await this.collection.add(dataToSave);
-        // Create the product entity wrapper to trigger any calculated fields (like isLowStock), and return it
         const product = new Product({ id: docRef.id, ...dataToSave });
         return product.toJSON();
     }
 
     // Update an existing product
-    async update(id, productData) {
+    async update(id, productData, ownerId) {
+        if (!ownerId) throw new Error('Owner ID is required');
         const docRef = this.collection.doc(id);
         const doc = await docRef.get();
         if (!doc.exists) return null;
+        
+        const existingData = doc.data();
+        if (existingData.ownerId !== ownerId) return null; // Security check
 
         const updateData = {
             ...productData,
             updatedAt: new Date().toISOString(),
         };
 
-        // Remove id if present in update data (shouldn't update the doc ID itself)
         delete updateData.id;
+        delete updateData.ownerId; // Do not allow changing owner
 
-        // Save changes to Firestore
         await docRef.update(updateData);
 
-        // Fetch updated document to return the final state
         const updatedDoc = await docRef.get();
         const product = new Product({ id: updatedDoc.id, ...updatedDoc.data() });
         return product.toJSON();
     }
 
     // Delete a product from the database
-    async delete(id) {
+    async delete(id, ownerId) {
+        if (!ownerId) throw new Error('Owner ID is required');
         const docRef = this.collection.doc(id);
         const doc = await docRef.get();
         if (!doc.exists) return false;
 
-        // Delete the document
+        const existingData = doc.data();
+        if (existingData.ownerId !== ownerId) return false; // Security check
+
         await docRef.delete();
         return true;
     }

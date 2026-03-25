@@ -10,9 +10,9 @@ class GetAllProducts {
         this.productRepository = productRepository;
     }
     // This is the core 'action' method that the controller calls.
-    async execute() {
+    async execute(ownerId) {
         // We simply delegate the work to the repository which knows HOW to talk to the DB.
-        return this.productRepository.getAll();
+        return this.productRepository.getAll(ownerId);
     }
 }
 
@@ -21,8 +21,8 @@ class GetProductById {
         this.productRepository = productRepository;
     }
     // Retrieves a single product by its ID
-    async execute(id) {
-        return this.productRepository.getById(id);
+    async execute(id, ownerId) {
+        return this.productRepository.getById(id, ownerId);
     }
 }
 
@@ -33,7 +33,10 @@ class CreateProduct {
         this.productRepository = productRepository;
     }
     // This method takes the raw product data (name, price, etc.) and saves it.
-    async execute(productData) {
+    async execute(productData, ownerId) {
+        if (!productData || !ownerId) {
+            throw new Error('Product data and Owner ID are required');
+        }
         if (!productData.name || productData.name.trim() === '') {
             throw new Error('Product name is required');
         }
@@ -43,7 +46,7 @@ class CreateProduct {
         if (productData.minimumStockLevel !== undefined && !isValidStock(productData.minimumStockLevel)) {
             throw new Error('Valid minimum stock level is required');
         }
-        return this.productRepository.create(productData);
+        return this.productRepository.create({ ...productData, ownerId });
     }
 }
 
@@ -54,7 +57,10 @@ class UpdateProduct {
         this.notificationRepository = notificationRepository;
     }
     // Updates an existing product using its ID and incoming data
-    async execute(id, productData) {
+    async execute(id, productData, ownerId) {
+        if (!id || !ownerId) {
+            throw new Error('Product ID and Owner ID are required');
+        }
         if (productData.name !== undefined && productData.name.trim() === '') {
             throw new Error('Product name cannot be empty');
         }
@@ -64,12 +70,13 @@ class UpdateProduct {
         if (productData.minimumStockLevel !== undefined && !isValidStock(productData.minimumStockLevel)) {
             throw new Error('Valid minimum stock level is required');
         }
-        const updatedProduct = await this.productRepository.update(id, productData);
+        const updatedProduct = await this.productRepository.update(id, productData, ownerId);
         
         // --- NEW: Trigger Notification if Out of Stock ---
         if (updatedProduct && updatedProduct.stockQuantity === 0 && updatedProduct.notifyOutOfStock) {
             console.log(`🚨 Product Out of Stock (Manual Update): ${updatedProduct.name}`);
             await this.notificationRepository.create({
+                ownerId,
                 type: 'warning',
                 title: 'Product Out of Stock',
                 message: `The product "${updatedProduct.name}" has been updated and is now out of stock.`,
@@ -86,8 +93,8 @@ class DeleteProduct {
         this.productRepository = productRepository;
     }
     // Deletes an existing product by its ID
-    async execute(id) {
-        return this.productRepository.delete(id);
+    async execute(id, ownerId) {
+        return this.productRepository.delete(id, ownerId);
     }
 }
 
