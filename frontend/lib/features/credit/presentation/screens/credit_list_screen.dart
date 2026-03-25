@@ -385,13 +385,13 @@ class _CreditListScreenState extends State<CreditListScreen> {
                     });
                 if (context.mounted) {
                   if (success) {
-                    SnackBarUtils.showTopSnackBar(
+                    SnackBarUtils.showSnackBar(
                       context,
                       'Customer updated successfully',
                     );
                     Navigator.pop(ctx);
                   } else {
-                    SnackBarUtils.showTopSnackBar(
+                    SnackBarUtils.showSnackBar(
                       context,
                       context.read<CreditProvider>().error ??
                           'Failed to update customer',
@@ -432,13 +432,13 @@ class _CreditListScreenState extends State<CreditListScreen> {
               ).deleteCustomer(customer.id);
               if (context.mounted) {
                 if (success) {
-                  SnackBarUtils.showTopSnackBar(
+                  SnackBarUtils.showSnackBar(
                     context,
                     'Customer deleted successfully',
                   );
                   Navigator.pop(ctx);
                 } else {
-                  SnackBarUtils.showTopSnackBar(
+                  SnackBarUtils.showSnackBar(
                     context,
                     context.read<CreditProvider>().error ??
                         'Failed to delete customer',
@@ -603,13 +603,13 @@ class _CreditListScreenState extends State<CreditListScreen> {
                 ).addCustomer(newCustomerRef);
                 if (context.mounted) {
                   if (success) {
-                    SnackBarUtils.showTopSnackBar(
+                    SnackBarUtils.showSnackBar(
                       context,
                       'Customer added successfully',
                     );
                     Navigator.pop(ctx);
                   } else if (ctx.mounted) {
-                    SnackBarUtils.showTopSnackBar(
+                    SnackBarUtils.showSnackBar(
                       context,
                       context.read<CreditProvider>().error ??
                           'Failed to add customer',

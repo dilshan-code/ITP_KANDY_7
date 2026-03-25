@@ -52,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
 
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         'Welcome back, ${authProvider.currentOwner?.shopName ?? authProvider.currentOwner?.name ?? 'Partner'}!',
       );
@@ -61,7 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (_) => const MainShell()),
       );
     } else {
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         authProvider.error ?? 'Login failed. Please check your credentials.',
         isError: true,

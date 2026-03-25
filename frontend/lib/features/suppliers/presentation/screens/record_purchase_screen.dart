@@ -84,7 +84,7 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
 
   void _submit() async {
     if (_selectedSupplierId == null) {
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         'Please select a supplier',
         isError: true,
@@ -92,7 +92,7 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
       return;
     }
     if (_purchasedItems.isEmpty) {
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         'Please add at least one product',
         isError: true,

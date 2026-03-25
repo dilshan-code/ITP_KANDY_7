@@ -96,7 +96,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
       }
     } catch (e) {
       if (mounted) {
-        SnackBarUtils.showTopSnackBar(context, 'Error picking image: $e', isError: true);
+        SnackBarUtils.showSnackBar(context, 'Error picking image: $e', isError: true);
       }
     }
   }
@@ -110,7 +110,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
   Future<void> _updateProduct() async {
     if (_nameController.text.trim().isEmpty) {
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         'Product name is required',
         isError: true,
@@ -141,10 +141,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
     if (mounted) {
       setState(() => _saving = false);
       if (success && mounted) {
-        SnackBarUtils.showTopSnackBar(context, 'Product updated successfully');
+        SnackBarUtils.showSnackBar(context, 'Product updated successfully');
         Navigator.pop(context);
       } else if (mounted) {
-        SnackBarUtils.showTopSnackBar(
+        SnackBarUtils.showSnackBar(
           context,
           context.read<ProductProvider>().error ?? 'Failed to update product',
           isError: true,
@@ -183,13 +183,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
       );
       if (mounted) {
         if (success) {
-          SnackBarUtils.showTopSnackBar(
+          SnackBarUtils.showSnackBar(
             context,
             'Product "${widget.product.name}" has been deleted.',
           );
           Navigator.pop(context);
         } else {
-          SnackBarUtils.showTopSnackBar(
+          SnackBarUtils.showSnackBar(
             context,
             'Failed to delete product',
             isError: true,

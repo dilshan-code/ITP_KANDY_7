@@ -47,7 +47,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
   void _submit() async {
     if (_nameController.text.trim().isEmpty ||
         _phoneController.text.trim().isEmpty) {
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         'Name and phone number are required',
         isError: true,
@@ -86,7 +86,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
               'Supplier "${_nameController.text}" has been successfully added to your contact list.',
         );
       }
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         widget.supplier != null
             ? 'Supplier updated successfully'
@@ -94,7 +94,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
       );
       Navigator.pop(context);
     } else if (mounted) {
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         provider.error ?? 'Failed to save supplier',
         isError: true,

@@ -54,9 +54,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
     if (mounted) {
       if (success) {
-        SnackBarUtils.showTopSnackBar(context, 'Profile updated successfully');
+        SnackBarUtils.showSnackBar(context, 'Profile updated successfully');
       } else {
-        SnackBarUtils.showTopSnackBar(
+        SnackBarUtils.showSnackBar(
           context,
           context.read<AuthProvider>().error ?? 'Failed to update profile',
           isError: true,
@@ -78,9 +78,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         _oldPasswordController.clear();
         _newPasswordController.clear();
         _confirmPasswordController.clear();
-        SnackBarUtils.showTopSnackBar(context, 'Password changed successfully');
+        SnackBarUtils.showSnackBar(context, 'Password changed successfully');
       } else {
-        SnackBarUtils.showTopSnackBar(
+        SnackBarUtils.showSnackBar(
           context,
           context.read<AuthProvider>().error ?? 'Failed to change password',
           isError: true,

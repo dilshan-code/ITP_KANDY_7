@@ -502,7 +502,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                 _currentCustomer,
               );
               if (context.mounted) {
-                SnackBarUtils.showTopSnackBar(
+                SnackBarUtils.showSnackBar(
                   context,
                   'Credit settled successfully',
                 );
@@ -570,13 +570,13 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
 
                 if (context.mounted) {
                   if (success) {
-                    SnackBarUtils.showTopSnackBar(
+                    SnackBarUtils.showSnackBar(
                       context,
                       'Customer updated successfully',
                     );
                     Navigator.pop(ctx);
                   } else {
-                    SnackBarUtils.showTopSnackBar(
+                    SnackBarUtils.showSnackBar(
                       context,
                       context.read<CreditProvider>().error ??
                           'Failed to update customer',
@@ -618,14 +618,14 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
               ).deleteCustomer(id);
               if (context.mounted) {
                 if (success) {
-                  SnackBarUtils.showTopSnackBar(
+                  SnackBarUtils.showSnackBar(
                     context,
                     'Customer deleted successfully',
                   );
                   Navigator.pop(ctx); // Close dialog
                   Navigator.pop(context); // Go back from detail screen
                 } else {
-                  SnackBarUtils.showTopSnackBar(
+                  SnackBarUtils.showSnackBar(
                     context,
                     context.read<CreditProvider>().error ??
                         'Failed to delete customer',

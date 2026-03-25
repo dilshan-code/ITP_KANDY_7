@@ -234,7 +234,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                                       (item['quantity'] as int) + 1,
                                     );
                                   } else {
-                                    SnackBarUtils.showTopSnackBar(
+                                    SnackBarUtils.showSnackBar(
                                       context,
                                       'Stock limit reached for ${item['name']}',
                                       isError: true,
@@ -490,7 +490,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
         }
       }
 
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         'Payment of Rs. ${saleDetails['totalAmount'].toStringAsFixed(2)} successful.',
       );
@@ -500,7 +500,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
         builder: (context) => InvoiceDialog(saleDetails: saleDetails),
       );
     } else {
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         'Failed to complete sale.',
         isError: true,

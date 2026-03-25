@@ -74,7 +74,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     } catch (e) {
       // If something goes wrong (like permission denied), show a top snackbar alert.
       if (mounted) {
-        SnackBarUtils.showTopSnackBar(
+        SnackBarUtils.showSnackBar(
           context,
           'Error picking image: $e',
           isError: true,
@@ -87,7 +87,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   Future<void> _saveProduct() async {
     // Step 1: Basic validation. We can't have a product without a name.
     if (_nameController.text.trim().isEmpty) {
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         'Product name is required',
         isError: true,
@@ -123,10 +123,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (mounted) {
       setState(() => _saving = false);
       if (success && mounted) {
-        SnackBarUtils.showTopSnackBar(context, 'Product added successfully');
+        SnackBarUtils.showSnackBar(context, 'Product added successfully');
         Navigator.pop(context);
       } else if (mounted) {
-        SnackBarUtils.showTopSnackBar(
+        SnackBarUtils.showSnackBar(
           context,
           context.read<ProductProvider>().error ?? 'Failed to add product',
           isError: true,

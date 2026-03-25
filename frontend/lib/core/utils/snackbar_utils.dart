@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 
 class SnackBarUtils {
-  static void showTopSnackBar(
+  static void showSnackBar(
     BuildContext context,
     String message, {
     bool isError = false,
   }) {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final topPadding = MediaQuery.of(context).padding.top;
 
-    // Clear existing snackbars to avoid stacking at the top
+    // Clear existing snackbars to avoid stacking
     scaffoldMessenger.hideCurrentSnackBar();
 
     scaffoldMessenger.showSnackBar(
@@ -43,9 +42,9 @@ class SnackBarUtils {
             ? AppColors.error.withValues(alpha: 0.95)
             : AppColors.primary.withValues(alpha: 0.95),
         behavior: SnackBarBehavior.floating,
-        dismissDirection: DismissDirection.up,
-        margin: EdgeInsets.only(
-          bottom: (MediaQuery.of(context).size.height - topPadding - 120).clamp(16.0, 4000.0),
+        dismissDirection: DismissDirection.horizontal,
+        margin: const EdgeInsets.only(
+          bottom: 72, // Positioned above the bottom navigation bar
           left: 16,
           right: 16,
         ),

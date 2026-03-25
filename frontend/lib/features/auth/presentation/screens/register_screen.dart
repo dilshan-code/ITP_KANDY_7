@@ -41,7 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _register() async {
     if (_nameController.text.trim().isEmpty) {
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         'Owner name is required',
         isError: true,
@@ -49,7 +49,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
     if (_shopNameController.text.trim().isEmpty) {
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         'Shop name is required',
         isError: true,
@@ -58,7 +58,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
     final phone = normalizePhoneNumber(_phoneController.text.trim());
     if (phone.isEmpty || phone == '+94') {
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         'Phone number is required',
         isError: true,
@@ -66,7 +66,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
     if (_passwordController.text.trim().length < 8) {
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         'Password must be at least 8 characters',
         isError: true,
@@ -74,7 +74,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
     if (!_agreedToTerms) {
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         'Please agree to the Terms of Service',
         isError: true,
@@ -93,7 +93,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (success) {
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         'Account created successfully! Welcome to ClickBuy.',
       );
@@ -102,7 +102,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         MaterialPageRoute(builder: (_) => const MainShell()),
       );
     } else {
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         authProvider.error ?? 'Registration failed. Please try again.',
         isError: true,

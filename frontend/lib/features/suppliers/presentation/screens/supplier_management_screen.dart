@@ -471,7 +471,7 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                   .read<SupplierProvider>()
                   .removeSupplier(supplier.id);
               if (context.mounted) {
-                SnackBarUtils.showTopSnackBar(context, 'Supplier removed');
+                SnackBarUtils.showSnackBar(context, 'Supplier removed');
               }
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
@@ -498,7 +498,7 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                   .read<PurchaseProvider>()
                   .deletePurchase(purchase.id);
               if (context.mounted) {
-                SnackBarUtils.showTopSnackBar(context, 'Record deleted');
+                SnackBarUtils.showSnackBar(context, 'Record deleted');
               }
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),

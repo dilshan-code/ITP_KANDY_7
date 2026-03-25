@@ -632,12 +632,12 @@ class _ProductTile extends StatelessWidget {
                             onTap: () {
                               try {
                                 context.read<SaleProvider>().addToCart(product);
-                                SnackBarUtils.showTopSnackBar(
+                                SnackBarUtils.showSnackBar(
                                   context,
                                   '${product.name} added to cart',
                                 );
                               } catch (e) {
-                                SnackBarUtils.showTopSnackBar(
+                                SnackBarUtils.showSnackBar(
                                   context,
                                   e.toString().replaceAll('Exception: ', ''),
                                   isError: true,
@@ -703,12 +703,12 @@ class _ProductTile extends StatelessWidget {
                   await context.read<ProductProvider>().deleteProduct(product.id);
               if (context.mounted) {
                 if (success) {
-                  SnackBarUtils.showTopSnackBar(
+                  SnackBarUtils.showSnackBar(
                     context,
                     'Product deleted successfully',
                   );
                 } else {
-                  SnackBarUtils.showTopSnackBar(
+                  SnackBarUtils.showSnackBar(
                     context,
                     'Failed to delete product',
                     isError: true,

@@ -90,7 +90,7 @@ class _SupplierPurchaseRecordScreenState extends State<SupplierPurchaseRecordScr
 
   void _submit() async {
     if (!_formKey.currentState!.validate() || _selectedSupplierId == null || _selectedProductId == null) {
-      SnackBarUtils.showTopSnackBar(
+      SnackBarUtils.showSnackBar(
         context,
         'Please fill all required fields',
         isError: true,
