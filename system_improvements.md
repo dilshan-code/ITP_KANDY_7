@@ -4,6 +4,51 @@ A roadmap of architectural enhancements and user experience updates implemented 
 
 ---
 
+## 📅 March 25, 2026
+> *Focus: Enterprise-Grade Architecture and Validation*
+
+### `[ARCH]` Full Multi-tenant Propagation
+- **Feature**: End-to-end `ownerId` scoping.
+- **Description**: Propagated the `ownerId` from the authenticated user context through all backend layers (Route -> Controller -> Use Case -> Repository) and integrated it into the Flutter `ApiClient`.
+- **Benefit**: Ensures absolute data isolation between different shop owners. Each user only sees their own products, sales, and customers, making the app production-ready for multiple businesses.
+
+### `[FEAT]` Credit Settlement Invoices
+- **Feature**: Formal Invoice generation for credit payments.
+- **Description**: Implemented a new workflow to generate a professional PDF invoice whenever a customer settles their outstanding credit balance.
+- **Benefit**: Provides transparency and professional record-keeping for both the shop owner and the customer.
+
+### `[ARCH]` Centralized Dual-Layer Validation
+- **Feature**: Unified validation schema for frontend and backend.
+- **Description**: Established a consistent set of validation rules for all major entities (Products, Suppliers, Auth). Implemented real-time form validation in Flutter and strict schema enforcement in Node.js.
+- **Benefit**: Dramatically reduces "bad data" entries and improves UX by providing immediate feedback before the user even hits "Save."
+
+### `[UX]` Context-Aware Snackbar Positioning
+- **Feature**: Repositioned floating notifications.
+- **Description**: Moved all success/error snackbars to appear just above the bottom navigation bar.
+- **Benefit**: Prevents notifications from obstructing the top-level app bar or main content, keeping important information within the user's focus area without being intrusive.
+
+### `[DEVOPS]` Backend ESLint Integration
+- **Feature**: Automated code quality auditing.
+- **Description**: Configured ESLint for the Node.js backend to enforce consistent coding standards and catch potential bugs early.
+- **Benefit**: Improves maintainability and long-term stability of the backend codebase.
+
+---
+
+## 📅 March 24, 2026
+> *Focus: Proactive Monitoring and Notifications*
+
+### `[FEAT]` Out-Of-Stock Alert System
+- **Feature**: Automatic inventory notifications.
+- **Description**: Implemented a backend trigger that monitors stock levels during sales and notifies the owner immediately when a product hits zero.
+- **Benefit**: Prevents lost sales by ensuring shop owners are always aware when critical items need restocking.
+
+### `[FEAT]` Credit Limit Enforcement & Badges
+- **Feature**: Real-time credit monitoring.
+- **Description**: Added logic to alert users when a credit customer exceeds their pre-defined limit. Included a notification badge on the app icon.
+- **Benefit**: Minimizes financial risk for the shop by providing immediate warnings when a customer's debt exceeds safe thresholds.
+
+---
+
 ## 📅 March 23, 2026
 > *Focus: Developer Tooling and Data Integrity*
 
@@ -128,4 +173,4 @@ A roadmap of architectural enhancements and user experience updates implemented 
 - **Benefit**: Gives the user full control over their data. Mistakes happen—now they can be fixed.
 
 ---
-*Last Update: 2026-03-23 • Status: Stable (Beta)*
+*Last Update: 2026-03-25 • Status: Stable (Beta)*

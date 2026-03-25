@@ -4,6 +4,46 @@ A professional record of technical challenges encountered and resolved during th
 
 ---
 
+## 📅 March 25, 2026
+> *Focus: Data Consistency and Multi-tenant Integrity*
+
+### `[FIXED]` Credit Balance Inconsistency
+- **Issue**: Customer credit balances remained active/incorrect after a full settlement transaction.
+- **Fix**: Updated `settle_credit.js` to properly clear balances and implemented a frontend refresh trigger upon successful settlement.
+- **Context**: Ensuring data consistency across screens is critical. When a debt is paid, the user expects to see an immediate $0.00 balance.
+
+### `[RESOLVED]` Backend Initialization Race Condition
+- **Issue**: `ReferenceError: Cannot access 'notificationRepository' before initialization` in `server.js`.
+- **Fix**: Reordered dependency injection logic to ensure repositories are fully instantiated before being passed to use cases.
+- **Context**: Critical startup fix. This ensures the server starts reliably and all notification-related features have valid repository handles.
+
+### `[FIXED]` Multi-tenant Data Isolation
+- **Issue**: Specific accounts (e.g., `demo@gmail.com`) occasionally fetched data from other tenants or failed to load scoped data.
+- **Fix**: Audited all Firestore queries to strictly enforce `where('ownerId', '==', ownerId)` and verified header propagation.
+- **Context**: Security and privacy are paramount. Multi-tenant isolation must be enforced at the query level to prevent data leakage.
+
+---
+
+## 📅 March 24, 2026
+> *Focus: Timezone Syncing and Infrastructure Stability*
+
+### `[RESOLVED]` Invoice Date & Time Discrepancy
+- **Issue**: Invoices showed incorrect dates/times in the history screen due to UTC/Local timezone mismatch.
+- **Fix**: Implemented `.toLocal()` parsing in the Flutter frontend and standardized ISO strings from the backend.
+- **Context**: Accuracy in record-keeping is vital for business auditing. Standardization ensures that "10:00 AM" in the shop means "10:00 AM" in the app.
+
+### `[RESOLVED]` Port 3000 Collision
+- **Issue**: Backend failed to start with `EADDRINUSE` on port 3000 during rapid restarts.
+- **Fix**: Improved the `server.close()` logic and added a robust cleanup script to free the port on process exit.
+- **Context**: This friction-reducing fix ensures a smooth developer experience during iterative coding and testing.
+
+### `[FIXED]` Auth Hashing Login Failure
+- **Issue**: Users were unable to log in after the implementation of password hashing during maintenance.
+- **Fix**: Synchronized the bcrypt verification logic between the registration and login use cases.
+- **Context**: Security upgrades shouldn't break accessibility. This restore access while maintaining the improved security posture.
+
+---
+
 ## 📅 March 23, 2026
 > *Focus: Data Normalization and Backend Auditing*
 
@@ -108,4 +148,4 @@ A professional record of technical challenges encountered and resolved during th
 - **Context**: Technical debt cleanup. We moved to a simpler price-only model to streamline the user interface.
 
 ---
-*Last Review: 2026-03-23 • Total Issues Logged: 17*
+*Last Review: 2026-03-25 • Total Issues Logged: 23*

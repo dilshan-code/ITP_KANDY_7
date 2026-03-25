@@ -4,12 +4,13 @@ ClickBuy is a modern, full-stack application designed to streamline inventory ma
 
 ## 🚀 Key Features
 
-- **Inventory Management**: Real-time tracking of product stock, categories, and inventory value.
-- **Sales System**: Efficient cart management and payment processing.
-- **Customer Credit Tracking**: Dedicated module for managing debtors and credit transactions.
-- **Supplier Module**: Keep track of purchases and supplier relationships.
-- **Enhanced Notifications**: A robust notification system for low-stock alerts and business updates, dynamically aligned to clear the status bar and notch on mobile devices.
-- **Premium UI/UX**: Optimized for speed and aesthetics with a modern, clean design.
+- **Multi-tenant Core**: Secure data isolation using `ownerId` scoping across the entire stack.
+- **Inventory Management**: Real-time tracking of product stock, categories, and inventory value with out-of-stock alerts.
+- **Sales System**: Efficient cart management and payment processing with automatic stock updates.
+- **Customer Credit Tracking**: Dedicated module for managing debtors, credit settlements, and credit limit alerts.
+- **Robust Validation**: Centralized, dual-layer validation system (frontend/backend) for maximum data integrity.
+- **Enhanced Notifications**: Advanced system for low-stock, out-of-stock, and credit limit alerts with icon badges.
+- **Premium UI/UX**: iOS-inspired design with repositioned snackbars for a clutter-free experience.
 
 ## 🛠 Tech Stack
 
