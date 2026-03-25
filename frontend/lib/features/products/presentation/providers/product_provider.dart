@@ -13,11 +13,16 @@ class ProductProvider extends ChangeNotifier {
   // Internal state variables
   List<Product> _products = [];
   bool _isLoading = false;
+  bool _isFetchingMore = false;
+  bool _hasMore = true;
   String? _error;
+  final int _pageSize = 20;
 
   // Public getters to allow UI to read the state
   List<Product> get products => _products;
   bool get isLoading => _isLoading;
+  bool get isFetchingMore => _isFetchingMore;
+  bool get hasMore => _hasMore;
   String? get error => _error;
 
   // Derived getter: returns only products that are critically low on stock
@@ -41,20 +46,43 @@ class ProductProvider extends ChangeNotifier {
   // Returns a filtered list of products that need reordering.
   List<Product> get lowStockItems => _products.where((p) => p.isLowStock).toList();
 
-  // Fetches the latest products from the backend
-  Future<void> fetchProducts() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners(); // Tells the UI to show a loading spinner
-
-    try {
-      _products = await _repository.getAllProducts();
-    } catch (e) {
-      _error = e.toString();
+  // Fetches the latest products from the backend with pagination support
+  Future<void> fetchProducts({bool refresh = true}) async {
+    if (refresh) {
+      _isLoading = true;
+      _hasMore = true;
+      _error = null;
+      notifyListeners();
+    } else if (!_hasMore || _isFetchingMore) {
+      return;
+    } else {
+      _isFetchingMore = true;
+      notifyListeners();
     }
 
-    _isLoading = false;
-    notifyListeners(); // Tells the UI to hide the spinner and show data
+    try {
+      final lastId = !refresh && _products.isNotEmpty ? _products.last.id : null;
+      final fetchedProducts = await _repository.getAllProducts(
+        limit: _pageSize,
+        lastId: lastId,
+      );
+
+      if (refresh) {
+        _products = fetchedProducts;
+      } else {
+        _products.addAll(fetchedProducts);
+      }
+
+      _hasMore = fetchedProducts.length == _pageSize;
+      _isLoading = false;
+      _isFetchingMore = false;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      _isFetchingMore = false;
+      notifyListeners();
+    }
   }
 
   // Private helper to upload an image file to the Cloudinary cloud storage.

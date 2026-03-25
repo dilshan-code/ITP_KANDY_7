@@ -42,4 +42,10 @@ class SupplierRepositoryImpl implements SupplierRepository {
     await ApiClient.delete('/suppliers/$id');
     return true;
   }
+
+  @override
+  Future<Map<String, dynamic>> getSupplierSummary() async {
+    final response = await ApiClient.get('/suppliers/summary');
+    return response['data'] as Map<String, dynamic>;
+  }
 }

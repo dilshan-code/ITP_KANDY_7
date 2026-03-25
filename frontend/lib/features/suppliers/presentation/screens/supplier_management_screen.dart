@@ -561,6 +561,7 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
               if (context.mounted) {
                 if (success) {
                   SnackBarUtils.showSnackBar(context, 'Record deleted');
+                  context.read<SupplierProvider>().fetchSuppliers();
                 } else {
                   SnackBarUtils.showSnackBar(
                     context,

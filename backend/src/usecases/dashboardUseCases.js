@@ -21,8 +21,8 @@ class GetDashboardData {
         ] = await Promise.all([
             this.saleRepository.getTodayTotal(ownerId),
             this.productRepository.getLowStockCount(ownerId),
-            this.customerCredit = await this.customerRepository.getTotalOutstanding(ownerId),
-            this.toSuppliers = await this.supplierRepository.getTotalPayable(ownerId),
+            this.customerRepository.getTotalOutstanding(ownerId),
+            this.supplierRepository.getTotalPayable(ownerId),
             this.getTotalItemsInStock(ownerId),
             this.saleRepository.getAll(ownerId, 5), // Only get 5 newest sales
             this.purchaseRepository.getAll(ownerId, 5) // Only get 5 newest purchases
@@ -45,7 +45,7 @@ class GetDashboardData {
                 id: p.id,
                 type: 'purchase',
                 title: `Purchase #${p.id.substring(0, 5)}`,
-                subtitle: `Supplier: ${p.supplierId}`,
+                subtitle: `Supplier: ${p.supplierName || 'Unknown'}`,
                 amount: -(p.totalAmount || 0),
                 time: p.purchaseDate || p.createdAt
             });

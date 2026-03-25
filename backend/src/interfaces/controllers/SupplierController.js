@@ -1,11 +1,12 @@
 // SupplierController handles the relationships with the companies or people who provide products to the shop.
 class SupplierController {
-    constructor({ getAllSuppliers, getSupplierById, createSupplier, updateSupplier, deleteSupplier }) {
+    constructor({ getAllSuppliers, getSupplierById, createSupplier, updateSupplier, deleteSupplier, getSupplierSummary }) {
         this.getAllSuppliers = getAllSuppliers;
         this.getSupplierById = getSupplierById;
         this.createSupplier = createSupplier;
         this.updateSupplier = updateSupplier;
         this.deleteSupplier = deleteSupplier;
+        this.getSupplierSummary = getSupplierSummary;
     }
 
     // Lists every supplier recorded in the system.
@@ -57,6 +58,16 @@ class SupplierController {
             const deleted = await this.deleteSupplier.execute(req.params.id, req.ownerId);
             if (!deleted) return res.status(404).json({ success: false, error: 'Supplier not found' });
             res.json({ success: true, message: 'Supplier deleted' });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    }
+
+    // Returns a summary of all suppliers (total payable, active count).
+    async getSummary(req, res) {
+        try {
+            const summary = await this.getSupplierSummary.execute(req.ownerId);
+            res.json({ success: true, data: summary });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }

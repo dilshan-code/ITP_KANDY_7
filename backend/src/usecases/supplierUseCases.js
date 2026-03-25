@@ -52,4 +52,22 @@ class DeleteSupplier {
     async execute(id, ownerId) { return this.supplierRepository.delete(id, ownerId); }
 }
 
-module.exports = { GetAllSuppliers, GetSupplierById, CreateSupplier, UpdateSupplier, DeleteSupplier };
+// Global aggregation for all suppliers owned by this user.
+class GetSupplierSummary {
+    constructor(supplierRepository) { this.supplierRepository = supplierRepository; }
+    async execute(ownerId) {
+        if (!ownerId) throw new Error('Owner ID is required');
+        const totalPayable = await this.supplierRepository.getTotalPayable(ownerId);
+        
+        // We can also fetch the count of active suppliers
+        const suppliers = await this.supplierRepository.getAll(ownerId);
+        const activeCount = suppliers.filter(s => s.status === 'active').length;
+
+        return {
+            totalPayable: totalPayable || 0,
+            activeCount: activeCount
+        };
+    }
+}
+
+module.exports = { GetAllSuppliers, GetSupplierById, CreateSupplier, UpdateSupplier, DeleteSupplier, GetSupplierSummary };

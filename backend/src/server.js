@@ -15,7 +15,7 @@ const FirestoreNotificationRepository = require('./infrastructure/FirestoreNotif
 // --- Use Cases ---
 const { GetAllProducts, GetProductById, CreateProduct, UpdateProduct, DeleteProduct } = require('./usecases/productUseCases');
 const { RegisterOwner, LoginOwner, GetOwnerProfile, UpdateOwnerProfile, ChangeOwnerPassword } = require('./usecases/authUseCases');
-const { GetAllSuppliers, GetSupplierById, CreateSupplier, UpdateSupplier, DeleteSupplier } = require('./usecases/supplierUseCases');
+const { GetAllSuppliers, GetSupplierById, CreateSupplier, UpdateSupplier, DeleteSupplier, GetSupplierSummary } = require('./usecases/supplierUseCases');
 const { GetAllPurchases, GetPurchaseById, CreatePurchase, GetPurchasesBySupplier, UpdatePurchase, DeletePurchase } = require('./usecases/purchaseUseCases');
 const { GetAllCustomers, GetCustomerById, CreateCustomer, UpdateCustomer, DeleteCustomer } = require('./usecases/customerUseCases');
 const { GetAllCreditTransactions, GetCreditTransactionsByCustomer, CreateCreditTransaction, UpdateCreditTransaction, DeleteCreditTransaction } = require('./usecases/creditTransactionUseCases');
@@ -99,6 +99,7 @@ const supplierUseCases = {
     createSupplier: new CreateSupplier(supplierRepository),
     updateSupplier: new UpdateSupplier(supplierRepository),
     deleteSupplier: new DeleteSupplier(supplierRepository),
+    getSupplierSummary: new GetSupplierSummary(supplierRepository),
 };
 const supplierController = new SupplierController(supplierUseCases);
 
@@ -139,7 +140,7 @@ const saleUseCases = {
     getSaleById: new GetSaleById(saleRepository),
     createSale: new CreateSale(saleRepository, productRepository, customerRepository, creditTransactionRepository, notificationRepository),
     getSalesByCustomer: new GetSalesByCustomer(saleRepository),
-    updateSale: new UpdateSale(saleRepository, productRepository, customerRepository, creditTransactionRepository),
+    updateSale: new UpdateSale(saleRepository, productRepository, customerRepository, creditTransactionRepository, notificationRepository),
     deleteSale: new DeleteSale(saleRepository, productRepository, customerRepository, creditTransactionRepository),
 };
 const saleController = new SaleController(saleUseCases);

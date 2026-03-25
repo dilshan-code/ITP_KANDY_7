@@ -67,7 +67,10 @@ class CreateSale {
             // 2. Update stock for each product
             for (const { item, product } of productDocs) {
                 const newStock = Math.max(0, product.stockQuantity - (item.quantity || 0));
-                await this.productRepository.update(product.id, { stockQuantity: newStock }, ownerId, transaction);
+                await this.productRepository.update(product.id, { 
+                    stockQuantity: newStock,
+                    isLowStock: newStock <= (product.minimumStockLevel || 0)
+                }, ownerId, transaction);
 
                 // Trigger Notifications for Stock Levels
                 if (product.notifyOutOfStock) {
@@ -202,7 +205,10 @@ class DeleteSale {
             // 1. Revert stock for each product
             for (const { item, product } of productDocs) {
                 const newStock = product.stockQuantity + (item.quantity || 0);
-                await this.productRepository.update(product.id, { stockQuantity: newStock }, ownerId, transaction);
+                await this.productRepository.update(product.id, { 
+                    stockQuantity: newStock,
+                    isLowStock: newStock <= (product.minimumStockLevel || 0)
+                }, ownerId, transaction);
             }
 
             // 2. Revert customer credit
@@ -228,11 +234,12 @@ class DeleteSale {
 
 // Updates an existing sale and reconciles stock/credit changes.
 class UpdateSale {
-    constructor(saleRepository, productRepository, customerRepository, creditTransactionRepository) {
+    constructor(saleRepository, productRepository, customerRepository, creditTransactionRepository, notificationRepository) {
         this.saleRepository = saleRepository;
         this.productRepository = productRepository;
         this.customerRepository = customerRepository;
         this.creditTransactionRepository = creditTransactionRepository;
+        this.notificationRepository = notificationRepository;
     }
 
     async execute(id, saleData, ownerId) {
@@ -276,7 +283,29 @@ class UpdateSale {
                         const product = await this.productRepository.getById(item.productId, ownerId, transaction);
                         if (product) {
                             const newStock = Math.max(0, product.stockQuantity - (item.quantity || 0));
-                            await this.productRepository.update(product.id, { stockQuantity: newStock }, ownerId, transaction);
+                            await this.productRepository.update(product.id, { 
+                                stockQuantity: newStock,
+                                isLowStock: newStock <= (product.minimumStockLevel || 0)
+                            }, ownerId, transaction);
+
+                            // Trigger Notifications for Stock Levels
+                            if (product.notifyOutOfStock) {
+                                if (newStock === 0) {
+                                    await this.notificationRepository.create({
+                                        ownerId,
+                                        type: 'warning',
+                                        title: 'Product Out of Stock',
+                                        message: `The product "${product.name}" is now out of stock (updated sale).`,
+                                    }, transaction);
+                                } else if (newStock <= (product.minimumStockLevel || 0)) {
+                                    await this.notificationRepository.create({
+                                        ownerId,
+                                        type: 'info',
+                                        title: 'Low Stock Alert',
+                                        message: `The product "${product.name}" is running low (${newStock} remaining) after sale update.`,
+                                    }, transaction);
+                                }
+                            }
                         }
                     }
                 }
@@ -292,6 +321,15 @@ class UpdateSale {
                         totalOutstanding: newOutstanding,
                         status: 'active'
                     }, ownerId, transaction);
+
+                    if (newOutstanding >= freshCustomer.creditLimit) {
+                        await this.notificationRepository.create({
+                            ownerId,
+                            type: 'alert',
+                            title: 'Credit Limit Exceeded',
+                            message: `${freshCustomer.name} has exceeded their credit limit of Rs ${freshCustomer.creditLimit} after a sale adjustment. Current debt: Rs ${newOutstanding}.`,
+                        }, transaction);
+                    }
                 }
             }
 

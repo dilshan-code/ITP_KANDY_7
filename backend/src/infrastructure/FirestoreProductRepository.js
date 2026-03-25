@@ -14,11 +14,30 @@ class FirestoreProductRepository extends IProductRepository {
         this.collection = db.collection('products');
     }
 
-    // Fetch all products from the database for a specific owner
-    async getAll(ownerId) {
+    // Fetch all products from the database for a specific owner, with optional pagination
+    async getAll(ownerId, limit = null, lastId = null) {
         if (!ownerId) throw new Error('Owner ID is required');
-        // Execute a 'get' query against products matching this ownerId
-        const snapshot = await this.collection.where('ownerId', '==', ownerId).get();
+        
+        // Start building the query with mandatory ownerId filter and sorting by name
+        // Sorting by name ensures a consistent order for pagination cursors
+        let query = this.collection.where('ownerId', '==', ownerId).orderBy('name');
+
+        // Apply pagination if a lastId is provided
+        if (lastId) {
+            const lastDoc = await this.collection.doc(lastId).get();
+            if (lastDoc.exists) {
+                query = query.startAfter(lastDoc);
+            }
+        }
+
+        // Apply the limit if provided
+        if (limit) {
+            query = query.limit(parseInt(limit));
+        }
+
+        // Execute the query
+        const snapshot = await query.get();
+        
         // Loop over the snapshot documents, converting each to a domain Product object, then to a JSON map
         return snapshot.docs.map(doc => {
             const data = doc.data();

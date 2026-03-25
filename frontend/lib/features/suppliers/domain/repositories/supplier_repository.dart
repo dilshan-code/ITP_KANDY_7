@@ -6,4 +6,5 @@ abstract class SupplierRepository {
   Future<Supplier> createSupplier(Map<String, dynamic> data);
   Future<Supplier> updateSupplier(String id, Map<String, dynamic> data);
   Future<bool> deleteSupplier(String id);
+  Future<Map<String, dynamic>> getSupplierSummary();
 }

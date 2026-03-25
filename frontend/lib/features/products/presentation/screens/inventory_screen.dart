@@ -22,10 +22,12 @@ class InventoryScreen extends StatefulWidget {
 class InventoryScreenState extends State<InventoryScreen> {
   String _selectedFilter = 'All Items';
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<ProductProvider>().fetchProducts();
@@ -33,9 +35,18 @@ class InventoryScreenState extends State<InventoryScreen> {
     });
   }
 
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        _searchController.text.isEmpty) {
+      context.read<ProductProvider>().fetchProducts(refresh: false);
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -127,26 +138,50 @@ class InventoryScreenState extends State<InventoryScreen> {
                             ],
                           ),
                         )
-                      : RefreshIndicator(
-                          color: AppColors.primary,
-                          onRefresh: provider.fetchProducts,
-                          child: ListView(
-                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                            children: [
-                              const SizedBox(height: 16),
-                              _buildInventoryValueCard(provider),
-                              const SizedBox(height: 20),
-                              _buildProductsHeader(),
-                              const SizedBox(height: 12),
-                              ...filteredProducts.map(
-                                (p) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: _ProductTile(product: p),
-                                ),
-                              ),
-                            ],
+                        : RefreshIndicator(
+                            color: AppColors.primary,
+                            onRefresh: () => provider.fetchProducts(),
+                            child: ListView.builder(
+                              controller: _scrollController,
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                              itemCount: 1 + filteredProducts.length + (provider.isFetchingMore ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                // Add Header Cards (Inventory Value + Products Header) at the top
+                                if (index == 0) {
+                                  return Column(
+                                    children: [
+                                      const SizedBox(height: 16),
+                                      _buildInventoryValueCard(provider),
+                                      const SizedBox(height: 20),
+                                      _buildProductsHeader(),
+                                      const SizedBox(height: 12),
+                                    ],
+                                  );
+                                }
+
+                                // Adjust index for products
+                                final productIndex = index - 1;
+                                
+                                if (productIndex < filteredProducts.length) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: _ProductTile(product: filteredProducts[productIndex]),
+                                  );
+                                }
+
+                                // Show loading indicator at the bottom if fetching more
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 20),
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                        ),
                 ),
               ],
             );

@@ -2,6 +2,7 @@ const express = require('express');
 
 function createSupplierRoutes(supplierController) {
     const router = express.Router();
+    router.get('/suppliers/summary', (req, res) => supplierController.getSummary(req, res));
     router.get('/suppliers', (req, res) => supplierController.getAll(req, res));
     router.get('/suppliers/:id', (req, res) => supplierController.getById(req, res));
     router.post('/suppliers', (req, res) => supplierController.create(req, res));

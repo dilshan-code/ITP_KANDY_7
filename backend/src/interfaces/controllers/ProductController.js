@@ -19,7 +19,8 @@ class ProductController {
     // Handle GET /api/products
     async getAll(req, res) {
         try {
-            const products = await this.getAllProducts.execute(req.ownerId);
+            const { limit, lastId } = req.query;
+            const products = await this.getAllProducts.execute(req.ownerId, limit, lastId);
             res.json({ success: true, data: products });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
@@ -125,7 +126,7 @@ class ProductController {
                     id: p.id,
                     type: 'purchase',
                     title: `Purchase #${p.id.substring(0, 5)}`,
-                    subtitle: `Supplier: ${p.supplierId}`,
+                    subtitle: `Supplier: ${p.supplierName || 'Unknown'}`,
                     amount: -(p.totalAmount || 0),
                     time: p.purchaseDate || p.createdAt,
                     originalDate: p.purchaseDate || p.createdAt

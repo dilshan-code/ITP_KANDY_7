@@ -7,9 +7,14 @@ import 'package:frontend/features/products/domain/repositories/product_repositor
 class ProductRepositoryImpl implements ProductRepository {
   // Fetches all products from the backend and converts JSON data into Product objects
   @override
-  Future<List<Product>> getAllProducts() async {
+  Future<List<Product>> getAllProducts({int? limit, String? lastId}) async {
+    final Map<String, String> queryParams = {};
+    if (limit != null) queryParams['limit'] = limit.toString();
+    if (lastId != null) queryParams['lastId'] = lastId;
+
     // Call the network helper to fire a GET /products to the Node server
-    final response = await ApiClient.get('/products');
+    final response = await ApiClient.get('/products', queryParameters: queryParams);
+    
     // Extract the raw array from the 'data' key returned by Node
     final List data = response['data'];
     // Map over each raw JSON object and construct a strongly typed Dart Product model, then return as a List

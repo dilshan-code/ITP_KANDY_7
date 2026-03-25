@@ -44,7 +44,10 @@ class CreatePurchase {
             // 3. Update stock levels
             for (const { item, product } of productDocs) {
                 const newStock = product.stockQuantity + (item.quantity || 0);
-                await this.productRepository.update(product.id, { stockQuantity: newStock }, ownerId, transaction);
+                await this.productRepository.update(product.id, { 
+                    stockQuantity: newStock,
+                    isLowStock: newStock <= (product.minimumStockLevel || 0)
+                }, ownerId, transaction);
             }
 
             // 4. Update Supplier balance
@@ -104,7 +107,10 @@ class DeletePurchase {
             // 3. Revert stock
             for (const { item, product } of productDocs) {
                 const newStock = Math.max(0, product.stockQuantity - (item.quantity || 0));
-                await this.productRepository.update(product.id, { stockQuantity: newStock }, ownerId, transaction);
+                await this.productRepository.update(product.id, { 
+                    stockQuantity: newStock,
+                    isLowStock: newStock <= (product.minimumStockLevel || 0)
+                }, ownerId, transaction);
             }
 
             // 4. Revert supplier balance

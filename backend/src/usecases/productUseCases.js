@@ -10,9 +10,9 @@ class GetAllProducts {
         this.productRepository = productRepository;
     }
     // This is the core 'action' method that the controller calls.
-    async execute(ownerId) {
+    async execute(ownerId, limit = null, lastId = null) {
         // We simply delegate the work to the repository which knows HOW to talk to the DB.
-        return this.productRepository.getAll(ownerId);
+        return this.productRepository.getAll(ownerId, limit, lastId);
     }
 }
 

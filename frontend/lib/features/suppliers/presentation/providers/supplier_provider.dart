@@ -13,15 +13,21 @@ class SupplierProvider extends ChangeNotifier {
   String? _error;
   final int _pageSize = 20;
 
+  double _totalPayable = 0;
+  int _activeCount = 0;
+
   List<Supplier> get suppliers => _suppliers;
   bool get isLoading => _isLoading;
   bool get isFetchingMore => _isFetchingMore;
   bool get hasMore => _hasMore;
   String? get error => _error;
 
-  int get activeCount => _suppliers.where((s) => s.status == 'active').length;
-  double get totalPayable =>
-      _suppliers.fold(0, (sum, s) => sum + s.totalPayable);
+  double get totalPayable => _totalPayable;
+  int get activeCount => _activeCount;
+
+  // int get activeCount => _suppliers.where((s) => s.status == 'active').length;
+  // double get totalPayable =>
+  //     _suppliers.fold(0, (sum, s) => sum + s.totalPayable);
 
   Future<void> fetchSuppliers({bool refresh = true}) async {
     if (refresh) {
@@ -41,6 +47,11 @@ class SupplierProvider extends ChangeNotifier {
         limit: _pageSize,
         lastId: refresh || _suppliers.isEmpty ? null : _suppliers.last.id,
       );
+
+      // Fetch summary data from backend for accurate total payable amount
+      final summary = await _repository.getSupplierSummary();
+      _totalPayable = (summary['totalPayable'] as num?)?.toDouble() ?? 0.0;
+      _activeCount = (summary['activeCount'] as num?)?.toInt() ?? 0;
 
       if (refresh) {
         _suppliers = fetchedSuppliers;
