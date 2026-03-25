@@ -26,6 +26,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   late String _selectedCategory;
   late String _selectedUnit;
   late int _stockQuantity;
+  late bool _notifyOutOfStock;
   bool _saving = false;
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
@@ -66,6 +67,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         : _categories.first;
     _selectedUnit = widget.product.unit.isNotEmpty ? widget.product.unit : 'pcs';
     _stockQuantity = widget.product.stockQuantity;
+    _notifyOutOfStock = widget.product.notifyOutOfStock;
   }
 
   @override
@@ -127,6 +129,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
       'description': _descriptionController.text.trim(),
       'imageUrl': _imageRemoved ? '' : widget.product.imageUrl,
       'unit': _selectedUnit,
+      'notifyOutOfStock': _notifyOutOfStock,
     };
 
     final success = await context.read<ProductProvider>().updateProduct(
@@ -272,8 +275,33 @@ class _EditProductScreenState extends State<EditProductScreen> {
             const SizedBox(height: 8),
             _buildFormField(
               _descriptionController,
-              maxLines: 4,
               hint: 'Enter product description...',
+            ),
+            const SizedBox(height: 20),
+            // Notification Toggle
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: SwitchListTile(
+                value: _notifyOutOfStock,
+                onChanged: (v) => setState(() => _notifyOutOfStock = v),
+                title: const Text(
+                  'Notify when out of stock',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textDark,
+                  ),
+                ),
+                subtitle: const Text(
+                  'Receive an alert when this product hits 0 units.',
+                  style: TextStyle(fontSize: 11, color: AppColors.textLight),
+                ),
+                activeThumbColor: AppColors.primary,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              ),
             ),
             const SizedBox(height: 28),
             // Buttons

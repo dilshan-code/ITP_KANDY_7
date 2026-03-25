@@ -279,8 +279,8 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
     ];
 
     combined.sort((a, b) {
-      final dateA = DateTime.parse(a is Map ? a['createdAt'] : a.createdAt);
-      final dateB = DateTime.parse(b is Map ? b['createdAt'] : b.createdAt);
+      final dateA = DateTime.parse(a is Map ? a['createdAt'] : a.createdAt).toLocal();
+      final dateB = DateTime.parse(b is Map ? b['createdAt'] : b.createdAt).toLocal();
       return dateB.compareTo(dateA);
     });
 
@@ -300,7 +300,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
   }
 
   Widget _buildSaleCard(Map<String, dynamic> sale) {
-    final date = DateTime.parse(sale['createdAt'] ?? DateTime.now().toString());
+    final date = DateTime.parse(sale['createdAt'] ?? DateTime.now().toString()).toLocal();
     final formattedTime = DateFormat('hh:mm a').format(date);
     final amount = (sale['totalAmount'] ?? 0.0).toDouble();
     final customerName = sale['customerName'] ?? 'Walk-in Customer';
@@ -415,7 +415,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
   }
 
   Widget _buildTransactionCard(dynamic txn) {
-    final date = DateTime.parse(txn.createdAt);
+    final date = DateTime.parse(txn.createdAt).toLocal();
     final isPayment = txn.type == 'payment';
 
     return Container(

@@ -52,6 +52,7 @@ class FirestoreProductRepository extends IProductRepository {
             description: productData.description || '',
             imageUrl: productData.imageUrl || '',
             unit: productData.unit || 'ea',
+            notifyOutOfStock: productData.notifyOutOfStock !== undefined ? productData.notifyOutOfStock : true,
             createdAt: now,
             updatedAt: now, // updated and created are the same initially
         };

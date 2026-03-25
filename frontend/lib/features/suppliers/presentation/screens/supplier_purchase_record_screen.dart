@@ -39,7 +39,8 @@ class _SupplierPurchaseRecordScreenState extends State<SupplierPurchaseRecordScr
       final p = widget.purchase!;
       _selectedSupplierId = p.supplierId;
       _selectedSupplierName = p.supplierName;
-      _selectedDate = DateTime.tryParse(p.purchaseDate) ?? DateTime.now();
+      _selectedDate =
+          (DateTime.tryParse(p.purchaseDate) ?? DateTime.now()).toLocal();
       _paymentStatus = p.status.isNotEmpty 
           ? p.status[0].toUpperCase() + p.status.substring(1).toLowerCase()
           : 'Paid';

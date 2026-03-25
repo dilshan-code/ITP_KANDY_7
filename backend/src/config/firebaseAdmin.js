@@ -13,7 +13,7 @@ try {
     serviceAccount = require(serviceAccountPath);
 } catch (error) {
     // If the file is missing, log an error and stop the server
-    console.error('❌ Firebase service account key not found!');
+    console.error('Firebase service account key not found!');
     console.error(`   Expected at: ${serviceAccountPath}`);
     console.error('\n   --- FIX STEPS FOR TEAM ---');
     console.error('   1. Go to: Firebase Console → Project Settings → Service accounts');
@@ -32,7 +32,7 @@ admin.initializeApp({
 // Get a reference to the Firestore database
 const db = admin.firestore();
 
-console.log('🔥 Firebase Admin SDK initialized successfully');
+console.log('Firebase Admin SDK initialized successfully');
 
 // Export admin and db so other files (like FirestoreProductRepository) can use them
 module.exports = { admin, db };

@@ -24,6 +24,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   String _selectedCategory = 'Fruits';
   String _selectedUnit = 'pcs';
   int _initialStock = 0;
+  bool _notifyOutOfStock = true;
   bool _saving = false;
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
@@ -107,6 +108,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       'minimumStockLevel': int.tryParse(_minStockController.text) ?? 0,
       'description': _descriptionController.text.trim(),
       'unit': _selectedUnit,
+      'notifyOutOfStock': _notifyOutOfStock,
     };
  
     // Step 4: Call the ProductProvider to handle the image upload and API POST request.
@@ -272,6 +274,32 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     decoration: const InputDecoration(
                       hintText:
                           'Add details about product size, weight, or benefits...',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Notification Toggle
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: SwitchListTile(
+                      value: _notifyOutOfStock,
+                      onChanged: (v) => setState(() => _notifyOutOfStock = v),
+                      title: const Text(
+                        'Notify when out of stock',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      subtitle: const Text(
+                        'Receive an alert when this product hits 0 units.',
+                        style: TextStyle(fontSize: 11, color: AppColors.textLight),
+                      ),
+                      activeThumbColor: AppColors.primary,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     ),
                   ),
                 ],

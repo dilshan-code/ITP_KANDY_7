@@ -10,8 +10,11 @@ import 'package:frontend/features/sales/presentation/providers/sale_provider.dar
 import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart';
 import 'package:frontend/features/auth/presentation/screens/splash_screen.dart';
 import 'package:frontend/features/admin/presentation/providers/admin_provider.dart';
+import 'package:frontend/core/services/notification_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService().initialize();
   runApp(const ClickBuyApp());
 }
 

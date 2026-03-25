@@ -15,7 +15,7 @@ class InvoicePdfUtils {
     final paymentMethod = saleDetails['paymentMethod'] ?? 'cash';
     final customerName = saleDetails['customerName'] ?? 'Walk-in Customer';
     final date =
-        DateTime.tryParse(saleDetails['createdAt'] ?? '') ?? DateTime.now();
+        (DateTime.tryParse(saleDetails['createdAt'] ?? '') ?? DateTime.now()).toLocal();
     final invoiceId = saleDetails['id']?.toString().toUpperCase() ?? 'N/A';
 
     pdf.addPage(

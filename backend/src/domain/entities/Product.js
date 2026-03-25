@@ -10,6 +10,7 @@ class Product {
     description,
     imageUrl,
     unit,
+    notifyOutOfStock,
     createdAt,
     updatedAt,
   }) {
@@ -23,6 +24,7 @@ class Product {
     this.description = description || '';
     this.imageUrl = imageUrl || '';
     this.unit = unit || 'ea';
+    this.notifyOutOfStock = notifyOutOfStock !== undefined ? notifyOutOfStock : true;
     this.createdAt = createdAt || new Date().toISOString();
     this.updatedAt = updatedAt || new Date().toISOString();
   }
@@ -51,6 +53,7 @@ class Product {
       description: this.description,
       imageUrl: this.imageUrl,
       unit: this.unit,
+      notifyOutOfStock: this.notifyOutOfStock,
       isLowStock: this.isLowStock, // Includes the calculated getter
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,

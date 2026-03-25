@@ -9,6 +9,7 @@ class Product {
   final String description;
   final String imageUrl;
   final String unit;
+  final bool notifyOutOfStock;
   final bool isLowStock; // Received from backend calculation
   final double inventoryValue; // Received from backend calculation
 
@@ -22,6 +23,7 @@ class Product {
     this.description = '',
     this.imageUrl = '',
     this.unit = 'ea',
+    this.notifyOutOfStock = true,
     this.isLowStock = false,
     this.inventoryValue = 0,
   });
@@ -40,6 +42,7 @@ class Product {
       description: json['description'] ?? '',
       imageUrl: json['imageUrl'] ?? '',
       unit: json['unit'] ?? 'ea',
+      notifyOutOfStock: json['notifyOutOfStock'] ?? true,
       isLowStock: json['isLowStock'] ?? false,
       inventoryValue: (json['inventoryValue'] ?? 0).toDouble(),
     );
@@ -57,6 +60,7 @@ class Product {
       'description': description,
       'imageUrl': imageUrl,
       'unit': unit,
+      'notifyOutOfStock': notifyOutOfStock,
     };
   }
 

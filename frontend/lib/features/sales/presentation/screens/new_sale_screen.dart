@@ -5,7 +5,6 @@ import 'package:frontend/core/utils/snackbar_utils.dart';
 import 'package:frontend/features/sales/presentation/providers/sale_provider.dart';
 import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart';
 import 'package:frontend/features/products/presentation/providers/product_provider.dart';
-import 'package:frontend/features/credit/presentation/providers/credit_provider.dart';
 import 'package:frontend/features/credit/presentation/screens/credit_list_screen.dart';
 import 'package:frontend/features/credit/domain/entities/customer.dart';
 import 'package:frontend/features/sales/presentation/screens/invoice_dialog.dart';
@@ -469,10 +468,11 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       // Stock reduced on backend, now refresh local list in ProductProvider
       context.read<ProductProvider>().fetchProducts();
 
-      // Trigger Notifications
+      // 1. Refresh global notification state to show any backend-triggered alerts (like Credit Limit)
       final notificationProvider = context.read<NotificationProvider>();
+      notificationProvider.fetchNotifications();
 
-      // 1. Low Stock Trigger
+      // 2. Low Stock Trigger (Still on frontend for now)
       final products = context.read<ProductProvider>().products;
       for (var item in provider.cartItems) {
         final product = products.firstWhere(
@@ -486,26 +486,6 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
             title: 'Low Stock Alert',
             message:
                 'Product "${product.name}" is running low (${product.stockQuantity} units left).',
-          );
-        }
-      }
-
-      // 2. Credit Limit Pass Trigger
-      if (method == 'credit' && selectedCustomer != null) {
-        // Fetch latest customer data to see new balance
-        final creditProvider = context.read<CreditProvider>();
-        await creditProvider.fetchCustomers();
-        if (!context.mounted) return;
-        final updatedCustomer = creditProvider.customers.firstWhere(
-          (c) => c.id == selectedCustomer.id,
-        );
-
-        if (updatedCustomer.totalOutstanding > updatedCustomer.creditLimit) {
-          notificationProvider.createNotification(
-            type: 'alert',
-            title: 'Credit Limit Exceeded',
-            message:
-                'Customer ${updatedCustomer.name} has passed their credit limit of Rs. ${updatedCustomer.creditLimit.toStringAsFixed(0)}.',
           );
         }
       }

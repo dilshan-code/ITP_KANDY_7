@@ -109,7 +109,7 @@ class InvoiceHistoryScreenState extends State<InvoiceHistoryScreen> {
                 for (var sale in filteredSales) {
                   final date = DateTime.parse(
                     sale['createdAt'] ?? DateTime.now().toString(),
-                  );
+                  ).toLocal();
                   final dateStr = DateFormat('yyyy-MM-dd').format(date);
                   if (!groupedSales.containsKey(dateStr)) {
                     groupedSales[dateStr] = [];
@@ -206,7 +206,7 @@ class InvoiceHistoryScreenState extends State<InvoiceHistoryScreen> {
   }
 
   Widget _buildInvoiceCard(Map<String, dynamic> sale) {
-    final date = DateTime.parse(sale['createdAt'] ?? DateTime.now().toString());
+    final date = DateTime.parse(sale['createdAt'] ?? DateTime.now().toString()).toLocal();
     final formattedTime = DateFormat('hh:mm a').format(date);
     final amount = (sale['totalAmount'] ?? 0.0).toDouble();
     final customerName = sale['customerName'] ?? 'Walk-in Customer';

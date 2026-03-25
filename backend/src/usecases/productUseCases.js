@@ -40,12 +40,25 @@ class CreateProduct {
 
 // Updates the details (like price or stock) of an existing product.
 class UpdateProduct {
-    constructor(productRepository) {
+    constructor(productRepository, notificationRepository) {
         this.productRepository = productRepository;
+        this.notificationRepository = notificationRepository;
     }
     // Updates an existing product using its ID and incoming data
     async execute(id, productData) {
-        return this.productRepository.update(id, productData);
+        const updatedProduct = await this.productRepository.update(id, productData);
+        
+        // --- NEW: Trigger Notification if Out of Stock ---
+        if (updatedProduct && updatedProduct.stockQuantity === 0 && updatedProduct.notifyOutOfStock) {
+            console.log(`🚨 Product Out of Stock (Manual Update): ${updatedProduct.name}`);
+            await this.notificationRepository.create({
+                type: 'warning',
+                title: 'Product Out of Stock',
+                message: `The product "${updatedProduct.name}" has been updated and is now out of stock.`,
+            });
+        }
+        
+        return updatedProduct;
     }
 }
 

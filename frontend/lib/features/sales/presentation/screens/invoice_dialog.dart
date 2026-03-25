@@ -15,7 +15,7 @@ class InvoiceDialog extends StatelessWidget {
     final paymentMethod = saleDetails['paymentMethod'] ?? 'cash';
     final customerName = saleDetails['customerName'] ?? 'Walk-in Customer';
     final date =
-        DateTime.tryParse(saleDetails['createdAt'] ?? '') ?? DateTime.now();
+        (DateTime.tryParse(saleDetails['createdAt'] ?? '') ?? DateTime.now()).toLocal();
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

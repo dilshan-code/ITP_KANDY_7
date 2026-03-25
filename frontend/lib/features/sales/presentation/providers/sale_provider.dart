@@ -144,7 +144,11 @@ class SaleProvider extends ChangeNotifier {
       // Step 4: Refresh local history so the user sees the new sale immediately.
       fetchSales();
       fetchProducts(); // Refresh products to show updated stock counts.
-
+      
+      // Update: Trigger a notification fetch to show any new alerts (e.g., credit limit)
+      // Note: We can't access context here, but we can return success and let the UI handle it.
+      // Actually, it's better to let the UI call it since we have access to context there.
+      
       notifyListeners();
       // Return the recorded sale data back to the UI.
       return response['data'] as Map<String, dynamic>?;

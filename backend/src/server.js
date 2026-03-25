@@ -51,19 +51,27 @@ const createReportRoutes = require('./interfaces/routes/reportRoutes');
 // This section is where we choose which database (repository) and logic (use cases) to use.
 // By doing this here instead of inside the classes, we can easily swap components later.
 
-// 1. Setup Product Related Logic
+// Initialize All Repositories first
 const productRepository = new FirestoreProductRepository();
+const ownerRepository = new FirestoreOwnerRepository();
+const supplierRepository = new FirestoreSupplierRepository();
+const purchaseRepository = new FirestorePurchaseRepository();
+const customerRepository = new FirestoreCustomerRepository();
+const creditTransactionRepository = new FirestoreCreditTransactionRepository();
+const saleRepository = new FirestoreSaleRepository();
+const notificationRepository = new FirestoreNotificationRepository();
+
+// 1. Setup Product Related Logic
 const productUseCases = {
     getAllProducts: new GetAllProducts(productRepository),
     getProductById: new GetProductById(productRepository),
     createProduct: new CreateProduct(productRepository),
-    updateProduct: new UpdateProduct(productRepository),
+    updateProduct: new UpdateProduct(productRepository, notificationRepository),
     deleteProduct: new DeleteProduct(productRepository),
 };
 // Note: ProductController is instantiated at the bottom because it depends on multiple other use cases.
 
 // Auth
-const ownerRepository = new FirestoreOwnerRepository();
 const authUseCases = {
     registerOwner: new RegisterOwner(ownerRepository),
     loginOwner: new LoginOwner(ownerRepository),
@@ -74,7 +82,6 @@ const authUseCases = {
 const authController = new AuthController(authUseCases);
 
 // Supplier
-const supplierRepository = new FirestoreSupplierRepository();
 const supplierUseCases = {
     getAllSuppliers: new GetAllSuppliers(supplierRepository),
     getSupplierById: new GetSupplierById(supplierRepository),
@@ -85,7 +92,6 @@ const supplierUseCases = {
 const supplierController = new SupplierController(supplierUseCases);
 
 // Purchase
-const purchaseRepository = new FirestorePurchaseRepository();
 const purchaseUseCases = {
     getAllPurchases: new GetAllPurchases(purchaseRepository),
     getPurchaseById: new GetPurchaseById(purchaseRepository),
@@ -97,7 +103,6 @@ const purchaseUseCases = {
 const purchaseController = new PurchaseController(purchaseUseCases);
 
 // Customer
-const customerRepository = new FirestoreCustomerRepository();
 const customerUseCases = {
     getAllCustomers: new GetAllCustomers(customerRepository),
     getCustomerById: new GetCustomerById(customerRepository),
@@ -108,7 +113,6 @@ const customerUseCases = {
 const customerController = new CustomerController(customerUseCases);
 
 // Credit Transactions
-const creditTransactionRepository = new FirestoreCreditTransactionRepository();
 const creditTransactionUseCases = {
     getAllCreditTransactions: new GetAllCreditTransactions(creditTransactionRepository),
     getCreditTransactionsByCustomer: new GetCreditTransactionsByCustomer(creditTransactionRepository),
@@ -119,11 +123,10 @@ const creditTransactionUseCases = {
 const creditTransactionController = new CreditTransactionController(creditTransactionUseCases);
 
 // Sales
-const saleRepository = new FirestoreSaleRepository();
 const saleUseCases = {
     getAllSales: new GetAllSales(saleRepository),
     getSaleById: new GetSaleById(saleRepository),
-    createSale: new CreateSale(saleRepository, productRepository, customerRepository, creditTransactionRepository),
+    createSale: new CreateSale(saleRepository, productRepository, customerRepository, creditTransactionRepository, notificationRepository),
     getSalesByCustomer: new GetSalesByCustomer(saleRepository),
     updateSale: new UpdateSale(saleRepository),
     deleteSale: new DeleteSale(saleRepository, productRepository),
@@ -131,7 +134,6 @@ const saleUseCases = {
 const saleController = new SaleController(saleUseCases);
 
 // Notifications
-const notificationRepository = new FirestoreNotificationRepository();
 const notificationUseCases = {
     getAllNotifications: new GetAllNotifications(notificationRepository),
     createNotification: new CreateNotification(notificationRepository),

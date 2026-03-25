@@ -371,8 +371,9 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                               ),
                               Text(
                                 DateFormat('MMM dd, yyyy').format(
-                                    DateTime.tryParse(purchase.purchaseDate) ??
-                                        DateTime.now()),
+                                    (DateTime.tryParse(purchase.purchaseDate) ??
+                                            DateTime.now())
+                                        .toLocal()),
                                 style: TextStyle(
                                   color: AppColors.textLight,
                                   fontSize: 12,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/core/services/notification_service.dart';
 
 // A NotificationItem represents a single alert or message, like a "Low Stock" warning.
 class NotificationItem {
@@ -26,7 +27,7 @@ class NotificationItem {
       title: json['title'] ?? '',
       message: json['message'] ?? '',
       isRead: json['isRead'] ?? false,
-      createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
+      createdAt: (DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now()).toLocal(),
     );
   }
 }
@@ -36,6 +37,7 @@ class NotificationProvider extends ChangeNotifier {
   List<NotificationItem> _notifications = []; // The list of all alerts
   bool _isLoading = false; // Indicates if data is currently being fetched.
   String? _error; // Stores any error message that occurred during API calls.
+  String? _lastAlertedId; // Tracks the ID of the last notification shown as a system alert.
 
   List<NotificationItem> get notifications => _notifications;
   bool get isLoading => _isLoading;
@@ -49,9 +51,32 @@ class NotificationProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final response = await ApiClient.get('/notifications');
-      _notifications = (response['data'] as List)
+      final List<NotificationItem> newNotifications = (response['data'] as List)
           .map((json) => NotificationItem.fromJson(json))
           .toList();
+
+      // Check for new unread notifications to trigger a system alert
+      if (newNotifications.isNotEmpty) {
+        final newestUnread = newNotifications.firstWhere(
+          (n) => !n.isRead,
+          orElse: () => newNotifications.first,
+        );
+
+        if (!newestUnread.isRead && newestUnread.id != _lastAlertedId) {
+          _lastAlertedId = newestUnread.id;
+          await NotificationService().showNotification(
+            id: newestUnread.id.hashCode,
+            title: newestUnread.title,
+            body: newestUnread.message,
+          );
+        }
+      }
+
+      _notifications = newNotifications;
+      
+      // Update app icon badge
+      await NotificationService().updateBadgeCount(unreadCount);
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {

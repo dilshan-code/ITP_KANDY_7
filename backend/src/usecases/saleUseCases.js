@@ -11,12 +11,13 @@ class GetSaleById {
 
 // This is a complex use case that handles creating a sale, updating stock, and managing customer credit if needed.
 class CreateSale {
-    // This use case requires 4 different repositories to complete a single transaction.
-    constructor(saleRepository, productRepository, customerRepository, creditTransactionRepository) {
+    // This use case requires 5 different repositories to complete a single transaction.
+    constructor(saleRepository, productRepository, customerRepository, creditTransactionRepository, notificationRepository) {
         this.saleRepository = saleRepository;
         this.productRepository = productRepository;
         this.customerRepository = customerRepository;
         this.creditTransactionRepository = creditTransactionRepository;
+        this.notificationRepository = notificationRepository;
     }
 
     async execute(saleData) {
@@ -41,6 +42,16 @@ class CreateSale {
                     console.log(`   ✅ Updating ${product.name}: ${product.stockQuantity} -> ${newStock}`);
                     // Save the updated stock back to the database.
                     await this.productRepository.update(product.id, { stockQuantity: newStock });
+
+                    // --- NEW: Trigger Notification if Out of Stock ---
+                    if (newStock === 0 && product.notifyOutOfStock) {
+                        console.log(`🚨 Product Out of Stock: ${product.name}`);
+                        await this.notificationRepository.create({
+                            type: 'warning',
+                            title: 'Product Out of Stock',
+                            message: `The product "${product.name}" is now out of stock. Please restock soon.`,
+                        });
+                    }
                 } else {
                     console.warn(`⚠️ Product NOT found in DB for ID: ${item.productId}`);
                 }
@@ -63,6 +74,16 @@ class CreateSale {
                     amount: saleData.totalAmount || 0,
                     date: new Date().toISOString()
                 });
+
+                // --- NEW: Trigger Notification if Limit Exceeded ---
+                if (newOutstanding >= customer.creditLimit) {
+                    console.log(`🚨 Credit Limit Exceeded for ${customer.name}: ${newOutstanding} >= ${customer.creditLimit}`);
+                    await this.notificationRepository.create({
+                        type: 'alert',
+                        title: 'Credit Limit Exceeded',
+                        message: `${customer.name} has exceeded their credit limit of Rs ${customer.creditLimit}. Current debt: Rs ${newOutstanding}.`,
+                    });
+                }
             }
         }
         return sale;
