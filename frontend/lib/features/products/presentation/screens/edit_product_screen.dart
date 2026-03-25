@@ -6,6 +6,7 @@ import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/core/utils/snackbar_utils.dart';
 import 'package:frontend/features/products/domain/entities/product.dart';
 import 'package:frontend/features/products/presentation/providers/product_provider.dart';
+import 'package:frontend/core/utils/validation_utils.dart';
 
 // EditProductScreen allows users to modify an existing product's details
 // or completely delete it from the system. It pre-fills the form with the
@@ -31,6 +32,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   bool _imageRemoved = false;
+  final _formKey = GlobalKey<FormState>();
 
   final List<String> _categories = [
     'Grains & Staples',
@@ -109,14 +111,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   }
 
   Future<void> _updateProduct() async {
-    if (_nameController.text.trim().isEmpty) {
-      SnackBarUtils.showSnackBar(
-        context,
-        'Product name is required',
-        isError: true,
-      );
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() => _saving = true);
 
@@ -229,16 +224,21 @@ class _EditProductScreenState extends State<EditProductScreen> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Product Image
             _buildImageSection(),
             const SizedBox(height: 24),
             // Product Name
             _buildLabel('PRODUCT NAME (REQUIRED)'),
             const SizedBox(height: 8),
-            _buildFormField(_nameController),
+            _buildFormField(
+              _nameController,
+              validator: (v) => ValidationUtils.validateRequired(v, 'Product name'),
+            ),
             const SizedBox(height: 20),
             // Category
             _buildLabel('CATEGORY'),
@@ -268,6 +268,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
             _buildFormField(
               _minStockController,
               keyboardType: TextInputType.number,
+              validator: ValidationUtils.validateStock,
             ),
             const SizedBox(height: 20),
             // Description
@@ -300,7 +301,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   style: TextStyle(fontSize: 11, color: AppColors.textLight),
                 ),
                 activeThumbColor: AppColors.primary,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               ),
             ),
             const SizedBox(height: 28),
@@ -354,8 +354,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildImageSection() {
     return Center(
@@ -496,8 +497,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
     String? hint,
+    String? Function(String?)? validator,
   }) {
-    return TextField(
+    return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
@@ -522,6 +524,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
           vertical: 14,
         ),
       ),
+      validator: validator,
     );
   }
 
@@ -554,7 +557,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
       children: [
         _buildLabel(label),
         const SizedBox(height: 8),
-        TextField(
+        TextFormField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
@@ -583,6 +586,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
               vertical: 14,
             ),
           ),
+          validator: ValidationUtils.validatePrice,
         ),
       ],
     );

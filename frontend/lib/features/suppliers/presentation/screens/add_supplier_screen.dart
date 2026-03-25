@@ -5,6 +5,7 @@ import 'package:frontend/core/utils/snackbar_utils.dart';
 import 'package:frontend/features/suppliers/domain/entities/supplier.dart';
 import 'package:frontend/features/suppliers/presentation/providers/supplier_provider.dart';
 import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart';
+import 'package:frontend/core/utils/validation_utils.dart';
 
 class AddSupplierScreen extends StatefulWidget {
   final Supplier? supplier;
@@ -21,6 +22,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
   bool _isSubmitting = false;
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
@@ -45,15 +47,8 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
   }
 
   void _submit() async {
-    if (_nameController.text.trim().isEmpty ||
-        _phoneController.text.trim().isEmpty) {
-      SnackBarUtils.showSnackBar(
-        context,
-        'Name and phone number are required',
-        isError: true,
-      );
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
+
     setState(() => _isSubmitting = true);
     final provider = Provider.of<SupplierProvider>(context, listen: false);
 
@@ -112,9 +107,11 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Icon header
             Center(
               child: Container(
@@ -135,7 +132,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
 
             _buildLabel('Supplier Name *'),
             const SizedBox(height: 8),
-            TextField(
+            TextFormField(
               controller: _nameController,
               decoration: const InputDecoration(
                 hintText: 'Enter supplier name',
@@ -144,12 +141,13 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                   color: AppColors.textLight,
                 ),
               ),
+              validator: (v) => ValidationUtils.validateRequired(v, 'Supplier name'),
             ),
             const SizedBox(height: 20),
 
             _buildLabel('Phone Number *'),
             const SizedBox(height: 8),
-            TextField(
+            TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
               decoration: const InputDecoration(
@@ -159,12 +157,13 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                   color: AppColors.textLight,
                 ),
               ),
+              validator: ValidationUtils.validatePhone,
             ),
             const SizedBox(height: 20),
 
             _buildLabel('Email'),
             const SizedBox(height: 8),
-            TextField(
+            TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
@@ -174,12 +173,13 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                   color: AppColors.textLight,
                 ),
               ),
+              validator: ValidationUtils.validateEmail,
             ),
             const SizedBox(height: 20),
 
             _buildLabel('Address'),
             const SizedBox(height: 8),
-            TextField(
+            TextFormField(
               controller: _addressController,
               maxLines: 2,
               decoration: const InputDecoration(
@@ -194,7 +194,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
 
             _buildLabel('Notes'),
             const SizedBox(height: 8),
-            TextField(
+            TextFormField(
               controller: _notesController,
               maxLines: 3,
               decoration: const InputDecoration(
@@ -252,8 +252,9 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildLabel(String text) {
     return Text(

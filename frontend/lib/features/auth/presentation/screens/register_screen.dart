@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/core/theme/app_colors.dart';
-import 'package:frontend/shared/main_shell.dart';
 import 'package:frontend/core/utils/snackbar_utils.dart';
+import 'package:frontend/shared/main_shell.dart';
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart';
 import 'package:frontend/core/utils/phone_utils.dart';
+import 'package:frontend/core/utils/validation_utils.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -14,6 +15,7 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _shopNameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -40,39 +42,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _register() async {
-    if (_nameController.text.trim().isEmpty) {
-      SnackBarUtils.showSnackBar(
-        context,
-        'Owner name is required',
-        isError: true,
-      );
-      return;
-    }
-    if (_shopNameController.text.trim().isEmpty) {
-      SnackBarUtils.showSnackBar(
-        context,
-        'Shop name is required',
-        isError: true,
-      );
-      return;
-    }
-    final phone = normalizePhoneNumber(_phoneController.text.trim());
-    if (phone.isEmpty || phone == '+94') {
-      SnackBarUtils.showSnackBar(
-        context,
-        'Phone number is required',
-        isError: true,
-      );
-      return;
-    }
-    if (_passwordController.text.trim().length < 8) {
-      SnackBarUtils.showSnackBar(
-        context,
-        'Password must be at least 8 characters',
-        isError: true,
-      );
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
+
     if (!_agreedToTerms) {
       SnackBarUtils.showSnackBar(
         context,
@@ -82,6 +53,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final phone = normalizePhoneNumber(_phoneController.text.trim());
     final success = await authProvider.register({
       'name': _nameController.text.trim(),
       'shopName': _shopNameController.text.trim(),
@@ -172,13 +144,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Owner Name
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Owner Name
                   _buildLabel('Owner Name'),
                   const SizedBox(height: 8),
-                  TextField(
+                  TextFormField(
                     controller: _nameController,
                     decoration: const InputDecoration(
                       hintText: 'Enter your full name',
@@ -187,13 +161,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         color: AppColors.textLight,
                       ),
                     ),
+                    validator: (v) => ValidationUtils.validateRequired(v, 'Owner name'),
                   ),
                   const SizedBox(height: 20),
 
                   // Shop Name
                   _buildLabel('Shop Name'),
                   const SizedBox(height: 8),
-                  TextField(
+                  TextFormField(
                     controller: _shopNameController,
                     decoration: const InputDecoration(
                       hintText: 'Enter your grocery store name',
@@ -202,13 +177,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         color: AppColors.textLight,
                       ),
                     ),
+                    validator: (v) => ValidationUtils.validateRequired(v, 'Shop name'),
                   ),
                   const SizedBox(height: 20),
 
                   // Phone Number
                   _buildLabel('Phone Number'),
                   const SizedBox(height: 8),
-                  TextField(
+                  TextFormField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(
@@ -218,6 +194,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         color: AppColors.textLight,
                       ),
                     ),
+                    validator: ValidationUtils.validatePhone,
                   ),
                   const SizedBox(height: 20),
 
@@ -238,7 +215,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  TextField(
+                  TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
@@ -248,13 +225,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         color: AppColors.textLight,
                       ),
                     ),
+                    validator: ValidationUtils.validateEmail,
                   ),
                   const SizedBox(height: 20),
 
                   // Password
                   _buildLabel('Password'),
                   const SizedBox(height: 8),
-                  TextField(
+                  TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
@@ -275,6 +253,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                     ),
+                    validator: ValidationUtils.validatePassword,
                   ),
                   const SizedBox(height: 20),
 
@@ -413,11 +392,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildLabel(String text) {
     return Text(

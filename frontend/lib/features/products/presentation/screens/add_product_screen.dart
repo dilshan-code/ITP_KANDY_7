@@ -5,10 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/core/utils/snackbar_utils.dart';
 import 'package:frontend/features/products/presentation/providers/product_provider.dart';
+import 'package:frontend/core/utils/validation_utils.dart';
 
-// AddProductScreen provides a form for users to input details for a new product.
-// It collects the name, category, prices, and stock levels, and then calls
-// the ProductProvider to save the new product to the backend database.
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
 
@@ -28,6 +26,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   bool _saving = false;
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
+  final _formKey = GlobalKey<FormState>();
 
   final List<String> _categories = [
     'Grains & Staples',
@@ -85,15 +84,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   // Validates the form and sends the new product data to the backend.
   Future<void> _saveProduct() async {
-    // Step 1: Basic validation. We can't have a product without a name.
-    if (_nameController.text.trim().isEmpty) {
-      SnackBarUtils.showSnackBar(
-        context,
-        'Product name is required',
-        isError: true,
-      );
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
  
     // Step 2: Show a loading state so the user knows work is happening.
     setState(() => _saving = true);
@@ -165,144 +156,149 @@ class _AddProductScreenState extends State<AddProductScreen> {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Image upload area
-                  _buildImageSection(),
-                  const SizedBox(height: 24),
-                  // Product Name
-                  _buildLabel('PRODUCT NAME (REQUIRED)', isRequired: true),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      hintText: 'e.g. Organic Red Apples',
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  // Category
-                  _buildLabel('CATEGORY'),
-                  const SizedBox(height: 6),
-                  _buildCategoryDropdown(),
-                  const SizedBox(height: 20),
-                  // Prices
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildPriceField(
-                          'SELLING PRICE',
-                          _sellingPriceController,
-                        ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Image upload area
+                    _buildImageSection(),
+                    const SizedBox(height: 24),
+                    // Product Name
+                    _buildLabel('PRODUCT NAME (REQUIRED)', isRequired: true),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. Organic Red Apples',
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  // Stock section
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(12),
+                      validator: (v) => ValidationUtils.validateRequired(v, 'Product name'),
                     ),
-                    child: Column(
+                    const SizedBox(height: 20),
+                    // Category
+                    _buildLabel('CATEGORY'),
+                    const SizedBox(height: 6),
+                    _buildCategoryDropdown(),
+                    const SizedBox(height: 20),
+                    // Prices
+                    Row(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildLabel('INITIAL STOCK'),
-                                const Text(
-                                  'Current units available',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: AppColors.textLight,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Row(
-                              children: [
-                                _buildUnitSelector(),
-                                const SizedBox(width: 12),
-                                _buildStockStepper(),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildLabel('MINIMUM STOCK LEVEL'),
-                            const SizedBox(height: 6),
-                            TextField(
-                              controller: _minStockController,
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                hintText: 'Alert threshold...',
-                                filled: true,
-                                fillColor: AppColors.surface,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey.shade200,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey.shade200,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                        Expanded(
+                          child: _buildPriceField(
+                            'SELLING PRICE',
+                            _sellingPriceController,
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  // Description
-                  _buildLabel('DESCRIPTION'),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: _descriptionController,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      hintText:
-                          'Add details about product size, weight, or benefits...',
+                    const SizedBox(height: 20),
+                    // Stock section
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildLabel('INITIAL STOCK'),
+                                  const Text(
+                                    'Current units available',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.textLight,
+                                    ),
+                                  ),
+                                  ],
+                                ),
+                              Row(
+                                children: [
+                                  _buildUnitSelector(),
+                                  const SizedBox(width: 12),
+                                  _buildStockStepper(),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel('MINIMUM STOCK LEVEL'),
+                              const SizedBox(height: 6),
+                              TextFormField(
+                                controller: _minStockController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  hintText: 'Alert threshold...',
+                                  filled: true,
+                                  fillColor: AppColors.surface,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey.shade200,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey.shade200,
+                                    ),
+                                  ),
+                                ),
+                                validator: ValidationUtils.validateStock,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Notification Toggle
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(12),
+                    const SizedBox(height: 20),
+                    // Description
+                    _buildLabel('DESCRIPTION'),
+                    const SizedBox(height: 6),
+                    TextFormField(
+                      controller: _descriptionController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        hintText:
+                            'Add details about product size, weight, or benefits...',
+                      ),
                     ),
-                    child: SwitchListTile(
-                      value: _notifyOutOfStock,
-                      onChanged: (v) => setState(() => _notifyOutOfStock = v),
-                      title: const Text(
-                        'Notify when out of stock',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textDark,
+                    const SizedBox(height: 12),
+                    // Notification Toggle
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: SwitchListTile(
+                        value: _notifyOutOfStock,
+                        onChanged: (v) => setState(() => _notifyOutOfStock = v),
+                        title: const Text(
+                          'Notify when out of stock',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textDark,
+                          ),
                         ),
+                        subtitle: const Text(
+                          'Receive an alert when this product hits 0 units.',
+                          style: TextStyle(fontSize: 11, color: AppColors.textLight),
+                        ),
+                        activeThumbColor: AppColors.primary,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       ),
-                      subtitle: const Text(
-                        'Receive an alert when this product hits 0 units.',
-                        style: TextStyle(fontSize: 11, color: AppColors.textLight),
-                      ),
-                      activeThumbColor: AppColors.primary,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -511,7 +507,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       children: [
         _buildLabel(label),
         const SizedBox(height: 6),
-        TextField(
+        TextFormField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
@@ -523,6 +519,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
             ),
             hintText: '0.00',
           ),
+          validator: ValidationUtils.validatePrice,
         ),
       ],
     );

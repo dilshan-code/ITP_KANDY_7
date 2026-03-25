@@ -1,3 +1,5 @@
+const { isValidPrice, isValidStock } = require('../utils/validationUtils');
+
 // Use cases represent the specific "actions" a user can take with products.
 
 // Retrieves every single product in the shop's inventory.
@@ -32,8 +34,15 @@ class CreateProduct {
     }
     // This method takes the raw product data (name, price, etc.) and saves it.
     async execute(productData) {
-        // Business Rule Reminder: We could add validation here (e.g., check if name is unique).
-        // For now, we trust the incoming data and pass it to the repository.
+        if (!productData.name || productData.name.trim() === '') {
+            throw new Error('Product name is required');
+        }
+        if (!isValidPrice(productData.sellingPrice)) {
+            throw new Error('Valid selling price is required');
+        }
+        if (productData.minimumStockLevel !== undefined && !isValidStock(productData.minimumStockLevel)) {
+            throw new Error('Valid minimum stock level is required');
+        }
         return this.productRepository.create(productData);
     }
 }
@@ -46,6 +55,15 @@ class UpdateProduct {
     }
     // Updates an existing product using its ID and incoming data
     async execute(id, productData) {
+        if (productData.name !== undefined && productData.name.trim() === '') {
+            throw new Error('Product name cannot be empty');
+        }
+        if (productData.sellingPrice !== undefined && !isValidPrice(productData.sellingPrice)) {
+            throw new Error('Valid selling price is required');
+        }
+        if (productData.minimumStockLevel !== undefined && !isValidStock(productData.minimumStockLevel)) {
+            throw new Error('Valid minimum stock level is required');
+        }
         const updatedProduct = await this.productRepository.update(id, productData);
         
         // --- NEW: Trigger Notification if Out of Stock ---

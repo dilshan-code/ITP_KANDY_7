@@ -4,6 +4,7 @@ import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/core/utils/snackbar_utils.dart';
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart';
 import 'package:frontend/core/utils/phone_utils.dart';
+import 'package:frontend/core/utils/validation_utils.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -119,8 +120,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       child: TextFormField(
                         controller: _nameController,
                         decoration: _inputDecoration('Enter your name'),
-                        validator: (val) =>
-                            val == null || val.isEmpty ? 'Required' : null,
+                        validator: (v) => ValidationUtils.validateRequired(v, 'Name'),
                       ),
                     ),
                     _buildSettingsItem(
@@ -129,8 +129,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       child: TextFormField(
                         controller: _shopNameController,
                         decoration: _inputDecoration('Enter shop name'),
-                        validator: (val) =>
-                            val == null || val.isEmpty ? 'Required' : null,
+                        validator: (v) => ValidationUtils.validateRequired(v, 'Shop name'),
                       ),
                     ),
                     _buildSettingsItem(
@@ -140,8 +139,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         decoration: _inputDecoration('Enter phone'),
-                        validator: (val) =>
-                            val == null || val.isEmpty ? 'Required' : null,
+                        validator: ValidationUtils.validatePhone,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -209,12 +207,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                       child: TextFormField(
                         controller: _newPasswordController,
                         obscureText: true,
-                        decoration: _inputDecoration('Min. 6 characters'),
-                        validator: (val) {
-                          if (val == null || val.isEmpty) return 'Required';
-                          if (val.length < 6) return 'Too short';
-                          return null;
-                        },
+                        decoration: _inputDecoration('Min. 8 characters'),
+                        validator: ValidationUtils.validatePassword,
                       ),
                     ),
                     _buildSettingsItem(

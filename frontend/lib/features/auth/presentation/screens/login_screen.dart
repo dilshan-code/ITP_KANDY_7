@@ -8,6 +8,7 @@ import 'package:frontend/features/notifications/presentation/providers/notificat
 import 'package:frontend/features/auth/presentation/screens/register_screen.dart';
 import 'package:frontend/features/admin/presentation/screens/admin_shell.dart';
 import 'package:frontend/core/utils/phone_utils.dart';
+import 'package:frontend/core/utils/validation_utils.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,6 +18,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
@@ -34,6 +36,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _login() async {
+    if (!_formKey.currentState!.validate()) return;
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final identifier = normalizePhoneNumber(_emailController.text.trim());
     final success = await authProvider.login(
@@ -128,10 +132,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 24),
                   const Center(
                     child: Text(
                       'Welcome Back!',
@@ -164,7 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  TextField(
+                  TextFormField(
                     key: const ValueKey('email_field'),
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -175,6 +181,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: AppColors.textLight,
                       ),
                     ),
+                    validator: ValidationUtils.validateIdentifier,
                   ),
                   const SizedBox(height: 20),
 
@@ -188,7 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  TextField(
+                  TextFormField(
                     key: const ValueKey('password_field'),
                     controller: _passwordController,
                     obscureText: _obscurePassword,
@@ -210,6 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
+                    validator: ValidationUtils.validatePassword,
                   ),
                   const SizedBox(height: 12),
 
@@ -373,11 +381,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSocialButton(IconData icon, VoidCallback onTap) {
     return GestureDetector(

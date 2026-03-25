@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+const { isValidEmail, isValidPhone, isValidPassword } = require('../utils/validationUtils');
 
 // This helper ensures phone numbers are always in a consistent format (+94XX...).
 // It converts numbers starting with '0' to the international '+94' format.
@@ -19,6 +20,23 @@ class RegisterOwner {
         this.ownerRepository = ownerRepository;
     }
     async execute(ownerData) {
+        // Validation Checks
+        if (!ownerData.name || ownerData.name.trim() === '') {
+            throw new Error('Owner name is required');
+        }
+        if (!ownerData.shopName || ownerData.shopName.trim() === '') {
+            throw new Error('Shop name is required');
+        }
+        if (!isValidPhone(ownerData.phone)) {
+            throw new Error('Valid phone number is required (start with 0 or +94 and have 9 digits after)');
+        }
+        if (ownerData.email && !isValidEmail(ownerData.email)) {
+            throw new Error('Email must end with @gmail.com');
+        }
+        if (!isValidPassword(ownerData.password)) {
+            throw new Error('Password must be at least 8 characters long');
+        }
+
         const normalizedPhone = normalizePhone(ownerData.phone);
         
         // Check if email already exists, if provided
@@ -91,6 +109,9 @@ class UpdateOwnerProfile {
         const { password, ...updateData } = profileData;
         
         if (updateData.phone) {
+            if (!isValidPhone(updateData.phone)) {
+                throw new Error('Valid phone number is required (start with 0 or +94 and have 9 digits after)');
+            }
             updateData.phone = normalizePhone(updateData.phone);
         }
         
