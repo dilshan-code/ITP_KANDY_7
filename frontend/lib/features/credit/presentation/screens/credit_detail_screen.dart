@@ -8,6 +8,8 @@ import 'package:frontend/features/credit/domain/entities/credit_transaction.dart
 import 'package:frontend/features/credit/presentation/providers/credit_provider.dart';
 import 'package:frontend/features/sales/presentation/providers/sale_provider.dart';
 import 'package:frontend/features/sales/presentation/screens/invoice_dialog.dart';
+import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart';
+import 'package:frontend/features/credit/presentation/utils/credit_pdf_utils.dart';
 
 class CreditDetailScreen extends StatefulWidget {
   final Customer customer;
@@ -19,23 +21,38 @@ class CreditDetailScreen extends StatefulWidget {
 
 class _CreditDetailScreenState extends State<CreditDetailScreen> {
   late Customer _currentCustomer;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _currentCustomer = widget.customer;
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        Provider.of<CreditProvider>(
-          context,
-          listen: false,
-        ).fetchTransactions(_currentCustomer.id);
-        Provider.of<SaleProvider>(
-          context,
-          listen: false,
-        ).fetchSales();
+        final creditProvider = Provider.of<CreditProvider>(context, listen: false);
+        final saleProvider = Provider.of<SaleProvider>(context, listen: false);
+        
+        creditProvider.fetchCustomers();
+        creditProvider.fetchTransactions(_currentCustomer.id);
+        saleProvider.fetchSalesByCustomer(_currentCustomer.id);
       }
     });
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      final creditProvider = context.read<CreditProvider>();
+      final saleProvider = context.read<SaleProvider>();
+
+      if (creditProvider.hasMoreTransactions && !creditProvider.isFetchingMoreTransactions) {
+        creditProvider.fetchTransactions(_currentCustomer.id, refresh: false);
+      }
+      if (saleProvider.hasMore && !saleProvider.isFetchingMore) {
+        saleProvider.fetchSalesByCustomer(_currentCustomer.id, refresh: false);
+      }
+    }
   }
 
   @override
@@ -51,6 +68,41 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
           IconButton(
             icon: const Icon(Icons.delete_outline, color: AppColors.error),
             onPressed: () => _showDeleteConfirmation(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            onPressed: () {
+              final creditProvider = context.read<CreditProvider>();
+              final saleProvider = context.read<SaleProvider>();
+              
+              final customerSales = saleProvider.sales.where((sale) {
+                if (sale is Map) {
+                  return sale['customerId'] == _currentCustomer.id;
+                }
+                return false;
+              }).toList();
+
+              final filteredTransactions = creditProvider.transactions.where(
+                (txn) => !(txn.type == 'credit' && txn.title.startsWith('Purchase Loan')),
+              ).toList();
+
+              final List<dynamic> combined = [
+                ...filteredTransactions,
+                ...customerSales,
+              ];
+
+              combined.sort((a, b) {
+                final dateA = DateTime.parse(a is Map ? a['createdAt'] : a.createdAt).toLocal();
+                final dateB = DateTime.parse(b is Map ? b['createdAt'] : b.createdAt).toLocal();
+                return dateB.compareTo(dateA);
+              });
+
+              CreditPdfUtils.generateAndDownloadStatement(
+                customer: _currentCustomer,
+                history: combined,
+              );
+            },
+            tooltip: 'Download Statement',
           ),
           const SizedBox(width: 8),
         ],
@@ -81,6 +133,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
           ).toList();
 
           return SingleChildScrollView(
+            controller: _scrollController,
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,7 +289,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                     ),
                   )
                 else
-                  _buildCombinedHistory(context, filteredTransactions, customerSales),
+                  _buildCombinedHistory(context, filteredTransactions, customerSales, provider.isFetchingMoreTransactions || saleProvider.isFetchingMore),
               ],
             ),
           );
@@ -271,7 +324,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
     );
   }
 
-  Widget _buildCombinedHistory(BuildContext context, List<CreditTransaction> transactions, List<dynamic> customerSales) {
+  Widget _buildCombinedHistory(BuildContext context, List<CreditTransaction> transactions, List<dynamic> customerSales, bool isFetchingMore) {
     // Combine sales and transactions into a single list sorted by date
     final List<dynamic> combined = [
       ...transactions,
@@ -284,18 +337,27 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
       return dateB.compareTo(dateA);
     });
 
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: combined.length,
-      itemBuilder: (context, index) {
-        final item = combined[index];
-        if (item is Map) {
-          return _buildSaleCard(Map<String, dynamic>.from(item));
-        } else {
-          return _buildTransactionCard(item);
-        }
-      },
+    return Column(
+      children: [
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: combined.length,
+          itemBuilder: (context, index) {
+            final item = combined[index];
+            if (item is Map) {
+              return _buildSaleCard(Map<String, dynamic>.from(item));
+            } else {
+              return _buildTransactionCard(item);
+            }
+          },
+        ),
+        if (isFetchingMore)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          ),
+      ],
     );
   }
 
@@ -502,6 +564,8 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                 _currentCustomer,
               );
               if (context.mounted) {
+                context.read<NotificationProvider>().fetchNotifications();
+                context.read<SaleProvider>().fetchSales();
                 SnackBarUtils.showSnackBar(
                   context,
                   'Credit settled successfully',

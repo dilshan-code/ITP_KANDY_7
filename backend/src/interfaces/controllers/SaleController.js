@@ -9,10 +9,11 @@ class SaleController {
         this.deleteSale = deleteSale;
     }
 
-    // Fetches all sales records ever made.
+    // Fetches all sales records (supports optional pagination).
     async getAll(req, res) {
         try {
-            const sales = await this.getAllSales.execute(req.ownerId);
+            const { limit, lastId } = req.query;
+            const sales = await this.getAllSales.execute(req.ownerId, limit, lastId);
             res.json({ success: true, data: sales });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
@@ -40,10 +41,11 @@ class SaleController {
         }
     }
 
-    // Fetches all sales history for a specific customer (useful for credit tracking).
+    // Fetches sales history for a specific customer (supports optional pagination).
     async getByCustomer(req, res) {
         try {
-            const sales = await this.getSalesByCustomer.execute(req.params.customerId, req.ownerId);
+            const { limit, lastId } = req.query;
+            const sales = await this.getSalesByCustomer.execute(req.params.customerId, req.ownerId, limit, lastId);
             res.json({ success: true, data: sales });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });

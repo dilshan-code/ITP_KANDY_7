@@ -11,7 +11,8 @@ class CustomerController {
     // Lists all customers registered in the shop's database.
     async getAll(req, res) {
         try {
-            const customers = await this.getAllCustomers.execute(req.ownerId);
+            const { limit, lastId } = req.query;
+            const customers = await this.getAllCustomers.execute(req.ownerId, limit, lastId);
             res.json({ success: true, data: customers });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });

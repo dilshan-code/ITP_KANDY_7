@@ -22,6 +22,18 @@ A professional record of technical challenges encountered and resolved during th
 - **Fix**: Audited all Firestore queries to strictly enforce `where('ownerId', '==', ownerId)` and verified header propagation.
 - **Context**: Security and privacy are paramount. Multi-tenant isolation must be enforced at the query level to prevent data leakage.
 
+### `[FIXED]` Backend Test Suite Stability
+- **Issue**: Backend tests were failing due to missing dependencies (`supplierRepository`) and mismatched mock expectations (`transaction` argument) in purchase use cases.
+- **Backend**: Fixed `DeleteSale` transaction order (Read-after-Write) and standardized `credit-transactions` collection name.
+- **Frontend**: Enhanced `InvoiceDialog` and PDF export to handle credit settlement invoices professionally.
+- **Stability**: Standardized all credit repository methods to be transaction-aware and consistent with existing database schema.
+- **Context**: Reliability of the test suite is essential for continuous integration. This fix ensures that 100% of the 154 backend tests pass.
+
+### `[FIXED]` Frontend Deprecation Warnings
+- **Issue**: `flutter analyze` flagged `withOpacity` as deprecated in `supplier_management_screen.dart`.
+- **Fix**: Migrated all remaining `withOpacity` calls to the modern `withValues(alpha: ...)` API.
+- **Context**: Keeping up with Flutter framework updates prevents technical debt and ensures long-term compatibility.
+
 ---
 
 ## 📅 March 24, 2026

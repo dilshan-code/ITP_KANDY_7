@@ -8,20 +8,22 @@ class CreditTransactionController {
         this.deleteCreditTransaction = deleteCreditTransaction;
     }
 
-    // Lists all credit-related transactions in the system.
+    // Lists all credit-related transactions (supports optional pagination).
     async getAll(req, res) {
         try {
-            const transactions = await this.getAllCreditTransactions.execute(req.ownerId);
+            const { limit, lastId } = req.query;
+            const transactions = await this.getAllCreditTransactions.execute(req.ownerId, limit, lastId);
             res.json({ success: true, data: transactions });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
     }
 
-    // Fetches the entire credit history for a specific customer.
+    // Fetches the credit history for a specific customer (supports optional pagination).
     async getByCustomer(req, res) {
         try {
-            const transactions = await this.getCreditTransactionsByCustomer.execute(req.params.customerId, req.ownerId);
+            const { limit, lastId } = req.query;
+            const transactions = await this.getCreditTransactionsByCustomer.execute(req.params.customerId, req.ownerId, limit, lastId);
             res.json({ success: true, data: transactions });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });

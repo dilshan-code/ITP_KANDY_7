@@ -9,12 +9,17 @@ class SaleProvider extends ChangeNotifier {
   List<dynamic> _sales = []; // The history of completed sales
   final List<Map<String, dynamic>> _cartItems = []; // The items currently in the owner's "cart"
   bool _isLoading = false;
+  bool _isFetchingMore = false;
+  bool _hasMore = true;
   String? _error;
+  static const int _pageSize = 20;
 
   List<Product> get products => _products;
   List<dynamic> get sales => _sales;
   List<Map<String, dynamic>> get cartItems => _cartItems;
   bool get isLoading => _isLoading;
+  bool get isFetchingMore => _isFetchingMore;
+  bool get hasMore => _hasMore;
   String? get error => _error;
 
   // Calculates the sum price of all items currently in the cart.
@@ -43,18 +48,82 @@ class SaleProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> fetchSales() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+  Future<void> fetchSales({bool refresh = true}) async {
+    if (refresh) {
+      _isLoading = true;
+      _hasMore = true;
+      _error = null;
+      notifyListeners();
+    } else if (!_hasMore || _isFetchingMore) {
+      return;
+    } else {
+      _isFetchingMore = true;
+      notifyListeners();
+    }
+
     try {
-      final response = await ApiClient.get('/sales');
-      _sales = (response['data'] as List).reversed.toList(); // Newest first
+      final Map<String, String> params = {'limit': _pageSize.toString()};
+      if (!refresh && _sales.isNotEmpty) {
+        params['lastId'] = _sales.last['id'].toString();
+      }
+
+      final response = await ApiClient.get('/sales', queryParameters: params);
+      final List fetchedSales = response['data'] as List;
+
+      if (refresh) {
+        _sales = fetchedSales;
+      } else {
+        _sales.addAll(fetchedSales);
+      }
+
+      _hasMore = fetchedSales.length == _pageSize;
       _isLoading = false;
+      _isFetchingMore = false;
       notifyListeners();
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
+      _isFetchingMore = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchSalesByCustomer(String customerId, {bool refresh = true}) async {
+    if (refresh) {
+      _isLoading = true;
+      _hasMore = true;
+      _error = null;
+      notifyListeners();
+    } else if (!_hasMore || _isFetchingMore) {
+      return;
+    } else {
+      _isFetchingMore = true;
+      notifyListeners();
+    }
+
+    try {
+      final Map<String, String> params = {'limit': _pageSize.toString()};
+      if (!refresh && _sales.isNotEmpty) {
+        params['lastId'] = _sales.last['id'].toString();
+      }
+
+      final response = await ApiClient.get('/sales/customer/$customerId', queryParameters: params);
+      final List fetchedSales = response['data'] as List;
+
+      if (refresh) {
+        _sales = fetchedSales;
+      } else {
+        _sales.addAll(fetchedSales);
+      }
+
+      _hasMore = fetchedSales.length == _pageSize;
+      _isLoading = false;
+      _isFetchingMore = false;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      _isFetchingMore = false;
       notifyListeners();
     }
   }
@@ -146,8 +215,12 @@ class SaleProvider extends ChangeNotifier {
       fetchProducts(); // Refresh products to show updated stock counts.
       
       // Update: Trigger a notification fetch to show any new alerts (e.g., credit limit)
-      // Note: We can't access context here, but we can return success and let the UI handle it.
-      // Actually, it's better to let the UI call it since we have access to context there.
+      // Note: We can't access context here easily, but we can return success and let the UI handle it.
+      // However, we can use a callback or just return the data.
+      // For simplicity, we'll assume the UI or the caller will handle CreditProvider refresh
+      // if we can't do it here without context.
+      // BUT wait, I can pass a reference or just let the caller do it.
+      // Let's check where completeSale is called.
       
       notifyListeners();
       // Return the recorded sale data back to the UI.

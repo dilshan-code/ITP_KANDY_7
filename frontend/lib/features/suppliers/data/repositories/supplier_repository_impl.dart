@@ -6,8 +6,12 @@ import 'package:frontend/features/suppliers/domain/repositories/supplier_reposit
 class SupplierRepositoryImpl implements SupplierRepository {
   // Retrieves every supplier from the server's database.
   @override
-  Future<List<Supplier>> getAllSuppliers() async {
-    final response = await ApiClient.get('/suppliers');
+  Future<List<Supplier>> getAllSuppliers({int? limit, String? lastId}) async {
+    final Map<String, String> params = {};
+    if (limit != null) params['limit'] = limit.toString();
+    if (lastId != null) params['lastId'] = lastId;
+
+    final response = await ApiClient.get('/suppliers', queryParameters: params);
     return (response['data'] as List)
         .map((json) => Supplier.fromJson(json))
         .toList();

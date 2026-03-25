@@ -12,7 +12,8 @@ class PurchaseController {
     // Shows every purchase made by the shop.
     async getAll(req, res) {
         try {
-            const purchases = await this.getAllPurchases.execute(req.ownerId);
+            const { limit, lastId } = req.query;
+            const purchases = await this.getAllPurchases.execute(req.ownerId, limit, lastId);
             res.json({ success: true, data: purchases });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
@@ -43,7 +44,8 @@ class PurchaseController {
     // Finds all purchases made from a specific supplier.
     async getBySupplier(req, res) {
         try {
-            const purchases = await this.getPurchasesBySupplier.execute(req.params.supplierId, req.ownerId);
+            const { limit, lastId } = req.query;
+            const purchases = await this.getPurchasesBySupplier.execute(req.params.supplierId, req.ownerId, limit, lastId);
             res.json({ success: true, data: purchases });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });

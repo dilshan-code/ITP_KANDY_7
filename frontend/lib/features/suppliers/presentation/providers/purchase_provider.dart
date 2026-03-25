@@ -6,41 +6,92 @@ import 'package:frontend/features/suppliers/data/repositories/purchase_repositor
 class PurchaseProvider extends ChangeNotifier {
   final PurchaseRepositoryImpl _repository = PurchaseRepositoryImpl();
 
-  List<Purchase> _purchases = []; // The list of purchase records to show in the UI
-  bool _isLoading = false; // True if the app is currently talking to the server
-  String? _error; // Stores error details if a search or save fails
+  List<Purchase> _purchases = [];
+  bool _isLoading = false;
+  bool _isFetchingMore = false;
+  bool _hasMore = true;
+  String? _error;
+  final int _pageSize = 20;
 
   List<Purchase> get purchases => _purchases;
   bool get isLoading => _isLoading;
+  bool get isFetchingMore => _isFetchingMore;
+  bool get hasMore => _hasMore;
   String? get error => _error;
 
-  Future<void> fetchPurchases() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+  Future<void> fetchPurchases({bool refresh = true}) async {
+    if (refresh) {
+      _isLoading = true;
+      _hasMore = true;
+      _error = null;
+      notifyListeners();
+    } else if (!_hasMore || _isFetchingMore) {
+      return;
+    } else {
+      _isFetchingMore = true;
+      notifyListeners();
+    }
+
     try {
-      _purchases = await _repository.getAllPurchases();
+      final lastId = !refresh && _purchases.isNotEmpty ? _purchases.last.id : null;
+      final fetchedPurchases = await _repository.getAllPurchases(
+        limit: _pageSize,
+        lastId: lastId,
+      );
+
+      if (refresh) {
+        _purchases = fetchedPurchases;
+      } else {
+        _purchases.addAll(fetchedPurchases);
+      }
+
+      _hasMore = fetchedPurchases.length == _pageSize;
       _isLoading = false;
+      _isFetchingMore = false;
       notifyListeners();
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
+      _isFetchingMore = false;
       notifyListeners();
     }
   }
 
-  // Loads all purchases made specifically from one supplier.
-  Future<void> fetchPurchasesBySupplier(String supplierId) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+  Future<void> fetchPurchasesBySupplier(String supplierId, {bool refresh = true}) async {
+    if (refresh) {
+      _isLoading = true;
+      _hasMore = true;
+      _error = null;
+      notifyListeners();
+    } else if (!_hasMore || _isFetchingMore) {
+      return;
+    } else {
+      _isFetchingMore = true;
+      notifyListeners();
+    }
+
     try {
-      _purchases = await _repository.getPurchasesBySupplier(supplierId);
+      final lastId = !refresh && _purchases.isNotEmpty ? _purchases.last.id : null;
+      final fetchedPurchases = await _repository.getPurchasesBySupplier(
+        supplierId,
+        limit: _pageSize,
+        lastId: lastId,
+      );
+
+      if (refresh) {
+        _purchases = fetchedPurchases;
+      } else {
+        _purchases.addAll(fetchedPurchases);
+      }
+
+      _hasMore = fetchedPurchases.length == _pageSize;
       _isLoading = false;
+      _isFetchingMore = false;
       notifyListeners();
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
+      _isFetchingMore = false;
       notifyListeners();
     }
   }

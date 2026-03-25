@@ -3,21 +3,17 @@
 // and sends back an HTTP response (res).
 // ProductController manages the inventory. It handles adding products, tracking stock, and generating business reports.
 class ProductController {
-    constructor(
-        { getAllProducts, getProductById, createProduct, updateProduct, deleteProduct },
-        { getAllSales },
-        { getAllCustomers },
-        { getAllPurchases }
-    ) {
-        this.getAllProducts = getAllProducts;
-        this.getProductById = getProductById;
-        this.createProduct = createProduct;
-        this.updateProduct = updateProduct;
-        this.deleteProduct = deleteProduct;
-        
-        this.getAllSales = getAllSales;
-        this.getAllCustomers = getAllCustomers;
-        this.getAllPurchases = getAllPurchases;
+    constructor(useCases) {
+        this.getAllProducts = useCases.getAllProducts;
+        this.getProductById = useCases.getProductById;
+        this.createProduct = useCases.createProduct;
+        this.updateProduct = useCases.updateProduct;
+        this.deleteProduct = useCases.deleteProduct;
+        this.getAllSales = useCases.getAllSales;
+        this.getAllCustomers = useCases.getAllCustomers;
+        this.getAllPurchases = useCases.getAllPurchases;
+        this.getAllSuppliers = useCases.getAllSuppliers;
+        this.getDashboardData = useCases.getDashboardData;
     }
 
     // Handle GET /api/products
@@ -82,76 +78,20 @@ class ProductController {
     // Handle GET /api/dashboard (Calculates stats for the home screen)
     async getDashboard(req, res) {
         try {
-            const products = await this.getAllProducts.execute(req.ownerId);
-            const sales = this.getAllSales ? await this.getAllSales.execute(req.ownerId) : [];
-            const customers = this.getAllCustomers ? await this.getAllCustomers.execute(req.ownerId) : [];
-            const purchases = this.getAllPurchases ? await this.getAllPurchases.execute(req.ownerId) : [];
+            const dashboardData = await this.getDashboardData.execute(req.ownerId);
             
-            // ... rest of calculations as before ...
-            // Sum up the pre-calculated 'inventoryValue' property from each product entity.
-            const totalInventoryValue = products.reduce((sum, p) => sum + p.inventoryValue, 0);
-            // Sum up all literal items currently on shelves.
-            const totalItems = products.reduce((sum, p) => sum + p.stockQuantity, 0);
-            // Identify products that have fallen below their set 'minimumStockLevel'.
-            const lowStockItems = products.filter(p => p.isLowStock);
-            
-            // Step 3: Calculate 'Today's Sales' volume.
-            const today = new Date();
-            today.setHours(0, 0, 0, 0); // Reset time to midnight to catch every sale since 12:00 AM today.
-            const todaysSales = sales
-                .filter(s => new Date(s.createdAt) >= today)
-                .reduce((sum, s) => sum + (s.totalAmount || 0), 0);
-                
-            // Step 4: Aggregate financial liabilities (Customer credit and Supplier payments).
-            const customerCredit = customers.reduce((sum, c) => sum + (c.totalOutstanding || 0), 0);
-            const toSuppliers = purchases.reduce((sum, p) => sum + (p.totalAmount || 0), 0);
- 
-            // Step 5: Merge Sales and Purchases into a single 'Recent Activity' timeline.
-            let allTxns = [];
-            // Format sales as positive 'order' or 'credit' entries.
-            sales.forEach(s => {
-                allTxns.push({
-                    id: s.id,
-                    type: s.paymentMethod === 'credit' ? 'credit' : 'order',
-                    title: s.paymentMethod === 'credit' ? 'Credit Sale' : `Sale #${s.id.substring(0, 5)}`,
-                    subtitle: s.customerName || 'Walk-in Customer',
-                    amount: s.totalAmount || 0,
-                    time: s.createdAt
-                });
-            });
-            // Format purchases as negative transactions (money going out).
-            purchases.forEach(p => {
-                allTxns.push({
-                    id: p.id,
-                    type: 'purchase',
-                    title: `Purchase #${p.id.substring(0, 5)}`,
-                    subtitle: `Supplier: ${p.supplierId}`,
-                    amount: -(p.totalAmount || 0),
-                    time: p.purchaseDate || p.createdAt
-                });
-            });
-            
-            // Step 6: Sort by time descending and pick only the 5 most recent activities for the UI.
-            allTxns.sort((a, b) => new Date(b.time) - new Date(a.time));
-            const recentTransactions = allTxns.slice(0, 5).map(t => ({
+            // Format the time strings for the recent transactions
+            const recentTransactions = dashboardData.recentTransactions.map(t => ({
                 ...t,
-                // Format the time string into a human-readable 12-hour format (e.g., 02:30 PM).
                 time: new Date(t.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             }));
 
-            // Step 7: Send the fully prepared dashboard bucket back to the mobile app.
             res.json({
                 success: true,
                 data: {
-                    todaysSales: todaysSales,
-                    salesTrend: 0, // Placeholder for future comparison logic.
-                    lowStockCount: lowStockItems.length,
-                    lowStockItems: lowStockItems,
-                    customerCredit: customerCredit,
-                    toSuppliers: toSuppliers,
-                    totalInventoryValue: totalInventoryValue,
-                    totalItemsInStock: totalItems,
-                    recentTransactions: recentTransactions,
+                    ...dashboardData,
+                    recentTransactions,
+                    salesTrend: 0 // Placeholder
                 },
             });
         } catch (error) {

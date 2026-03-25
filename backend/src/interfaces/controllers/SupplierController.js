@@ -11,7 +11,8 @@ class SupplierController {
     // Lists every supplier recorded in the system.
     async getAll(req, res) {
         try {
-            const suppliers = await this.getAllSuppliers.execute(req.ownerId);
+            const { limit, lastId } = req.query;
+            const suppliers = await this.getAllSuppliers.execute(req.ownerId, limit, lastId);
             res.json({ success: true, data: suppliers });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });

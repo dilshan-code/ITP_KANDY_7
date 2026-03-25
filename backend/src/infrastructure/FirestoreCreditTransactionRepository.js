@@ -5,37 +5,62 @@ const ICreditTransactionRepository = require('../domain/repositories/ICreditTran
 class FirestoreCreditTransactionRepository extends ICreditTransactionRepository {
     constructor() {
         super();
-        this.collection = db.collection('credit_transactions');
+        this.collection = db.collection('credit-transactions');
     }
 
-    async getAll(ownerId) {
+    async getAll(ownerId, limit = null, lastId = null) {
         if (!ownerId) throw new Error('Owner ID is required');
-        const snapshot = await this.collection.where('ownerId', '==', ownerId).get();
-        const transactions = snapshot.docs.map(doc => {
+        
+        let query = this.collection.where('ownerId', '==', ownerId).orderBy('createdAt', 'desc');
+
+        if (lastId) {
+            const lastDoc = await this.collection.doc(lastId).get();
+            if (lastDoc.exists) {
+                query = query.startAfter(lastDoc);
+            }
+        }
+
+        if (limit) {
+            query = query.limit(parseInt(limit));
+        }
+
+        const snapshot = await query.get();
+        return snapshot.docs.map(doc => {
             const txn = new CreditTransaction({ id: doc.id, ...doc.data() });
             return txn.toJSON();
         });
-        // Sort in-memory to avoid requiring composite indexes in Firestore
-        return transactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
-    async getByCustomer(customerId, ownerId) {
+    async getByCustomer(customerId, ownerId, limit = null, lastId = null) {
         if (!ownerId) throw new Error('Owner ID is required');
-        const snapshot = await this.collection
+        
+        let query = this.collection
             .where('ownerId', '==', ownerId)
             .where('customerId', '==', customerId)
-            .get();
-        const transactions = snapshot.docs.map(doc => {
+            .orderBy('createdAt', 'desc');
+
+        if (lastId) {
+            const lastDoc = await this.collection.doc(lastId).get();
+            if (lastDoc.exists) {
+                query = query.startAfter(lastDoc);
+            }
+        }
+
+        if (limit) {
+            query = query.limit(parseInt(limit));
+        }
+
+        const snapshot = await query.get();
+        return snapshot.docs.map(doc => {
             const txn = new CreditTransaction({ id: doc.id, ...doc.data() });
             return txn.toJSON();
         });
-        // Sort in-memory to avoid requiring composite indexes in Firestore
-        return transactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
-    async getById(id, ownerId) {
+    async getById(id, ownerId, transaction = null) {
         if (!ownerId) throw new Error('Owner ID is required');
-        const doc = await this.collection.doc(id).get();
+        const docRef = this.collection.doc(id);
+        const doc = transaction ? await transaction.get(docRef) : await docRef.get();
         if (!doc.exists) return null;
         const data = doc.data();
         if (data.ownerId !== ownerId) return null;
@@ -43,7 +68,7 @@ class FirestoreCreditTransactionRepository extends ICreditTransactionRepository 
         return txn.toJSON();
     }
 
-    async create(transactionData) {
+    async create(transactionData, transaction = null) {
         if (!transactionData.ownerId) throw new Error('Owner ID is required');
         const now = new Date().toISOString();
         const dataToSave = {
@@ -55,7 +80,15 @@ class FirestoreCreditTransactionRepository extends ICreditTransactionRepository 
             date: transactionData.date || now,
             createdAt: now,
         };
-        const docRef = await this.collection.add(dataToSave);
+        
+        let docRef;
+        if (transaction) {
+            docRef = this.collection.doc();
+            transaction.set(docRef, dataToSave);
+        } else {
+            docRef = await this.collection.add(dataToSave);
+        }
+        
         const txn = new CreditTransaction({ id: docRef.id, ...dataToSave });
         return txn.toJSON();
     }

@@ -119,20 +119,30 @@ class InvoicePdfUtils {
                       ],
                     ),
                     // Table Body
-                    ...items.map((item) {
-                      final price = (item['price'] ?? 0.0).toDouble();
-                      final qty = item['quantity'] ?? 1;
-                      return pw.TableRow(
+                    if (items.isEmpty)
+                      pw.TableRow(
                         children: [
-                          _buildTableCell(item['name'] ?? 'Unknown Item'),
-                          _buildTableCell('$qty ${item['unit'] ?? ''}'),
-                          _buildTableCell('Rs ${price.toStringAsFixed(0)}'),
-                          _buildTableCell(
-                            'Rs ${(price * qty).toStringAsFixed(0)}',
-                          ),
+                          _buildTableCell('Balance Settlement'),
+                          _buildTableCell('1'),
+                          _buildTableCell('Rs ${totalAmount.toStringAsFixed(0)}'),
+                          _buildTableCell('Rs ${totalAmount.toStringAsFixed(0)}'),
                         ],
-                      );
-                    }),
+                      )
+                    else
+                      ...items.map((item) {
+                        final price = (item['price'] ?? 0.0).toDouble();
+                        final qty = item['quantity'] ?? 1;
+                        return pw.TableRow(
+                          children: [
+                            _buildTableCell(item['name'] ?? 'Unknown Item'),
+                            _buildTableCell('$qty ${item['unit'] ?? ''}'),
+                            _buildTableCell('Rs ${price.toStringAsFixed(0)}'),
+                            _buildTableCell(
+                              'Rs ${(price * qty).toStringAsFixed(0)}',
+                            ),
+                          ],
+                        );
+                      }),
                   ],
                 ),
                 pw.SizedBox(height: 32),

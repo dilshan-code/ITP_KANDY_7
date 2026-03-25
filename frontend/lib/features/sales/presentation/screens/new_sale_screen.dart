@@ -9,6 +9,7 @@ import 'package:frontend/features/credit/presentation/screens/credit_list_screen
 import 'package:frontend/features/credit/domain/entities/customer.dart';
 import 'package:frontend/features/sales/presentation/screens/invoice_dialog.dart';
 import 'package:frontend/features/sales/presentation/screens/payment_confirmation_dialog.dart';
+import 'package:frontend/features/credit/presentation/providers/credit_provider.dart';
 
 class NewSaleScreen extends StatefulWidget {
   const NewSaleScreen({super.key});
@@ -468,27 +469,13 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       // Stock reduced on backend, now refresh local list in ProductProvider
       context.read<ProductProvider>().fetchProducts();
 
-      // 1. Refresh global notification state to show any backend-triggered alerts (like Credit Limit)
-      final notificationProvider = context.read<NotificationProvider>();
-      notificationProvider.fetchNotifications();
-
-      // 2. Low Stock Trigger (Still on frontend for now)
-      final products = context.read<ProductProvider>().products;
-      for (var item in provider.cartItems) {
-        final product = products.firstWhere(
-          (p) => p.id == item['productId'],
-          orElse: () => products.firstWhere((p) => p.name == item['name']),
-        );
-        // Check if stock is now low (using 10 as threshold)
-        if (product.stockQuantity <= 10) {
-          notificationProvider.createNotification(
-            type: 'warning',
-            title: 'Low Stock Alert',
-            message:
-                'Product "${product.name}" is running low (${product.stockQuantity} units left).',
-          );
-        }
+      // Refresh CreditProvider if this was a credit sale or for a specific customer
+      if (selectedCustomer != null) {
+        context.read<CreditProvider>().fetchCustomers();
       }
+
+      // Refresh global notification state to show any backend-triggered alerts (like Low Stock or Credit Limit)
+      context.read<NotificationProvider>().fetchNotifications();
 
       SnackBarUtils.showSnackBar(
         context,

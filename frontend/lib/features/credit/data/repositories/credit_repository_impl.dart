@@ -6,8 +6,15 @@ import 'package:frontend/features/credit/domain/entities/credit_transaction.dart
 class CreditRepositoryImpl {
   // Customer methods
   // Lists all customers in the system by fetching them from the backend.
-  Future<List<Customer>> getAllCustomers() async {
-    final response = await ApiClient.get('/customers');
+  Future<List<Customer>> getAllCustomers({int? limit, String? lastId}) async {
+    final Map<String, String> queryParams = {};
+    if (limit != null) queryParams['limit'] = limit.toString();
+    if (lastId != null) queryParams['lastId'] = lastId;
+
+    final response = await ApiClient.get(
+      '/customers',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
     return (response['data'] as List)
         .map((json) => Customer.fromJson(json))
         .toList();
@@ -35,12 +42,19 @@ class CreditRepositoryImpl {
   }
 
   // Credit Transaction methods
-  // Fetches a list of all credit-related transactions (debt/payments) for a customer.
+  // Fetches a list of all credit-related transactions (debt/payments) for a customer (supports pagination).
   Future<List<CreditTransaction>> getTransactionsByCustomer(
-    String customerId,
-  ) async {
+    String customerId, {
+    int? limit,
+    String? lastId,
+  }) async {
+    final Map<String, String> queryParams = {};
+    if (limit != null) queryParams['limit'] = limit.toString();
+    if (lastId != null) queryParams['lastId'] = lastId;
+
     final response = await ApiClient.get(
       '/credit-transactions/customer/$customerId',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
     );
     return (response['data'] as List)
         .map((json) => CreditTransaction.fromJson(json))
@@ -55,4 +69,10 @@ class CreditRepositoryImpl {
 
   // Sales methods (for credit history)
   // Removed getSalesByCustomer as we now use SaleProvider directly.
+  
+  // Creates a settlement sale record in the system.
+  Future<Map<String, dynamic>> createSettlementSale(Map<String, dynamic> data) async {
+    final response = await ApiClient.post('/sales', data);
+    return response['data'] as Map<String, dynamic>;
+  }
 }

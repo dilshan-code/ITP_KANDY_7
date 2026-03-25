@@ -108,7 +108,23 @@ key.properties
 .svn/
 .swiftpm/
 migrate_working_dir/
-/tmp/
+tmp/
 walkthrough.md
 backend/check_user.js
 frontend/lib/main_test.dart
+# New Non-Critical Dev/Test Outputs
+backend/debug_out.txt
+backend/purchase_test_output.txt
+backend/test_output.txt
+backend/test_error.log
+backend/test_results.json
+frontend/analysis_full.txt
+frontend/analysis_output.txt
+# Backend Utility Scripts
+backend/count_collections.js
+backend/debug_data_tagging.js
+backend/fix_demo_data.js
+backend/fix_demo_data_v4.js
+backend/get_demo_id.js
+backend/migrate_is_low_stock.js
+backend/reconcile_balances.js

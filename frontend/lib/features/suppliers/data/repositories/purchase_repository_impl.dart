@@ -6,8 +6,12 @@ import 'package:frontend/features/suppliers/domain/repositories/purchase_reposit
 class PurchaseRepositoryImpl implements PurchaseRepository {
   // Fetches the complete history of all stock purchases made by the shop.
   @override
-  Future<List<Purchase>> getAllPurchases() async {
-    final response = await ApiClient.get('/purchases');
+  Future<List<Purchase>> getAllPurchases({int? limit, String? lastId}) async {
+    final Map<String, String> params = {};
+    if (limit != null) params['limit'] = limit.toString();
+    if (lastId != null) params['lastId'] = lastId;
+
+    final response = await ApiClient.get('/purchases', queryParameters: params);
     return (response['data'] as List)
         .map((json) => Purchase.fromJson(json))
         .toList();
@@ -41,8 +45,12 @@ class PurchaseRepositoryImpl implements PurchaseRepository {
 
   // Shows all purchases linked to a single supplier, useful for debt tracking.
   @override
-  Future<List<Purchase>> getPurchasesBySupplier(String supplierId) async {
-    final response = await ApiClient.get('/purchases/supplier/$supplierId');
+  Future<List<Purchase>> getPurchasesBySupplier(String supplierId, {int? limit, String? lastId}) async {
+    final Map<String, String> params = {};
+    if (limit != null) params['limit'] = limit.toString();
+    if (lastId != null) params['lastId'] = lastId;
+
+    final response = await ApiClient.get('/purchases/supplier/$supplierId', queryParameters: params);
     return (response['data'] as List)
         .map((json) => Purchase.fromJson(json))
         .toList();

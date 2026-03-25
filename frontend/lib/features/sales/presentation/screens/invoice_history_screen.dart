@@ -15,40 +15,32 @@ class InvoiceHistoryScreen extends StatefulWidget {
 
 class InvoiceHistoryScreenState extends State<InvoiceHistoryScreen> {
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<SaleProvider>().fetchSales().then((_) {
-          if (mounted && widget.initialInvoiceId != null) {
-            final sales = context.read<SaleProvider>().sales;
-            final targetSale = sales.firstWhere(
-              (s) =>
-                  s['id'].toString().toLowerCase() ==
-                  widget.initialInvoiceId!.toLowerCase(),
-              orElse: () => null,
-            );
-            if (targetSale != null) {
-              showGeneralDialog(
-                context: context,
-                barrierDismissible: true,
-                barrierLabel: '',
-                pageBuilder: (context, anim1, anim2) =>
-                    InvoiceDialog(saleDetails: targetSale),
-              );
-            }
-          }
-        });
+        context.read<SaleProvider>().fetchSales();
       }
     });
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        _searchQuery.isEmpty) {
+      context.read<SaleProvider>().fetchSales(refresh: false);
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -124,12 +116,21 @@ class InvoiceHistoryScreenState extends State<InvoiceHistoryScreen> {
                   onRefresh: () => provider.fetchSales(),
                   color: AppColors.primary,
                   child: ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 16,
                     ),
-                    itemCount: sortedDates.length,
+                    itemCount: sortedDates.length + (provider.isFetchingMore ? 1 : 0),
                     itemBuilder: (context, index) {
+                      if (index == sortedDates.length) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      }
                       final dateStr = sortedDates[index];
                       final sales = groupedSales[dateStr]!;
                       return Column(
@@ -138,8 +139,7 @@ class InvoiceHistoryScreenState extends State<InvoiceHistoryScreen> {
                           _buildDateHeader(dateStr),
                           const SizedBox(height: 12),
                           ...sales
-                              .map((sale) => _buildInvoiceCard(sale))
-                              ,
+                              .map((sale) => _buildInvoiceCard(sale)),
                           const SizedBox(height: 8),
                         ],
                       );

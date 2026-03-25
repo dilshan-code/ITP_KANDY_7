@@ -31,6 +31,7 @@ admin.initializeApp({
 
 // Get a reference to the Firestore database
 const db = admin.firestore();
+db.settings({ ignoreUndefinedProperties: true });
 
 console.log('Firebase Admin SDK initialized successfully');
 

@@ -8,20 +8,46 @@ class FirestoreCustomerRepository extends ICustomerRepository {
         this.collection = db.collection('customers');
     }
 
-    async getAll(ownerId) {
+    async getAll(ownerId, limit, lastId) {
         if (!ownerId) throw new Error('Owner ID is required');
-        const snapshot = await this.collection.where('ownerId', '==', ownerId).get();
-        const customers = snapshot.docs.map(doc => {
+
+        let query = this.collection
+            .where('ownerId', '==', ownerId)
+            .orderBy('createdAt', 'desc');
+
+        if (lastId) {
+            const lastDoc = await this.collection.doc(lastId).get();
+            if (lastDoc.exists) {
+                query = query.startAfter(lastDoc);
+            }
+        }
+
+        if (limit) {
+            query = query.limit(parseInt(limit));
+        }
+
+        const snapshot = await query.get();
+        return snapshot.docs.map(doc => {
             const customer = new Customer({ id: doc.id, ...doc.data() });
             return customer.toJSON();
         });
-        // Sort in-memory to avoid requiring composite indexes in Firestore
-        return customers.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
-    async getById(id, ownerId) {
+    async getTotalOutstanding(ownerId) {
+        const { AggregateField } = require('firebase-admin/firestore');
+        const snapshot = await this.collection
+            .where('ownerId', '==', ownerId)
+            .aggregate({
+                total: AggregateField.sum('totalOutstanding')
+            })
+            .get();
+        return snapshot.data().total;
+    }
+
+    async getById(id, ownerId, transaction = null) {
         if (!ownerId) throw new Error('Owner ID is required');
-        const doc = await this.collection.doc(id).get();
+        const docRef = this.collection.doc(id);
+        const doc = transaction ? await transaction.get(docRef) : await docRef.get();
         if (!doc.exists) return null;
         const data = doc.data();
         if (data.ownerId !== ownerId) return null;
@@ -49,36 +75,48 @@ class FirestoreCustomerRepository extends ICustomerRepository {
         return customer.toJSON();
     }
 
-    async update(id, customerData, ownerId) {
+    async update(id, customerData, ownerId, transaction = null) {
         if (!ownerId) throw new Error('Owner ID is required');
         const docRef = this.collection.doc(id);
-        const doc = await docRef.get();
-        if (!doc.exists) return null;
-        
-        const existingData = doc.data();
-        if (existingData.ownerId !== ownerId) return null;
+
+        if (!transaction) {
+          const doc = await docRef.get();
+          if (!doc.exists) return null;
+          if (doc.data().ownerId !== ownerId) return null;
+        }
 
         const updateData = { ...customerData, updatedAt: new Date().toISOString() };
         delete updateData.id;
         delete updateData.ownerId;
 
-        await docRef.update(updateData);
-        const updatedDoc = await docRef.get();
-        const customer = new Customer({ id: updatedDoc.id, ...updatedDoc.data() });
-        return customer.toJSON();
+        if (transaction) {
+            transaction.update(docRef, updateData);
+            return { id, ...updateData }; // Return what we updated
+        } else {
+            await docRef.update(updateData);
+            const updatedDoc = await docRef.get();
+            const customer = new Customer({ id: updatedDoc.id, ...updatedDoc.data() });
+            return customer.toJSON();
+        }
     }
 
-    async delete(id, ownerId) {
+    async delete(id, ownerId, transaction = null) {
         if (!ownerId) throw new Error('Owner ID is required');
         const docRef = this.collection.doc(id);
-        const doc = await docRef.get();
-        if (!doc.exists) return false;
-        
-        const existingData = doc.data();
-        if (existingData.ownerId !== ownerId) return false;
 
-        await docRef.delete();
-        return true;
+        if (transaction) {
+            transaction.delete(docRef);
+            return true;
+        } else {
+            const doc = await docRef.get();
+            if (!doc.exists) return false;
+            
+            const existingData = doc.data();
+            if (existingData.ownerId !== ownerId) return false;
+
+            await docRef.delete();
+            return true;
+        }
     }
 }
 

@@ -10,27 +10,35 @@ class FirestoreNotificationRepository extends INotificationRepository {
 
     async getAll(ownerId) {
         if (!ownerId) throw new Error('Owner ID is required');
-        const snapshot = await this.collection.where('ownerId', '==', ownerId).orderBy('createdAt', 'desc').get();
-        return snapshot.docs.map(doc => {
+        const snapshot = await this.collection.where('ownerId', '==', ownerId).get();
+        const notifications = snapshot.docs.map(doc => {
             const notification = new AppNotification({ id: doc.id, ...doc.data() });
             return notification.toJSON();
         });
+        // Sort in-memory by createdAt descending
+        return notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
-    async create(notificationData) {
+    async create(notificationData, transaction = null) {
         if (!notificationData.ownerId) throw new Error('Owner ID is required');
         const now = new Date().toISOString();
         const dataToSave = {
             ownerId: notificationData.ownerId,
-            type: notificationData.type || 'info',
-            title: notificationData.title || '',
-            message: notificationData.message || '',
+            type: notificationData.type || 'info', // 'info', 'warning', 'error', 'success'
+            title: notificationData.title,
+            message: notificationData.message,
             isRead: false,
             createdAt: now,
         };
-        const docRef = await this.collection.add(dataToSave);
-        const notification = new AppNotification({ id: docRef.id, ...dataToSave });
-        return notification.toJSON();
+
+        if (transaction) {
+            const docRef = this.collection.doc();
+            transaction.set(docRef, dataToSave);
+            return { id: docRef.id, ...dataToSave };
+        } else {
+            const docRef = await this.collection.add(dataToSave);
+            return { id: docRef.id, ...dataToSave };
+        }
     }
 
     async markAsRead(id, ownerId) {

@@ -72,15 +72,23 @@ class UpdateProduct {
         }
         const updatedProduct = await this.productRepository.update(id, productData, ownerId);
         
-        // --- NEW: Trigger Notification if Out of Stock ---
-        if (updatedProduct && updatedProduct.stockQuantity === 0 && updatedProduct.notifyOutOfStock) {
-            console.log(`🚨 Product Out of Stock (Manual Update): ${updatedProduct.name}`);
-            await this.notificationRepository.create({
-                ownerId,
-                type: 'warning',
-                title: 'Product Out of Stock',
-                message: `The product "${updatedProduct.name}" has been updated and is now out of stock.`,
-            });
+        // --- NEW: Trigger Notifications for Stock Levels ---
+        if (updatedProduct && updatedProduct.notifyOutOfStock) {
+            if (updatedProduct.stockQuantity === 0) {
+                await this.notificationRepository.create({
+                    ownerId,
+                    type: 'warning',
+                    title: 'Product Out of Stock',
+                    message: `The product "${updatedProduct.name}" is now out of stock.`,
+                });
+            } else if (updatedProduct.isLowStock) {
+                await this.notificationRepository.create({
+                    ownerId,
+                    type: 'info',
+                    title: 'Low Stock Alert',
+                    message: `The product "${updatedProduct.name}" is running low (${updatedProduct.stockQuantity} ${updatedProduct.unit || 'units'} remaining).`,
+                });
+            }
         }
         
         return updatedProduct;

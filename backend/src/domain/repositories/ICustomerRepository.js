@@ -1,5 +1,6 @@
 class ICustomerRepository {
-    async getAll() { throw new Error('Not implemented'); }
+    async getAll(ownerId, limit, lastId) { throw new Error('Not implemented'); }
+    async getTotalOutstanding(ownerId) { throw new Error('Not implemented'); }
     async getById(id) { throw new Error('Not implemented'); }
     async create(customerData) { throw new Error('Not implemented'); }
     async update(id, customerData) { throw new Error('Not implemented'); }

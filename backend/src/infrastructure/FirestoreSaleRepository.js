@@ -8,20 +8,78 @@ class FirestoreSaleRepository extends ISaleRepository {
         this.collection = db.collection('sales');
     }
 
-    async getAll(ownerId) {
+    async getTodayTotal(ownerId) {
+        const { AggregateField } = require('firebase-admin/firestore');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const snapshot = await this.collection
+            .where('ownerId', '==', ownerId)
+            .where('createdAt', '>=', today.toISOString())
+            .aggregate({
+                total: AggregateField.sum('totalAmount')
+            })
+            .get();
+        return snapshot.data().total;
+    }
+
+    async getTotalRevenue(ownerId) {
+        const { AggregateField } = require('firebase-admin/firestore');
+        const snapshot = await this.collection
+            .where('ownerId', '==', ownerId)
+            .aggregate({
+                total: AggregateField.sum('totalAmount')
+            })
+            .get();
+        return snapshot.data().total;
+    }
+
+    async getAllByDateRange(ownerId, startDate, endDate) {
         if (!ownerId) throw new Error('Owner ID is required');
-        const snapshot = await this.collection.where('ownerId', '==', ownerId).get();
-        const sales = snapshot.docs.map(doc => {
+        
+        const snapshot = await this.collection
+            .where('ownerId', '==', ownerId)
+            .where('createdAt', '>=', startDate)
+            .where('createdAt', '<=', endDate)
+            .orderBy('createdAt', 'desc')
+            .get();
+            
+        return snapshot.docs.map(doc => {
             const sale = new Sale({ id: doc.id, ...doc.data() });
             return sale.toJSON();
         });
-        // Sort in-memory to avoid requiring composite indexes in Firestore
-        return sales.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
-    async getById(id, ownerId) {
+    async getAll(ownerId, limit = null, lastId = null) {
         if (!ownerId) throw new Error('Owner ID is required');
-        const doc = await this.collection.doc(id).get();
+        
+        // Start building the query with mandatory ownerId filter and sorting
+        let query = this.collection.where('ownerId', '==', ownerId).orderBy('createdAt', 'desc');
+
+        // Apply pagination if a lastId is provided
+        if (lastId) {
+            const lastDoc = await this.collection.doc(lastId).get();
+            if (lastDoc.exists) {
+                query = query.startAfter(lastDoc);
+            }
+        }
+
+        // Apply the limit if provided
+        if (limit) {
+            query = query.limit(parseInt(limit));
+        }
+
+        const snapshot = await query.get();
+        return snapshot.docs.map(doc => {
+            const sale = new Sale({ id: doc.id, ...doc.data() });
+            return sale.toJSON();
+        });
+    }
+
+    async getById(id, ownerId, transaction = null) {
+        if (!ownerId) throw new Error('Owner ID is required');
+        const docRef = this.collection.doc(id);
+        const doc = transaction ? await transaction.get(docRef) : await docRef.get();
         if (!doc.exists) return null;
         const data = doc.data();
         if (data.ownerId !== ownerId) return null;
@@ -29,21 +87,33 @@ class FirestoreSaleRepository extends ISaleRepository {
         return sale.toJSON();
     }
 
-    async getByCustomer(customerId, ownerId) {
+    async getByCustomer(customerId, ownerId, limit = null, lastId = null) {
         if (!ownerId) throw new Error('Owner ID is required');
-        const snapshot = await this.collection
+        
+        let query = this.collection
             .where('ownerId', '==', ownerId)
             .where('customerId', '==', customerId)
-            .get();
-        const sales = snapshot.docs.map(doc => {
+            .orderBy('createdAt', 'desc');
+
+        if (lastId) {
+            const lastDoc = await this.collection.doc(lastId).get();
+            if (lastDoc.exists) {
+                query = query.startAfter(lastDoc);
+            }
+        }
+
+        if (limit) {
+            query = query.limit(parseInt(limit));
+        }
+
+        const snapshot = await query.get();
+        return snapshot.docs.map(doc => {
             const sale = new Sale({ id: doc.id, ...doc.data() });
             return sale.toJSON();
         });
-        // Sort in-memory to avoid requiring composite indexes in Firestore
-        return sales.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
-    async create(saleData) {
+    async create(saleData, transaction = null) {
         if (!saleData.ownerId) throw new Error('Owner ID is required');
         const now = new Date().toISOString();
         const dataToSave = {
@@ -62,45 +132,64 @@ class FirestoreSaleRepository extends ISaleRepository {
         let docRef;
         if (saleData.id) {
             docRef = this.collection.doc(saleData.id);
-            await docRef.set(dataToSave);
+            if (transaction) {
+                transaction.set(docRef, dataToSave);
+            } else {
+                await docRef.set(dataToSave);
+            }
         } else {
-            docRef = await this.collection.add(dataToSave);
+            if (transaction) {
+                docRef = this.collection.doc(); // Generate ID
+                transaction.set(docRef, dataToSave);
+            } else {
+                docRef = await this.collection.add(dataToSave);
+            }
         }
 
         const sale = new Sale({ id: docRef.id, ...dataToSave });
         return sale.toJSON();
     }
 
-    async update(id, saleData, ownerId) {
+    async update(id, saleData, ownerId, transaction = null) {
         if (!ownerId) throw new Error('Owner ID is required');
         const docRef = this.collection.doc(id);
-        const doc = await docRef.get();
-        if (!doc.exists) return null;
         
-        const existingData = doc.data();
-        if (existingData.ownerId !== ownerId) return null;
-
         const updateData = { ...saleData, updatedAt: new Date().toISOString() };
         delete updateData.id;
         delete updateData.ownerId;
-        
-        await docRef.update(updateData);
-        const updatedDoc = await docRef.get();
-        const sale = new Sale({ id: updatedDoc.id, ...updatedDoc.data() });
-        return sale.toJSON();
+
+        if (transaction) {
+            transaction.update(docRef, updateData);
+            return { id, ...updateData };
+        } else {
+            const doc = await docRef.get();
+            if (!doc.exists) return null;
+            if (doc.data().ownerId !== ownerId) return null;
+
+            await docRef.update(updateData);
+            const updatedDoc = await docRef.get();
+            const sale = new Sale({ id: updatedDoc.id, ...updatedDoc.data() });
+            return sale.toJSON();
+        }
     }
 
-    async delete(id, ownerId) {
+    async delete(id, ownerId, transaction = null) {
         if (!ownerId) throw new Error('Owner ID is required');
         const docRef = this.collection.doc(id);
-        const doc = await docRef.get();
-        if (!doc.exists) return false;
 
-        const existingData = doc.data();
-        if (existingData.ownerId !== ownerId) return false;
+        if (transaction) {
+            transaction.delete(docRef);
+            return true;
+        } else {
+            const doc = await docRef.get();
+            if (!doc.exists) return false;
 
-        await docRef.delete();
-        return true;
+            const existingData = doc.data();
+            if (existingData.ownerId !== ownerId) return false;
+
+            await docRef.delete();
+            return true;
+        }
     }
 }
 

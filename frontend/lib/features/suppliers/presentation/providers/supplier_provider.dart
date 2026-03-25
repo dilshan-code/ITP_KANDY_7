@@ -6,30 +6,56 @@ import 'package:frontend/features/suppliers/data/repositories/supplier_repositor
 class SupplierProvider extends ChangeNotifier {
   final SupplierRepositoryImpl _repository = SupplierRepositoryImpl();
 
-  List<Supplier> _suppliers = []; // All registered suppliers
-  bool _isLoading = false; // Indicates if data is currently being downloaded
-  String? _error; // Background error details if a request fails
+  List<Supplier> _suppliers = [];
+  bool _isLoading = false;
+  bool _isFetchingMore = false;
+  bool _hasMore = true;
+  String? _error;
+  final int _pageSize = 20;
 
   List<Supplier> get suppliers => _suppliers;
   bool get isLoading => _isLoading;
+  bool get isFetchingMore => _isFetchingMore;
+  bool get hasMore => _hasMore;
   String? get error => _error;
 
   int get activeCount => _suppliers.where((s) => s.status == 'active').length;
   double get totalPayable =>
       _suppliers.fold(0, (sum, s) => sum + s.totalPayable);
 
-  // Refreshes the list of suppliers by pulling the latest data from the server.
-  Future<void> fetchSuppliers() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+  Future<void> fetchSuppliers({bool refresh = true}) async {
+    if (refresh) {
+      _isLoading = true;
+      _hasMore = true;
+      _error = null;
+      notifyListeners();
+    } else if (!_hasMore || _isFetchingMore) {
+      return;
+    } else {
+      _isFetchingMore = true;
+      notifyListeners();
+    }
+
     try {
-      _suppliers = await _repository.getAllSuppliers();
+      final fetchedSuppliers = await _repository.getAllSuppliers(
+        limit: _pageSize,
+        lastId: refresh || _suppliers.isEmpty ? null : _suppliers.last.id,
+      );
+
+      if (refresh) {
+        _suppliers = fetchedSuppliers;
+      } else {
+        _suppliers.addAll(fetchedSuppliers);
+      }
+
+      _hasMore = fetchedSuppliers.length == _pageSize;
       _isLoading = false;
+      _isFetchingMore = false;
       notifyListeners();
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
+      _isFetchingMore = false;
       notifyListeners();
     }
   }

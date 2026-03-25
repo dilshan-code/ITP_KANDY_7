@@ -3,7 +3,7 @@ const { isValidPhone, isValidEmail } = require('../utils/validationUtils');
 // Retrieves all business partners who supply stock to the shop.
 class GetAllSuppliers {
     constructor(supplierRepository) { this.supplierRepository = supplierRepository; }
-    async execute(ownerId) { return this.supplierRepository.getAll(ownerId); }
+    async execute(ownerId, limit, lastId) { return this.supplierRepository.getAll(ownerId, limit, lastId); }
 }
 
 class GetSupplierById {

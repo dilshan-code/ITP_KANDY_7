@@ -11,6 +11,10 @@ import 'package:frontend/features/suppliers/presentation/screens/add_supplier_sc
 import 'package:frontend/features/sales/presentation/screens/recent_transactions_screen.dart';
 import 'package:frontend/features/sales/presentation/screens/invoice_history_screen.dart';
 import 'package:frontend/shared/widgets/notification_icon.dart';
+import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart';
+import 'package:frontend/features/credit/presentation/providers/credit_provider.dart';
+import 'package:frontend/features/suppliers/presentation/providers/supplier_provider.dart';
+import 'package:frontend/features/home/presentation/utils/dashboard_pdf_utils.dart';
 
 // HomeScreen is the first screen the user sees after opening the app.
 // It serves as a dashboard showing today's sales, low stock alerts,
@@ -52,6 +56,14 @@ class HomeScreenState extends State<HomeScreen> {
     try {
       // Trigger API fetch for the dashboard statistics object
       final result = await ApiClient.get('/dashboard');
+      
+      // Also refresh notifications and credit summaries in the background
+      if (mounted) {
+        context.read<NotificationProvider>().fetchNotifications();
+        context.read<CreditProvider>().fetchCustomers();
+        context.read<SupplierProvider>().fetchSuppliers();
+      }
+
       // mounted checks if the widget is still on-screen before updating UI
       if (mounted) {
         // setState tells the Flutter framework to re-render this specific widget and its children
@@ -70,6 +82,18 @@ class HomeScreenState extends State<HomeScreen> {
   /// Public method to trigger a refresh from parent widgets
   void refresh() {
     _loadDashboard();
+  }
+
+  Future<void> _downloadDashboardPdf() async {
+    if (_dashboardData == null) return;
+    
+    final authProvider = context.read<AuthProvider>();
+    final shopName = authProvider.currentOwner?.shopName ?? 'GreenValley Mart';
+    
+    await DashboardPdfUtils.generateAndDownloadDashboardSummary(
+      shopName: shopName,
+      dashboardData: _dashboardData!,
+    );
   }
 
   @override
@@ -174,7 +198,17 @@ class HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        const NotificationIcon(size: 24),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.primary),
+              onPressed: _downloadDashboardPdf,
+              tooltip: 'Download Summary',
+            ),
+            const NotificationIcon(size: 24),
+          ],
+        ),
       ],
     );
   }

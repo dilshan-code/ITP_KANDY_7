@@ -23,6 +23,7 @@ const { GetAllSales, GetSaleById, CreateSale, GetSalesByCustomer, DeleteSale, Up
 const { GetAllNotifications, CreateNotification, MarkNotificationAsRead, MarkAllNotificationsAsRead, DeleteNotification, DeleteAllNotifications } = require('./usecases/notificationUseCases');
 const { GetAllOwners } = require('./usecases/authUseCases');
 const { GetBusinessReport } = require('./usecases/reportUseCases');
+const { GetDashboardData } = require('./usecases/dashboardUseCases');
 
 // --- Interfaces ---
 const ProductController = require('./interfaces/controllers/ProductController');
@@ -71,6 +72,13 @@ const productUseCases = {
     createProduct: new CreateProduct(productRepository),
     updateProduct: new UpdateProduct(productRepository, notificationRepository),
     deleteProduct: new DeleteProduct(productRepository),
+    getDashboardData: new GetDashboardData({
+        productRepository,
+        saleRepository,
+        purchaseRepository,
+        customerRepository,
+        supplierRepository
+    }),
 };
 // Note: ProductController is instantiated at the bottom because it depends on multiple other use cases.
 
@@ -98,10 +106,10 @@ const supplierController = new SupplierController(supplierUseCases);
 const purchaseUseCases = {
     getAllPurchases: new GetAllPurchases(purchaseRepository),
     getPurchaseById: new GetPurchaseById(purchaseRepository),
-    createPurchase: new CreatePurchase(purchaseRepository, productRepository),
+    createPurchase: new CreatePurchase(purchaseRepository, productRepository, supplierRepository),
     getPurchasesBySupplier: new GetPurchasesBySupplier(purchaseRepository),
     updatePurchase: new UpdatePurchase(purchaseRepository),
-    deletePurchase: new DeletePurchase(purchaseRepository, productRepository),
+    deletePurchase: new DeletePurchase(purchaseRepository, productRepository, supplierRepository),
 };
 const purchaseController = new PurchaseController(purchaseUseCases);
 
@@ -131,7 +139,7 @@ const saleUseCases = {
     getSaleById: new GetSaleById(saleRepository),
     createSale: new CreateSale(saleRepository, productRepository, customerRepository, creditTransactionRepository, notificationRepository),
     getSalesByCustomer: new GetSalesByCustomer(saleRepository),
-    updateSale: new UpdateSale(saleRepository),
+    updateSale: new UpdateSale(saleRepository, productRepository, customerRepository, creditTransactionRepository),
     deleteSale: new DeleteSale(saleRepository, productRepository, customerRepository, creditTransactionRepository),
 };
 const saleController = new SaleController(saleUseCases);
@@ -160,12 +168,13 @@ const reportUseCases = {
 const reportController = new ReportController(reportUseCases);
 
 // ProductController injection
-const productController = new ProductController(
-    productUseCases,
-    saleUseCases,
-    customerUseCases,
-    purchaseUseCases
-);
+const productController = new ProductController({
+    ...productUseCases,
+    ...saleUseCases,
+    ...customerUseCases,
+    ...purchaseUseCases,
+    ...supplierUseCases
+});
 
 // --- Express App Setup ---
 const app = express();

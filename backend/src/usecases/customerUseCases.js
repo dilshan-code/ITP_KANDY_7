@@ -1,7 +1,7 @@
 // Retrieves all customers registered in the shop.
 class GetAllCustomers {
     constructor(customerRepository) { this.customerRepository = customerRepository; }
-    async execute(ownerId) { return this.customerRepository.getAll(ownerId); }
+    async execute(ownerId, limit, lastId) { return this.customerRepository.getAll(ownerId, limit, lastId); }
 }
 
 class GetCustomerById {

@@ -10,12 +10,21 @@ class CreditProvider extends ChangeNotifier {
 
   List<Customer> _customers = []; // The complete list of shop customers
   List<CreditTransaction> _transactions = []; // History of debts and payments for a selected customer
-  bool _isLoading = false; // Flag to show a progress spinner during network calls
-  String? _error; // Holds any error message from the backend
+  bool _isLoading = false;
+  bool _isFetchingMoreTransactions = false;
+  bool _hasMoreTransactions = true;
+  bool _isFetchingMoreCustomers = false;
+  bool _hasMoreCustomers = true;
+  String? _error;
+  static const int _pageSize = 20;
 
   List<Customer> get customers => _customers;
   List<CreditTransaction> get transactions => _transactions;
   bool get isLoading => _isLoading;
+  bool get isFetchingMoreTransactions => _isFetchingMoreTransactions;
+  bool get hasMoreTransactions => _hasMoreTransactions;
+  bool get isFetchingMoreCustomers => _isFetchingMoreCustomers;
+  bool get hasMoreCustomers => _hasMoreCustomers;
   String? get error => _error;
 
   double get totalOutstanding =>
@@ -29,31 +38,77 @@ class CreditProvider extends ChangeNotifier {
       _customers.where((c) => c.totalOutstanding <= 0).toList();
 
   // Fetches all customers from the backend database.
-  Future<void> fetchCustomers() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
+  Future<void> fetchCustomers({bool refresh = true}) async {
+    if (refresh) {
+      _isLoading = true;
+      _hasMoreCustomers = true;
+      _error = null;
+      notifyListeners();
+    } else if (!_hasMoreCustomers || _isFetchingMoreCustomers) {
+      return;
+    } else {
+      _isFetchingMoreCustomers = true;
+      notifyListeners();
+    }
+
     try {
-      _customers = await _repository.getAllCustomers();
+      final fetchedCustomers = await _repository.getAllCustomers(
+        limit: _pageSize,
+        lastId: refresh || _customers.isEmpty ? null : _customers.last.id,
+      );
+
+      if (refresh) {
+        _customers = fetchedCustomers;
+      } else {
+        _customers.addAll(fetchedCustomers);
+      }
+
+      _hasMoreCustomers = fetchedCustomers.length == _pageSize;
       _isLoading = false;
+      _isFetchingMoreCustomers = false;
       notifyListeners();
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
+      _isFetchingMoreCustomers = false;
       notifyListeners();
     }
   }
 
-  Future<void> fetchTransactions(String customerId) async {
-    _isLoading = true;
-    notifyListeners();
+  Future<void> fetchTransactions(String customerId, {bool refresh = true}) async {
+    if (refresh) {
+      _isLoading = true;
+      _hasMoreTransactions = true;
+      _error = null;
+      notifyListeners();
+    } else if (!_hasMoreTransactions || _isFetchingMoreTransactions) {
+      return;
+    } else {
+      _isFetchingMoreTransactions = true;
+      notifyListeners();
+    }
+
     try {
-      _transactions = await _repository.getTransactionsByCustomer(customerId);
+      final fetchedTransactions = await _repository.getTransactionsByCustomer(
+        customerId,
+        limit: _pageSize,
+        lastId: refresh || _transactions.isEmpty ? null : _transactions.last.id,
+      );
+
+      if (refresh) {
+        _transactions = fetchedTransactions;
+      } else {
+        _transactions.addAll(fetchedTransactions);
+      }
+
+      _hasMoreTransactions = fetchedTransactions.length == _pageSize;
       _isLoading = false;
+      _isFetchingMoreTransactions = false;
       notifyListeners();
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
+      _isFetchingMoreTransactions = false;
       notifyListeners();
     }
   }
@@ -110,24 +165,42 @@ class CreditProvider extends ChangeNotifier {
   }
 
   // A helper method that records a payment for the entire outstanding debt of a customer.
+  // Now updated to create a Sale (Invoice) record for the settlement.
   Future<void> settleFullBalance(Customer customer) async {
-    if (customer.totalOutstanding <= 0) return;
-
     _isLoading = true;
+    _error = null;
     notifyListeners();
     try {
-      await _repository.createTransaction({
-        'customerId': customer.id,
-        'type': 'payment',
-        'title': 'Full Balance Settlement',
-        'amount': customer.totalOutstanding,
+      // Step 1: Fetch the ABSOLUTE latest customer data to ensure we have the correct balance.
+      final latestCustomer = await _repository.getCustomerById(customer.id);
+      if (latestCustomer == null || latestCustomer.totalOutstanding <= 0) {
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      // Step 2: Create a Sale record with paymentMethod: 'settlement'
+      // This will automatically update customer balance and create a credit transaction record in the backend.
+      await _repository.createSettlementSale({
+        'customerId': latestCustomer.id,
+        'customerName': latestCustomer.name,
+        'items': [], // Settlement invoice doesn't have product items
+        'subtotal': latestCustomer.totalOutstanding,
+        'totalAmount': latestCustomer.totalOutstanding,
+        'paymentMethod': 'settlement',
       });
+
+      // Step 3: Refresh local data
       await fetchCustomers();
-      await fetchTransactions(customer.id);
+      await fetchTransactions(latestCustomer.id);
+      
+      _isLoading = false;
+      notifyListeners();
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
       notifyListeners();
+      rethrow;
     }
   }
 }

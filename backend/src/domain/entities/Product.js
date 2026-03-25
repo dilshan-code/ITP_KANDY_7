@@ -55,6 +55,7 @@ class Product {
       unit: this.unit,
       notifyOutOfStock: this.notifyOutOfStock,
       isLowStock: this.isLowStock, // Includes the calculated getter
+      inventoryValue: this.inventoryValue,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };

@@ -20,12 +20,17 @@ class SupplierManagementScreen extends StatefulWidget {
 class _SupplierManagementScreenState extends State<SupplierManagementScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final ScrollController _purchaseScrollController = ScrollController();
+  final ScrollController _supplierScrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() => setState(() {}));
+
+    _purchaseScrollController.addListener(_onPurchaseScroll);
+    _supplierScrollController.addListener(_onSupplierScroll);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -35,9 +40,25 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
     });
   }
 
+  void _onPurchaseScroll() {
+    if (_purchaseScrollController.position.pixels >=
+        _purchaseScrollController.position.maxScrollExtent - 200) {
+      context.read<PurchaseProvider>().fetchPurchases(refresh: false);
+    }
+  }
+
+  void _onSupplierScroll() {
+    if (_supplierScrollController.position.pixels >=
+        _supplierScrollController.position.maxScrollExtent - 200) {
+      context.read<SupplierProvider>().fetchSuppliers(refresh: false);
+    }
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
+    _purchaseScrollController.dispose();
+    _supplierScrollController.dispose();
     super.dispose();
   }
 
@@ -116,7 +137,11 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const AddSupplierScreen()),
-              ),
+              ).then((_) {
+                if (context.mounted) {
+                  context.read<SupplierProvider>().fetchSuppliers();
+                }
+              }),
               icon: const Icon(Icons.person_add_outlined),
               label: const Text('Add Supplier'),
               backgroundColor: AppColors.primary,
@@ -128,7 +153,12 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                 MaterialPageRoute(
                   builder: (_) => const SupplierPurchaseRecordScreen(),
                 ),
-              ),
+              ).then((_) {
+                if (context.mounted) {
+                  context.read<PurchaseProvider>().fetchPurchases();
+                  context.read<SupplierProvider>().fetchSuppliers();
+                }
+              }),
               icon: const Icon(Icons.add_shopping_cart_outlined),
               label: const Text('Record New Purchase'),
               backgroundColor: AppColors.primary,
@@ -230,9 +260,18 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
           );
         }
         return ListView.builder(
+          controller: _supplierScrollController,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          itemCount: provider.suppliers.length,
+          itemCount: provider.suppliers.length + (provider.hasMore ? 1 : 0),
           itemBuilder: (context, index) {
+            if (index == provider.suppliers.length) {
+              return provider.isFetchingMore
+                  ? const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : const SizedBox.shrink();
+            }
             final supplier = provider.suppliers[index];
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
@@ -291,7 +330,11 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                                 builder: (_) =>
                                     AddSupplierScreen(supplier: supplier),
                               ),
-                            );
+                            ).then((_) {
+                              if (context.mounted) {
+                                context.read<SupplierProvider>().fetchSuppliers();
+                              }
+                            });
                           },
                           icon: const Icon(Icons.edit_outlined, size: 18),
                           label: const Text('Edit'),
@@ -332,9 +375,18 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
           );
         }
         return ListView.builder(
+          controller: _purchaseScrollController,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          itemCount: provider.purchases.length,
+          itemCount: provider.purchases.length + (provider.hasMore ? 1 : 0),
           itemBuilder: (context, index) {
+            if (index == provider.purchases.length) {
+              return provider.isFetchingMore
+                  ? const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : const SizedBox.shrink();
+            }
             final purchase = provider.purchases[index];
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
@@ -467,11 +519,20 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await context
+              final success = await context
                   .read<SupplierProvider>()
                   .removeSupplier(supplier.id);
               if (context.mounted) {
-                SnackBarUtils.showSnackBar(context, 'Supplier removed');
+                if (success) {
+                  SnackBarUtils.showSnackBar(context, 'Supplier removed');
+                } else {
+                  SnackBarUtils.showSnackBar(
+                    context,
+                    context.read<SupplierProvider>().error ??
+                        'Failed to remove supplier',
+                    isError: true,
+                  );
+                }
               }
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
@@ -494,11 +555,20 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await context
+              final success = await context
                   .read<PurchaseProvider>()
                   .deletePurchase(purchase.id);
               if (context.mounted) {
-                SnackBarUtils.showSnackBar(context, 'Record deleted');
+                if (success) {
+                  SnackBarUtils.showSnackBar(context, 'Record deleted');
+                } else {
+                  SnackBarUtils.showSnackBar(
+                    context,
+                    context.read<PurchaseProvider>().error ??
+                        'Failed to delete record',
+                    isError: true,
+                  );
+                }
               }
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),

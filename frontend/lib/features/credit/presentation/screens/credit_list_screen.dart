@@ -18,6 +18,7 @@ class CreditListScreen extends StatefulWidget {
 
 class _CreditListScreenState extends State<CreditListScreen> {
   final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
   String _searchQuery = '';
 
   @override
@@ -27,6 +28,14 @@ class _CreditListScreenState extends State<CreditListScreen> {
       if (mounted) context.read<CreditProvider>().fetchCustomers();
     });
     _searchController.addListener(_onSearchChanged);
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      context.read<CreditProvider>().fetchCustomers(refresh: false);
+    }
   }
 
   void _onSearchChanged() {
@@ -38,6 +47,7 @@ class _CreditListScreenState extends State<CreditListScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -113,11 +123,13 @@ class _CreditListScreenState extends State<CreditListScreen> {
               children: [
                 _buildCustomerList(
                   context,
+                  provider,
                   outstanding,
                   'No active credit users',
                 ),
                 _buildCustomerList(
                   context,
+                  provider,
                   settled,
                   'No settled customers yet',
                 ),
@@ -137,6 +149,7 @@ class _CreditListScreenState extends State<CreditListScreen> {
 
   Widget _buildCustomerList(
     BuildContext context,
+    CreditProvider provider,
     List<Customer> customers,
     String emptyMessage,
   ) {
@@ -187,9 +200,18 @@ class _CreditListScreenState extends State<CreditListScreen> {
                   ),
                 )
               : ListView.builder(
+                  controller: _scrollController,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: customers.length,
+                  itemCount: customers.length + (provider.hasMoreCustomers ? 1 : 0),
                   itemBuilder: (context, index) {
+                    if (index == customers.length) {
+                      return provider.isFetchingMoreCustomers
+                          ? const Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          : const SizedBox.shrink();
+                    }
                     final customer = customers[index];
                     return GestureDetector(
                       onTap: () {
