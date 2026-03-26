@@ -28,7 +28,7 @@ class ProductRepositoryImpl implements ProductRepository {
     return Product.fromJson(response['data']);
   }
 
-  // Sends new product data to the backend to be created in Firestore
+  // Sends new product data to the backend to be saved in the MongoDB database
   @override
   Future<Product> createProduct(Map<String, dynamic> data) async {
     final response = await ApiClient.post('/products', data);

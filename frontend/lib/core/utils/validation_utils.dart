@@ -76,6 +76,10 @@ class ValidationUtils {
     return null;
   }
 
+  /// Validates price input:
+  /// - Required
+  /// - Must be a valid number
+  /// - Must be greater than 0
   static String? validatePrice(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Price is required';
@@ -87,6 +91,10 @@ class ValidationUtils {
     return null;
   }
 
+  /// Validates stock quantity input:
+  /// - Required
+  /// - Must be a valid integer
+  /// - Must be 0 or greater
   static String? validateStock(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Stock level is required';

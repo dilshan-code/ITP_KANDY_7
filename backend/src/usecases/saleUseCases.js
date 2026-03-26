@@ -1,4 +1,4 @@
-const { db } = require('../config/firebaseAdmin');
+const mongoose = require('mongoose');
 
 // Retrieves every sale record from the database.
 class GetAllSales {
@@ -15,7 +15,6 @@ class GetSaleById {
 
 // This is a complex use case that handles creating a sale, updating stock, and managing customer credit if needed.
 class CreateSale {
-    // This use case requires 5 different repositories to complete a single transaction.
     constructor(saleRepository, productRepository, customerRepository, creditTransactionRepository, notificationRepository) {
         this.saleRepository = saleRepository;
         this.productRepository = productRepository;
@@ -27,23 +26,27 @@ class CreateSale {
     async execute(saleData, ownerId) {
         if (!saleData || !ownerId) throw new Error('Sale data and Owner ID are required');
 
-        return await db.runTransaction(async (transaction) => {
-            // --- READ PHASE ---
+        const session = await mongoose.startSession();
+        try {
+            session.startTransaction();
             
             // 1. Fetch Customer if present
             let customerDoc = null;
             if (saleData.customerId) {
-                customerDoc = await this.customerRepository.getById(saleData.customerId, ownerId, transaction);
+                customerDoc = await this.customerRepository.getById(saleData.customerId, ownerId, session);
             }
 
-            // 2. Fetch all Products for stock update
+            // 2. Fetch all Products for stock update and pricing
             const productDocs = [];
             if (saleData.items && saleData.items.length > 0) {
-                for (const item of saleData.items) {
+                for (let i = 0; i < saleData.items.length; i++) {
+                    const item = saleData.items[i];
                     if (item.productId) {
-                        const product = await this.productRepository.getById(item.productId, ownerId, transaction);
+                        const product = await this.productRepository.getById(item.productId, ownerId, session);
                         if (product) {
                             productDocs.push({ item, product });
+                            // Store cost price on the item for historical accuracy
+                            saleData.items[i].purchasePrice = product.purchasePrice || 0;
                         }
                     }
                 }
@@ -62,32 +65,33 @@ class CreateSale {
             // --- WRITE PHASE ---
 
             // 1. Record the sale
-            const sale = await this.saleRepository.create(finalSaleData, transaction);
+            const sale = await this.saleRepository.create(finalSaleData, session);
 
             // 2. Update stock for each product
             for (const { item, product } of productDocs) {
-                const newStock = Math.max(0, product.stockQuantity - (item.quantity || 0));
+                const quantity = parseInt(item.quantity) || 0;
+                const newStock = Math.max(0, (product.stockQuantity || 0) - quantity);
                 await this.productRepository.update(product.id, { 
                     stockQuantity: newStock,
                     isLowStock: newStock <= (product.minimumStockLevel || 0)
-                }, ownerId, transaction);
+                }, ownerId, session);
 
-                // Trigger Notifications for Stock Levels
+                // Trigger Notifications
                 if (product.notifyOutOfStock) {
                     if (newStock === 0) {
                         await this.notificationRepository.create({
                             ownerId,
                             type: 'warning',
                             title: 'Product Out of Stock',
-                            message: `The product "${product.name}" is now out of stock. Please restock soon.`,
-                        }, transaction);
+                            message: `The product "${product.name}" is now out of stock.`,
+                        }, session);
                     } else if (newStock <= (product.minimumStockLevel || 0)) {
                         await this.notificationRepository.create({
                             ownerId,
                             type: 'info',
                             title: 'Low Stock Alert',
-                            message: `The product "${product.name}" is running low on stock (${newStock} remaining).`,
-                        }, transaction);
+                            message: `The product "${product.name}" is running low (${newStock} remaining).`,
+                        }, session);
                     }
                 }
             }
@@ -95,8 +99,9 @@ class CreateSale {
             // 3. Finalize Customer balance and Credit History
             if (customerDoc) {
                 if (saleData.paymentMethod === 'credit') {
-                    const newOutstanding = customerDoc.totalOutstanding + (saleData.totalAmount || 0);
-                    await this.customerRepository.update(customerDoc.id, { totalOutstanding: newOutstanding }, ownerId, transaction);
+                    const totalAmount = parseFloat(saleData.totalAmount) || 0;
+                    const newOutstanding = (customerDoc.totalOutstanding || 0) + totalAmount;
+                    await this.customerRepository.update(customerDoc.id, { totalOutstanding: newOutstanding, status: 'active' }, ownerId, session);
 
                     await this.creditTransactionRepository.create({
                         ownerId,
@@ -105,25 +110,25 @@ class CreateSale {
                         title: `Purchase Loan (Sale ${sale.id || 'N/A'})`,
                         amount: saleData.totalAmount || 0,
                         date: new Date().toISOString()
-                    }, transaction);
+                    }, session);
 
-                    if (newOutstanding >= customerDoc.creditLimit) {
+                    if (newOutstanding >= (customerDoc.creditLimit || 0)) {
                         await this.notificationRepository.create({
                             ownerId,
                             type: 'alert',
                             title: 'Credit Limit Exceeded',
-                            message: `${customerDoc.name} has exceeded their credit limit of Rs ${customerDoc.creditLimit}. Current debt: Rs ${newOutstanding}.`,
-                        }, transaction);
+                            message: `${customerDoc.name} has exceeded their credit limit. Current debt: Rs ${newOutstanding}.`,
+                        }, session);
                     }
                 } else if (saleData.paymentMethod === 'settlement') {
-                    const settleAmount = finalSaleData.totalAmount;
-                    const newOutstanding = Math.max(0, customerDoc.totalOutstanding - settleAmount);
+                    const settleAmount = parseFloat(finalSaleData.totalAmount) || 0;
+                    const newOutstanding = Math.max(0, (customerDoc.totalOutstanding || 0) - settleAmount);
                     const newStatus = newOutstanding <= 0 ? 'paid' : 'active';
                     
                     await this.customerRepository.update(customerDoc.id, { 
                         totalOutstanding: newOutstanding,
                         status: newStatus
-                    }, ownerId, transaction);
+                    }, ownerId, session);
 
                     await this.creditTransactionRepository.create({
                         ownerId,
@@ -132,11 +137,18 @@ class CreateSale {
                         title: settleAmount === customerDoc.totalOutstanding ? 'Full Balance Settlement' : 'Partial Credit Payment',
                         amount: settleAmount,
                         date: new Date().toISOString()
-                    }, transaction);
+                    }, session);
                 }
             }
+
+            await session.commitTransaction();
             return sale;
-        });
+        } catch (error) {
+            await session.abortTransaction();
+            throw error;
+        } finally {
+            session.endSession();
+        }
     }
 }
 
@@ -147,7 +159,6 @@ class GetSalesByCustomer {
     }
 }
 
-// Cancels a sale and reverts the stock levels and customer credit for the items involved.
 class DeleteSale {
     constructor(saleRepository, productRepository, customerRepository, creditTransactionRepository) {
         this.saleRepository = saleRepository;
@@ -159,80 +170,60 @@ class DeleteSale {
     async execute(id, ownerId) {
         if (!id || !ownerId) throw new Error('Sale ID and Owner ID are required');
 
-        return await db.runTransaction(async (transaction) => {
-            // --- READ PHASE ---
+        const session = await mongoose.startSession();
+        try {
+            session.startTransaction();
             
-            // 1. Get the sale to know which items and credit to revert
-            const sale = await this.saleRepository.getById(id, ownerId, transaction);
+            const sale = await this.saleRepository.getById(id, ownerId, session);
             if (!sale) return false;
 
-            // 2. Fetch all products involved to revert stock
-            const productDocs = [];
+            // Revert stock
             if (sale.items && sale.items.length > 0) {
                 for (const item of sale.items) {
                     if (item.productId) {
-                        const product = await this.productRepository.getById(item.productId, ownerId, transaction);
+                        const product = await this.productRepository.getById(item.productId, ownerId, session);
                         if (product) {
-                            productDocs.push({ item, product });
+                            const quantity = parseInt(item.quantity) || 0;
+                            const newStock = (product.stockQuantity || 0) + quantity;
+                            await this.productRepository.update(product.id, { stockQuantity: newStock }, ownerId, session);
                         }
                     }
                 }
             }
 
-            // 3. Fetch customer and associated credit transaction if needed
-            let customerDoc = null;
-            let assocTxnRef = null;
+            // Revert customer credit
             if (sale.paymentMethod === 'credit' && sale.customerId) {
-                customerDoc = await this.customerRepository.getById(sale.customerId, ownerId, transaction);
-                
-                // Find associated credit transaction record
-                const saleIdTag = `(Sale ${id})`;
-                const txnSnapshot = await transaction.get(
-                    db.collection('credit-transactions')
-                        .where('ownerId', '==', ownerId)
-                        .where('customerId', '==', sale.customerId)
-                        .where('type', '==', 'credit')
-                );
-                
-                const assocDoc = txnSnapshot.docs.find(doc => doc.data().title.includes(saleIdTag));
-                if (assocDoc) {
-                    assocTxnRef = assocDoc.ref;
+                const customer = await this.customerRepository.getById(sale.customerId, ownerId, session);
+                if (customer) {
+                    const totalAmount = parseFloat(sale.totalAmount) || 0;
+                    const newOutstanding = Math.max(0, (customer.totalOutstanding || 0) - totalAmount);
+                    await this.customerRepository.update(customer.id, { 
+                        totalOutstanding: newOutstanding,
+                        status: newOutstanding <= 0 ? 'paid' : 'active'
+                    }, ownerId, session);
+                    
+                    // Cleanup the credit transaction record associated with this sale
+                    await this.creditTransactionRepository.deleteByTitle(
+                        ownerId, 
+                        sale.customerId, 
+                        `(Sale ${id})`, 
+                        session
+                    );
                 }
             }
 
-            // --- WRITE PHASE ---
-
-            // 1. Revert stock for each product
-            for (const { item, product } of productDocs) {
-                const newStock = product.stockQuantity + (item.quantity || 0);
-                await this.productRepository.update(product.id, { 
-                    stockQuantity: newStock,
-                    isLowStock: newStock <= (product.minimumStockLevel || 0)
-                }, ownerId, transaction);
-            }
-
-            // 2. Revert customer credit
-            if (customerDoc) {
-                const newOutstanding = Math.max(0, customerDoc.totalOutstanding - (sale.totalAmount || 0));
-                await this.customerRepository.update(customerDoc.id, { 
-                    totalOutstanding: newOutstanding,
-                    status: newOutstanding <= 0 ? 'paid' : 'active'
-                }, ownerId, transaction);
-                
-                // Delete the associated credit transaction if found
-                if (assocTxnRef) {
-                    transaction.delete(assocTxnRef);
-                }
-            }
-
-            // 3. Delete the sale record
-            transaction.delete(db.collection('sales').doc(id));
+            await this.saleRepository.delete(id, ownerId, session);
+            await session.commitTransaction();
             return true;
-        });
+        } catch (error) {
+            await session.abortTransaction();
+            throw error;
+        } finally {
+            session.endSession();
+        }
     }
 }
 
-// Updates an existing sale and reconciles stock/credit changes.
 class UpdateSale {
     constructor(saleRepository, productRepository, customerRepository, creditTransactionRepository, notificationRepository) {
         this.saleRepository = saleRepository;
@@ -245,97 +236,91 @@ class UpdateSale {
     async execute(id, saleData, ownerId) {
         if (!id || !ownerId) throw new Error('Sale ID and Owner ID are required');
 
-        return await db.runTransaction(async (transaction) => {
-            // 1. Fetch the OLD sale state
-            const oldSale = await this.saleRepository.getById(id, ownerId, transaction);
+        const session = await mongoose.startSession();
+        try {
+            session.startTransaction();
+            
+            const oldSale = await this.saleRepository.getById(id, ownerId, session);
             if (!oldSale) throw new Error('Sale not found');
 
-            // 2. REVERT OLD STOCK
+            // 1. REVERT OLD STOCK
             if (oldSale.items && oldSale.items.length > 0) {
                 for (const item of oldSale.items) {
                     if (item.productId) {
-                        const product = await this.productRepository.getById(item.productId, ownerId, transaction);
+                        const product = await this.productRepository.getById(item.productId, ownerId, session);
                         if (product) {
-                            const revertedStock = product.stockQuantity + (item.quantity || 0);
-                            await this.productRepository.update(product.id, { stockQuantity: revertedStock }, ownerId, transaction);
+                            const quantity = parseInt(item.quantity) || 0;
+                            const revertedStock = (product.stockQuantity || 0) + quantity;
+                            await this.productRepository.update(product.id, { stockQuantity: revertedStock }, ownerId, session);
                         }
                     }
                 }
             }
 
-            // 3. REVERT OLD CREDIT (if applicable)
-            let customerDoc = null;
+            // 2. REVERT OLD CREDIT
             if (oldSale.paymentMethod === 'credit' && oldSale.customerId) {
-                customerDoc = await this.customerRepository.getById(oldSale.customerId, ownerId, transaction);
-                if (customerDoc) {
-                    const revertedOutstanding = Math.max(0, customerDoc.totalOutstanding - (oldSale.totalAmount || 0));
-                    await this.customerRepository.update(customerDoc.id, { 
-                        totalOutstanding: revertedOutstanding,
-                        status: revertedOutstanding <= 0 ? 'paid' : 'active'
-                    }, ownerId, transaction);
+                const customer = await this.customerRepository.getById(oldSale.customerId, ownerId, session);
+                if (customer) {
+                    const totalAmount = parseFloat(oldSale.totalAmount) || 0;
+                    const revertedOutstanding = Math.max(0, (customer.totalOutstanding || 0) - totalAmount);
+                    await this.customerRepository.update(customer.id, { totalOutstanding: revertedOutstanding }, ownerId, session);
+                    
+                    // Remove old credit transaction record
+                    await this.creditTransactionRepository.deleteByTitle(
+                        ownerId, 
+                        oldSale.customerId, 
+                        `(Sale ${id})`, 
+                        session
+                    );
                 }
             }
 
-            // 4. APPLY NEW STOCK
+            // 3. APPLY NEW STOCK AND PRICE
             if (saleData.items && saleData.items.length > 0) {
-                for (const item of saleData.items) {
+                for (let i = 0; i < saleData.items.length; i++) {
+                    const item = saleData.items[i];
                     if (item.productId) {
-                        const product = await this.productRepository.getById(item.productId, ownerId, transaction);
+                        const product = await this.productRepository.getById(item.productId, ownerId, session);
                         if (product) {
-                            const newStock = Math.max(0, product.stockQuantity - (item.quantity || 0));
-                            await this.productRepository.update(product.id, { 
-                                stockQuantity: newStock,
-                                isLowStock: newStock <= (product.minimumStockLevel || 0)
-                            }, ownerId, transaction);
-
-                            // Trigger Notifications for Stock Levels
-                            if (product.notifyOutOfStock) {
-                                if (newStock === 0) {
-                                    await this.notificationRepository.create({
-                                        ownerId,
-                                        type: 'warning',
-                                        title: 'Product Out of Stock',
-                                        message: `The product "${product.name}" is now out of stock (updated sale).`,
-                                    }, transaction);
-                                } else if (newStock <= (product.minimumStockLevel || 0)) {
-                                    await this.notificationRepository.create({
-                                        ownerId,
-                                        type: 'info',
-                                        title: 'Low Stock Alert',
-                                        message: `The product "${product.name}" is running low (${newStock} remaining) after sale update.`,
-                                    }, transaction);
-                                }
-                            }
+                            const quantity = parseInt(item.quantity) || 0;
+                            const newStock = Math.max(0, (product.stockQuantity || 0) - quantity);
+                            await this.productRepository.update(product.id, { stockQuantity: newStock }, ownerId, session);
+                            // Store cost price on the item for historical accuracy
+                            saleData.items[i].purchasePrice = product.purchasePrice || 0;
                         }
                     }
                 }
             }
 
-            // 5. APPLY NEW CREDIT (if applicable)
+            // 4. APPLY NEW CREDIT
             if (saleData.paymentMethod === 'credit' && saleData.customerId) {
-                // Fetch fresh customer doc (with reverted balance)
-                const freshCustomer = await this.customerRepository.getById(saleData.customerId, ownerId, transaction);
-                if (freshCustomer) {
-                    const newOutstanding = freshCustomer.totalOutstanding + (saleData.totalAmount || 0);
-                    await this.customerRepository.update(freshCustomer.id, { 
-                        totalOutstanding: newOutstanding,
-                        status: 'active'
-                    }, ownerId, transaction);
+                const customer = await this.customerRepository.getById(saleData.customerId, ownerId, session);
+                if (customer) {
+                    const totalAmount = parseFloat(saleData.totalAmount || oldSale.totalAmount) || 0;
+                    const newOutstanding = (customer.totalOutstanding || 0) + totalAmount;
+                    await this.customerRepository.update(customer.id, { totalOutstanding: newOutstanding, status: 'active' }, ownerId, session);
 
-                    if (newOutstanding >= freshCustomer.creditLimit) {
-                        await this.notificationRepository.create({
-                            ownerId,
-                            type: 'alert',
-                            title: 'Credit Limit Exceeded',
-                            message: `${freshCustomer.name} has exceeded their credit limit of Rs ${freshCustomer.creditLimit} after a sale adjustment. Current debt: Rs ${newOutstanding}.`,
-                        }, transaction);
-                    }
+                    // Create new credit transaction record
+                    await this.creditTransactionRepository.create({
+                        ownerId,
+                        customerId: customer.id,
+                        type: 'credit',
+                        title: `Purchase Loan (Sale ${id})`,
+                        amount: totalAmount,
+                        date: new Date().toISOString()
+                    }, session);
                 }
             }
 
-            // 6. UPDATE SALE RECORD
-            return this.saleRepository.update(id, saleData, ownerId, transaction);
-        });
+            const updatedSale = await this.saleRepository.update(id, saleData, ownerId, session);
+            await session.commitTransaction();
+            return updatedSale;
+        } catch (error) {
+            await session.abortTransaction();
+            throw error;
+        } finally {
+            session.endSession();
+        }
     }
 }
 

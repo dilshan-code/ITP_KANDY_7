@@ -5,6 +5,7 @@ class Product {
     name,
     category,
     sellingPrice,
+    purchasePrice,
     stockQuantity,
     minimumStockLevel,
     description,
@@ -18,6 +19,7 @@ class Product {
     this.name = name;
     this.category = category;
     this.sellingPrice = sellingPrice;
+    this.purchasePrice = purchasePrice || 0;
     this.stockQuantity = stockQuantity;
     this.minimumStockLevel = minimumStockLevel;
     // Set default values if not provided
@@ -48,6 +50,7 @@ class Product {
       name: this.name,
       category: this.category,
       sellingPrice: this.sellingPrice,
+      purchasePrice: this.purchasePrice,
       stockQuantity: this.stockQuantity,
       minimumStockLevel: this.minimumStockLevel,
       description: this.description,

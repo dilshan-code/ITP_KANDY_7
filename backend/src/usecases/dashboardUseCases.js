@@ -1,5 +1,6 @@
-
+// This use case gathers all the essential numbers needed for the App's home screen.
 class GetDashboardData {
+    // Inject all required repositories to pull data from different collections.
     constructor(repositories) {
         this.productRepository = repositories.productRepository;
         this.saleRepository = repositories.saleRepository;
@@ -8,8 +9,9 @@ class GetDashboardData {
         this.supplierRepository = repositories.supplierRepository;
     }
 
+    // This is the core method that builds the dashboard summary report.
     async execute(ownerId) {
-        // Run all optimized aggregation queries in parallel for maximum speed
+        // We run all data-gathering queries at once (in parallel) to ensure the home screen loads instantly.
         const [
             todaysSales,
             lowStockCount,
@@ -65,14 +67,7 @@ class GetDashboardData {
     }
 
     async getTotalItemsInStock(ownerId) {
-        const { AggregateField } = require('firebase-admin/firestore');
-        const snapshot = await this.productRepository.collection
-            .where('ownerId', '==', ownerId)
-            .aggregate({
-                total: AggregateField.sum('stockQuantity')
-            })
-            .get();
-        return snapshot.data().total;
+        return this.productRepository.getTotalStockQuantity(ownerId);
     }
 }
 

@@ -1,5 +1,6 @@
-import 'dart:io';
+import 'dart:io' show File;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/core/theme/app_colors.dart';
@@ -22,6 +23,7 @@ class EditProductScreen extends StatefulWidget {
 class _EditProductScreenState extends State<EditProductScreen> {
   late TextEditingController _nameController;
   late TextEditingController _sellingPriceController;
+  late TextEditingController _purchasePriceController;
   late TextEditingController _minStockController;
   late TextEditingController _descriptionController;
   late String _selectedCategory;
@@ -29,7 +31,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   late int _stockQuantity;
   late bool _notifyOutOfStock;
   bool _saving = false;
-  File? _imageFile;
+  XFile? _imageFile;
   final ImagePicker _picker = ImagePicker();
   bool _imageRemoved = false;
   final _formKey = GlobalKey<FormState>();
@@ -58,6 +60,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _sellingPriceController = TextEditingController(
       text: widget.product.sellingPrice.toStringAsFixed(2),
     );
+    _purchasePriceController = TextEditingController(
+      text: widget.product.purchasePrice.toStringAsFixed(2),
+    );
     _minStockController = TextEditingController(
       text: widget.product.minimumStockLevel.toString(),
     );
@@ -76,6 +81,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   void dispose() {
     _nameController.dispose();
     _sellingPriceController.dispose();
+    _purchasePriceController.dispose();
     _minStockController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -92,7 +98,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
       if (pickedFile != null) {
         setState(() {
-          _imageFile = File(pickedFile.path);
+          _imageFile = pickedFile;
           _imageRemoved = false;
         });
       }
@@ -119,6 +125,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
       'name': _nameController.text.trim(),
       'category': _selectedCategory,
       'sellingPrice': double.tryParse(_sellingPriceController.text) ?? 0.0,
+      'purchasePrice': double.tryParse(_purchasePriceController.text) ?? 0.0,
       'stockQuantity': _stockQuantity,
       'minimumStockLevel': int.tryParse(_minStockController.text) ?? 0,
       'description': _descriptionController.text.trim(),
@@ -254,6 +261,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
                     _sellingPriceController,
                   ),
                 ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildPriceField(
+                    'PURCHASE (COST)',
+                    _purchasePriceController,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -380,7 +394,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: _imageFile != null
-                        ? Image.file(_imageFile!, fit: BoxFit.cover)
+                        ? (kIsWeb
+                            ? Image.network(_imageFile!.path, fit: BoxFit.cover)
+                            : Image.file(File(_imageFile!.path), fit: BoxFit.cover))
                         : (!_imageRemoved && widget.product.imageUrl.isNotEmpty)
                             ? Image.network(
                                 widget.product.imageUrl,

@@ -55,20 +55,19 @@ class GetBusinessReport {
                     // Update Top Sellers dictionary (Month Focus)
                     if (!productSales[item.productId]) {
                         productSales[item.productId] = { 
-                            name: item.name, 
+                            name: item.productName || item.name, 
                             quantity: 0, 
                             revenue: 0,
                             unit: item.unit || 'ea'
                         };
                     }
                     productSales[item.productId].quantity += (item.quantity || 0);
-                    productSales[item.productId].revenue += ((item.price || 0) * (item.quantity || 0));
+                    productSales[item.productId].revenue += ((item.unitPrice || item.price || 0) * (item.quantity || 0));
 
-                    // Calculate Cost
-                    const product = products.find(p => p.id === item.productId);
-                    if (product && product.purchasePrice) {
-                        saleCost += (product.purchasePrice * (item.quantity || 0));
-                    }
+                    // Calculate Cost (Priority: Historical price stored on item, Fallback: Current product price)
+                    const costPrice = item.purchasePrice !== undefined ? item.purchasePrice : 
+                                     (products.find(p => p.id === item.productId)?.purchasePrice || 0);
+                    saleCost += (costPrice * (item.quantity || 0));
                 });
             }
             monthlyProfit += ((sale.totalAmount || 0) - saleCost);

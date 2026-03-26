@@ -29,7 +29,18 @@ class UpdateCustomer {
 
 class DeleteCustomer {
     constructor(customerRepository) { this.customerRepository = customerRepository; }
-    async execute(id, ownerId) { return this.customerRepository.delete(id, ownerId); }
+    async execute(id, ownerId) { 
+        if (!id || !ownerId) throw new Error('Customer ID and Owner ID are required');
+        
+        const customer = await this.customerRepository.getById(id, ownerId);
+        if (!customer) return false;
+
+        if (customer.totalOutstanding > 0) {
+            throw new Error(`Cannot delete customer with an outstanding balance of Rs ${customer.totalOutstanding}. Please settle all debts first.`);
+        }
+
+        return this.customerRepository.delete(id, ownerId); 
+    }
 }
 
 module.exports = { GetAllCustomers, GetCustomerById, CreateCustomer, UpdateCustomer, DeleteCustomer };

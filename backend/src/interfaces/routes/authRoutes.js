@@ -1,12 +1,16 @@
 const express = require('express');
 
-function createAuthRoutes(authController) {
+function createAuthRoutes(authController, authMiddleware) {
     const router = express.Router();
+    // Public routes
     router.post('/auth/register', (req, res) => authController.register(req, res));
     router.post('/auth/login', (req, res) => authController.login(req, res));
-    router.get('/auth/profile/:id', (req, res) => authController.getProfile(req, res));
-    router.put('/auth/profile/:id', (req, res) => authController.updateProfile(req, res));
-    router.put('/auth/change-password/:id', (req, res) => authController.changePassword(req, res));
+    
+    // Private routes (protected by authMiddleware)
+    router.get('/auth/profile/:id', authMiddleware, (req, res) => authController.getProfile(req, res));
+    router.put('/auth/profile/:id', authMiddleware, (req, res) => authController.updateProfile(req, res));
+    router.put('/auth/change-password/:id', authMiddleware, (req, res) => authController.changePassword(req, res));
+    
     return router;
 }
 

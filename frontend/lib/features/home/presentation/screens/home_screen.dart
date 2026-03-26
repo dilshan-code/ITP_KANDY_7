@@ -16,10 +16,9 @@ import 'package:frontend/features/credit/presentation/providers/credit_provider.
 import 'package:frontend/features/suppliers/presentation/providers/supplier_provider.dart';
 import 'package:frontend/features/home/presentation/utils/dashboard_pdf_utils.dart';
 
-// HomeScreen is the first screen the user sees after opening the app.
-// It serves as a dashboard showing today's sales, low stock alerts,
-// clear actions (like 'Add Product'), and recent transactions.
-// It fetches this data from the backend API '/dashboard'.
+// The HomeScreen is the central command center for the shop owner.
+// It displays a high-level summary of the business, including real-time sales,
+// inventory alerts, and quick access buttons for common tasks.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -238,7 +237,7 @@ class HomeScreenState extends State<HomeScreen> {
                 iconColor: AppColors.error,
                 circleBgColor: const Color(0xFFFEE2E2),
                 label: 'Low Stock Items',
-                value: '${data?['lowStockCount'] ?? 8} Items',
+                value: '${data?['lowStockCount'] ?? 0} Items',
                 badge: 'Alert',
                 badgeBgColor: const Color(0xFFFEF2F2),
                 badgeColor: AppColors.error,
@@ -257,7 +256,7 @@ class HomeScreenState extends State<HomeScreen> {
                 circleBgColor: const Color(0xFFFEF3C7),
                 label: 'Customer Credit',
                 value:
-                    'Rs. ${(data?['customerCredit'] ?? 345.00).toStringAsFixed(2)}',
+                    'Rs. ${(data?['customerCredit'] ?? 0.00).toStringAsFixed(2)}',
               ),
             ),
             const SizedBox(width: 12),
@@ -269,7 +268,7 @@ class HomeScreenState extends State<HomeScreen> {
                 circleBgColor: const Color(0xFFDBEAFE),
                 label: 'To Suppliers',
                 value:
-                    'Rs. ${(data?['toSuppliers'] ?? 890.00).toStringAsFixed(2)}',
+                    'Rs. ${(data?['toSuppliers'] ?? 0.00).toStringAsFixed(2)}',
               ),
             ),
           ],

@@ -44,6 +44,10 @@ class AuthController {
     // Retrieves the personal profile details of a specific owner.
     async getProfile(req, res) {
         try {
+            // Security: Only allow users to see their own profile
+            if (req.params.id !== req.ownerId) {
+                return res.status(403).json({ success: false, error: 'Unauthorized access to profile' });
+            }
             const owner = await this.getOwnerProfile.execute(req.params.id);
             if (!owner) {
                 return res.status(404).json({ success: false, error: 'Owner not found' });
@@ -57,6 +61,10 @@ class AuthController {
     // Updates the profile information for an owner (e.g., changing their name or shop name).
     async updateProfile(req, res) {
         try {
+            // Security: Only allow users to update their own profile
+            if (req.params.id !== req.ownerId) {
+                return res.status(403).json({ success: false, error: 'Unauthorized access to profile' });
+            }
             const owner = await this.updateOwnerProfile.execute(req.params.id, req.body);
             if (!owner) {
                 return res.status(404).json({ success: false, error: 'Owner not found' });
@@ -70,6 +78,10 @@ class AuthController {
     // Allows an owner to securely change their account password.
     async changePassword(req, res) {
         try {
+            // Security: Only allow users to change their own password
+            if (req.params.id !== req.ownerId) {
+                return res.status(403).json({ success: false, error: 'Unauthorized access' });
+            }
             const { oldPassword, newPassword } = req.body;
             if (!oldPassword || !newPassword) {
                 return res.status(400).json({ success: false, error: 'Old password and new password are required' });

@@ -1,5 +1,6 @@
-import 'dart:io';
+import 'dart:io' show File;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/core/theme/app_colors.dart';
@@ -17,6 +18,7 @@ class AddProductScreen extends StatefulWidget {
 class _AddProductScreenState extends State<AddProductScreen> {
   final _nameController = TextEditingController();
   final _sellingPriceController = TextEditingController();
+  final _purchasePriceController = TextEditingController();
   final _minStockController = TextEditingController();
   final _descriptionController = TextEditingController();
   String _selectedCategory = 'Fruits';
@@ -24,7 +26,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   int _initialStock = 0;
   bool _notifyOutOfStock = true;
   bool _saving = false;
-  File? _imageFile;
+  XFile? _imageFile;
   final ImagePicker _picker = ImagePicker();
   final _formKey = GlobalKey<FormState>();
 
@@ -49,6 +51,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   void dispose() {
     _nameController.dispose();
     _sellingPriceController.dispose();
+    _purchasePriceController.dispose();
     _minStockController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -67,7 +70,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       if (pickedFile != null) {
         // If the user picked a file, update the state to show the preview on screen.
         setState(() {
-          _imageFile = File(pickedFile.path);
+          _imageFile = pickedFile;
         });
       }
     } catch (e) {
@@ -95,6 +98,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       'category': _selectedCategory,
       // Use double.tryParse to handle empty or invalid price inputs gracefully.
       'sellingPrice': double.tryParse(_sellingPriceController.text) ?? 0.0,
+      'purchasePrice': double.tryParse(_purchasePriceController.text) ?? 0.0,
       'stockQuantity': _initialStock,
       'minimumStockLevel': int.tryParse(_minStockController.text) ?? 0,
       'description': _descriptionController.text.trim(),
@@ -187,6 +191,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           child: _buildPriceField(
                             'SELLING PRICE',
                             _sellingPriceController,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildPriceField(
+                            'PURCHASE (COST)',
+                            _purchasePriceController,
                           ),
                         ),
                       ],
@@ -385,12 +396,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
               if (_imageFile != null)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.file(
-                    _imageFile!,
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.cover,
-                  ),
+                  child: kIsWeb
+                      ? Image.network(
+                          _imageFile!.path,
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        )
+                      : Image.file(
+                          File(_imageFile!.path),
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
                 )
               else
                 Icon(

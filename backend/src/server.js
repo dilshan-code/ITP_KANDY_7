@@ -1,16 +1,18 @@
 // Import required external modules
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const connectDB = require('./config/mongoConfig');
 
 // --- Infrastructure ---
-const FirestoreProductRepository = require('./infrastructure/FirestoreProductRepository');
-const FirestoreOwnerRepository = require('./infrastructure/FirestoreOwnerRepository');
-const FirestoreSupplierRepository = require('./infrastructure/FirestoreSupplierRepository');
-const FirestorePurchaseRepository = require('./infrastructure/FirestorePurchaseRepository');
-const FirestoreCustomerRepository = require('./infrastructure/FirestoreCustomerRepository');
-const FirestoreCreditTransactionRepository = require('./infrastructure/FirestoreCreditTransactionRepository');
-const FirestoreSaleRepository = require('./infrastructure/FirestoreSaleRepository');
-const FirestoreNotificationRepository = require('./infrastructure/FirestoreNotificationRepository');
+const MongoProductRepository = require('./infrastructure/MongoProductRepository');
+const MongoOwnerRepository = require('./infrastructure/MongoOwnerRepository');
+const MongoSupplierRepository = require('./infrastructure/MongoSupplierRepository');
+const MongoPurchaseRepository = require('./infrastructure/MongoPurchaseRepository');
+const MongoCustomerRepository = require('./infrastructure/MongoCustomerRepository');
+const MongoCreditTransactionRepository = require('./infrastructure/MongoCreditTransactionRepository');
+const MongoSaleRepository = require('./infrastructure/MongoSaleRepository');
+const MongoNotificationRepository = require('./infrastructure/MongoNotificationRepository');
 
 // --- Use Cases ---
 const { GetAllProducts, GetProductById, CreateProduct, UpdateProduct, DeleteProduct } = require('./usecases/productUseCases');
@@ -56,14 +58,14 @@ const authMiddleware = require('./middlewares/authMiddleware');
 // By doing this here instead of inside the classes, we can easily swap components later.
 
 // Initialize All Repositories first
-const productRepository = new FirestoreProductRepository();
-const ownerRepository = new FirestoreOwnerRepository();
-const supplierRepository = new FirestoreSupplierRepository();
-const purchaseRepository = new FirestorePurchaseRepository();
-const customerRepository = new FirestoreCustomerRepository();
-const creditTransactionRepository = new FirestoreCreditTransactionRepository();
-const saleRepository = new FirestoreSaleRepository();
-const notificationRepository = new FirestoreNotificationRepository();
+const productRepository = new MongoProductRepository();
+const ownerRepository = new MongoOwnerRepository();
+const supplierRepository = new MongoSupplierRepository();
+const purchaseRepository = new MongoPurchaseRepository();
+const customerRepository = new MongoCustomerRepository();
+const creditTransactionRepository = new MongoCreditTransactionRepository();
+const saleRepository = new MongoSaleRepository();
+const notificationRepository = new MongoNotificationRepository();
 
 // 1. Setup Product Related Logic
 const productUseCases = {
@@ -109,7 +111,7 @@ const purchaseUseCases = {
     getPurchaseById: new GetPurchaseById(purchaseRepository),
     createPurchase: new CreatePurchase(purchaseRepository, productRepository, supplierRepository),
     getPurchasesBySupplier: new GetPurchasesBySupplier(purchaseRepository),
-    updatePurchase: new UpdatePurchase(purchaseRepository),
+    updatePurchase: new UpdatePurchase(purchaseRepository, productRepository, supplierRepository),
     deletePurchase: new DeletePurchase(purchaseRepository, productRepository, supplierRepository),
 };
 const purchaseController = new PurchaseController(purchaseUseCases);
@@ -129,7 +131,7 @@ const creditTransactionUseCases = {
     getAllCreditTransactions: new GetAllCreditTransactions(creditTransactionRepository),
     getCreditTransactionsByCustomer: new GetCreditTransactionsByCustomer(creditTransactionRepository),
     createCreditTransaction: new CreateCreditTransaction(creditTransactionRepository, customerRepository),
-    updateCreditTransaction: new UpdateCreditTransaction(creditTransactionRepository),
+    updateCreditTransaction: new UpdateCreditTransaction(creditTransactionRepository, customerRepository),
     deleteCreditTransaction: new DeleteCreditTransaction(creditTransactionRepository, customerRepository),
 };
 const creditTransactionController = new CreditTransactionController(creditTransactionUseCases);
@@ -181,12 +183,15 @@ const productController = new ProductController({
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// Connect to MongoDB
+connectDB();
+
 app.use(cors());
 app.use(express.json());
 
 // --- Routes ---
-// Auth routes are public (no ownerId required)
-app.use('/api', createAuthRoutes(authController));
+// Auth routes have their own internal mix of public (login/register) and private endpoints
+app.use('/api', createAuthRoutes(authController, authMiddleware));
 
 // All other API routes require an ownerId header
 app.use('/api', authMiddleware);

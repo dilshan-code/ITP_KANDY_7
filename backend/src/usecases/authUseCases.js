@@ -94,12 +94,6 @@ class LoginOwner {
         console.log(`[LOGIN] User found, comparing password.`);
         let isMatch = await bcrypt.compare(password, owner.password);
         
-        // TEMPORARY DEBUG: Fallback to plain text if bcrypt fails
-        if (!isMatch && password === owner.password) {
-            console.log(`[LOGIN] DEBUG: Plain text match found for ${identifier}!`);
-            isMatch = true;
-        }
-        
         console.log(`[LOGIN] Password match: ${isMatch}`);
         if (!isMatch) {
             throw new Error('Invalid email/phone or password');

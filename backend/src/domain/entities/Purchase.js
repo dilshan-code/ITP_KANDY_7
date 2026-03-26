@@ -21,7 +21,7 @@ class Purchase {
         this.supplierId = supplierId || '';
         this.supplierName = supplierName || '';
         this.invoiceNumber = invoiceNumber || '';
-        this.purchaseDate = purchaseDate || new Date().toISOString();
+        this.purchaseDate = purchaseDate;
         this.items = items || [];
         this.subtotal = subtotal || 0;
         this.tax = tax || 0;
@@ -30,8 +30,8 @@ class Purchase {
         this.remaining = remaining || 0;
         this.status = status || 'pending';
         this.notes = notes || '';
-        this.createdAt = createdAt || new Date().toISOString();
-        this.updatedAt = updatedAt || new Date().toISOString();
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     toJSON() {
@@ -41,7 +41,11 @@ class Purchase {
             supplierName: this.supplierName,
             invoiceNumber: this.invoiceNumber,
             purchaseDate: this.purchaseDate,
-            items: this.items,
+            items: this.items.map(item => ({
+                ...item,
+                name: item.productName || item.name,
+                price: item.costPrice || item.price || 0
+            })),
             subtotal: this.subtotal,
             tax: this.tax,
             totalAmount: this.totalAmount,

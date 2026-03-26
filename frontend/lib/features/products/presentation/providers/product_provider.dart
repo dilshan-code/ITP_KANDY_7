@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:cloudinary_public/cloudinary_public.dart';
 import 'package:frontend/core/config/cloudinary_config.dart';
@@ -86,7 +86,7 @@ class ProductProvider extends ChangeNotifier {
   }
 
   // Private helper to upload an image file to the Cloudinary cloud storage.
-  Future<String?> _uploadImage(File imageFile) async {
+  Future<String?> _uploadImage(XFile imageFile) async {
     // Check if Cloudinary configuration is available.
     if (CloudinaryConfig.cloudName.isEmpty ||
         CloudinaryConfig.uploadPreset.isEmpty) {
@@ -102,10 +102,14 @@ class ProductProvider extends ChangeNotifier {
         cache: false, // Disable caching for fresh uploads
       );
 
+      final bytes = await imageFile.readAsBytes();
+      final byteData = bytes.buffer.asByteData();
+
       // Upload the file as a 'product' resource to the 'products' folder.
       final CloudinaryResponse response = await cloudinary.uploadFile(
-        CloudinaryFile.fromFile(
-          imageFile.path,
+        CloudinaryFile.fromByteData(
+          byteData,
+          identifier: imageFile.name,
           folder: 'products',
           resourceType: CloudinaryResourceType.Image,
         ),
@@ -121,7 +125,11 @@ class ProductProvider extends ChangeNotifier {
   }
 
   // Creates a new product, saves it via backend, and refreshes the list
-  Future<bool> createProduct(Map<String, dynamic> data, {File? imageFile}) async {
+  Future<bool> createProduct(Map<String, dynamic> data, {XFile? imageFile}) async {
+    // --- Front-end Validation Note ---
+    // User data is typically validated at the form level using 'ValidationUtils'.
+    // Here we ensure data is sent to the backend where authoritative validation happens.
+    
     try {
       if (imageFile != null) {
         final url = await _uploadImage(imageFile);
@@ -140,7 +148,13 @@ class ProductProvider extends ChangeNotifier {
   }
 
   // Updates an existing product, saves it via backend, and refreshes the list
-  Future<bool> updateProduct(String id, Map<String, dynamic> data, {File? imageFile}) async {
+  Future<bool> updateProduct(String id, Map<String, dynamic> data, {XFile? imageFile}) async {
+    // --- Front-end Validation Note ---
+    // Updates should first be validated against existing rules:
+    // 1. Name cannot be empty if updated.
+    // 2. Selling price must be a valid positive number.
+    // 3. Stock levels must be non-negative.
+    
     try {
       if (imageFile != null) {
         final url = await _uploadImage(imageFile);

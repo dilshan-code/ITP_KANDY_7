@@ -8,7 +8,8 @@ class Owner {
         email, 
         password, // Encrypted password string
         createdAt, 
-        updatedAt 
+        updatedAt,
+        role
     }) {
         this.id = id;
         this.name = name || '';
@@ -18,6 +19,7 @@ class Owner {
         this.password = password || '';
         this.createdAt = createdAt || new Date().toISOString();
         this.updatedAt = updatedAt || new Date().toISOString();
+        this.role = role || 'owner';
     }
 
     toJSON() {
@@ -29,6 +31,7 @@ class Owner {
             email: this.email,
             createdAt: this.createdAt,
             updatedAt: this.updatedAt,
+            role: this.role
         };
     }
 }

@@ -1,7 +1,6 @@
-// The Controller receives the HTTP request from the frontend (req),
-// talks to the Use Cases to do the actual work,
-// and sends back an HTTP response (res).
-// ProductController manages the inventory. It handles adding products, tracking stock, and generating business reports.
+// The ProductController acts as the bridge between the network requests from the mobile app
+// and the business logic defined in the use cases. It manages inventory-related operations
+// like tracking stock levels and handling product lists.
 class ProductController {
     constructor(useCases) {
         this.getAllProducts = useCases.getAllProducts;

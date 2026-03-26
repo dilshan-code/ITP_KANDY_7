@@ -1,4 +1,4 @@
-const { db } = require('../config/firebaseAdmin');
+const mongoose = require('mongoose');
 
 class GetAllCreditTransactions {
     constructor(creditTransactionRepository) { this.creditTransactionRepository = creditTransactionRepository; }
@@ -7,7 +7,6 @@ class GetAllCreditTransactions {
     }
 }
 
-// Retrieves a list of all debt/payment logs for a specific customer.
 class GetCreditTransactionsByCustomer {
     constructor(creditTransactionRepository) { this.creditTransactionRepository = creditTransactionRepository; }
     async execute(customerId, ownerId, limit = null, lastId = null) { 
@@ -15,7 +14,6 @@ class GetCreditTransactionsByCustomer {
     }
 }
 
-// Records a new credit (loan) or payment for a customer and updates their total balance.
 class CreateCreditTransaction {
     constructor(creditTransactionRepository, customerRepository) { 
         this.creditTransactionRepository = creditTransactionRepository; 
@@ -24,43 +22,108 @@ class CreateCreditTransaction {
     async execute(transactionData, ownerId) { 
         if (!transactionData || !ownerId) throw new Error('Transaction data and Owner ID are required');
 
-        return await db.runTransaction(async (transaction) => {
-            // --- READ PHASE ---
+        const session = await mongoose.startSession();
+        try {
+            session.startTransaction();
+            
             let customer = null;
             if (transactionData.customerId) {
-                customer = await this.customerRepository.getById(transactionData.customerId, ownerId, transaction);
+                customer = await this.customerRepository.getById(transactionData.customerId, ownerId, session);
             }
 
-            // --- WRITE PHASE ---
+            const txn = await this.creditTransactionRepository.create({ ...transactionData, ownerId }, session);
 
-            // 1. Create the transaction record
-            const txn = await this.creditTransactionRepository.create({ ...transactionData, ownerId }, transaction);
-
-            // 2. Update customer balance and status
             if (customer) {
                 let newOutstanding = customer.totalOutstanding || 0;
+                const amount = parseFloat(transactionData.amount) || 0;
                 if (transactionData.type === 'credit') {
-                    newOutstanding += (transactionData.amount || 0);
+                    newOutstanding += amount;
                 } else if (transactionData.type === 'payment') {
-                    newOutstanding -= (transactionData.amount || 0);
+                    newOutstanding -= amount;
                 }
-
-                // If balance is 0 or less, we consider the debt 'paid'; otherwise, it's still 'active'.
                 const newStatus = newOutstanding <= 0 ? 'paid' : 'active';
-                
                 await this.customerRepository.update(customer.id, { 
                     totalOutstanding: Math.max(0, newOutstanding),
                     status: newStatus 
-                }, ownerId, transaction);
+                }, ownerId, session);
             }
+
+            await session.commitTransaction();
             return txn;
-        });
+        } catch (error) {
+            await session.abortTransaction();
+            throw error;
+        } finally {
+            session.endSession();
+        }
     }
 }
 
 class UpdateCreditTransaction {
-    constructor(creditTransactionRepository) { this.creditTransactionRepository = creditTransactionRepository; }
-    async execute(id, transactionData, ownerId) { return this.creditTransactionRepository.update(id, transactionData, ownerId); }
+    constructor(creditTransactionRepository, customerRepository) { 
+        this.creditTransactionRepository = creditTransactionRepository; 
+        this.customerRepository = customerRepository;
+    }
+    async execute(id, transactionData, ownerId) { 
+        if (!id || !ownerId) throw new Error('Transaction ID and Owner ID are required');
+
+        const session = await mongoose.startSession();
+        try {
+            session.startTransaction();
+            
+            const oldTxn = await this.creditTransactionRepository.getById(id, ownerId, session);
+            if (!oldTxn) throw new Error('Transaction not found');
+
+            // 1. REVERT OLD BALANCE
+            if (oldTxn.customerId) {
+                const customer = await this.customerRepository.getById(oldTxn.customerId, ownerId, session);
+                if (customer) {
+                    let revertedOutstanding = customer.totalOutstanding || 0;
+                    const amount = parseFloat(oldTxn.amount) || 0;
+                    if (oldTxn.type === 'credit') {
+                        revertedOutstanding -= amount;
+                    } else if (oldTxn.type === 'payment') {
+                        revertedOutstanding += amount;
+                    }
+                    await this.customerRepository.update(customer.id, { 
+                        totalOutstanding: Math.max(0, revertedOutstanding)
+                    }, ownerId, session);
+                }
+            }
+
+            // 2. APPLY NEW BALANCE
+            if (transactionData.customerId || oldTxn.customerId) {
+                const customerId = transactionData.customerId || oldTxn.customerId;
+                const customer = await this.customerRepository.getById(customerId, ownerId, session);
+                if (customer) {
+                    let newOutstanding = customer.totalOutstanding || 0;
+                    const amount = parseFloat(transactionData.amount || oldTxn.amount) || 0;
+                    const type = transactionData.type || oldTxn.type;
+                    
+                    if (type === 'credit') {
+                        newOutstanding += amount;
+                    } else if (type === 'payment') {
+                        newOutstanding -= amount;
+                    }
+                    
+                    const newStatus = newOutstanding <= 0 ? 'paid' : 'active';
+                    await this.customerRepository.update(customer.id, { 
+                        totalOutstanding: Math.max(0, newOutstanding),
+                        status: newStatus 
+                    }, ownerId, session);
+                }
+            }
+
+            const updatedTxn = await this.creditTransactionRepository.update(id, transactionData, ownerId, session);
+            await session.commitTransaction();
+            return updatedTxn;
+        } catch (error) {
+            await session.abortTransaction();
+            throw error;
+        } finally {
+            session.endSession();
+        }
+    }
 }
 
 class DeleteCreditTransaction {
@@ -71,35 +134,39 @@ class DeleteCreditTransaction {
     async execute(id, ownerId) { 
         if (!id || !ownerId) throw new Error('Transaction ID and Owner ID are required');
 
-        return await db.runTransaction(async (transaction) => {
-            // 1. Get the transaction before deleting it
-            const txnSnapshot = await this.creditTransactionRepository.getById(id, ownerId, transaction);
-            if (!txnSnapshot) return false;
+        const session = await mongoose.startSession();
+        try {
+            session.startTransaction();
+            
+            const txn = await this.creditTransactionRepository.getById(id, ownerId, session);
+            if (!txn) return false;
 
-            // 2. Revert the customer balance
-            if (txnSnapshot.customerId) {
-                const customer = await this.customerRepository.getById(txnSnapshot.customerId, ownerId, transaction);
+            if (txn.customerId) {
+                const customer = await this.customerRepository.getById(txn.customerId, ownerId, session);
                 if (customer) {
                     let newOutstanding = customer.totalOutstanding || 0;
-                    // If it was a credit, subtracting it reduces debt.
-                    // If it was a payment, adding it back increases debt.
-                    if (txnSnapshot.type === 'credit') {
-                        newOutstanding -= (txnSnapshot.amount || 0);
-                    } else if (txnSnapshot.type === 'payment') {
-                        newOutstanding += (txnSnapshot.amount || 0);
+                    const amount = parseFloat(txn.amount) || 0;
+                    if (txn.type === 'credit') {
+                        newOutstanding -= amount;
+                    } else if (txn.type === 'payment') {
+                        newOutstanding += amount;
                     }
-                    
                     await this.customerRepository.update(customer.id, { 
                         totalOutstanding: Math.max(0, newOutstanding),
                         status: newOutstanding <= 0 ? 'paid' : 'active'
-                    }, ownerId, transaction);
+                    }, ownerId, session);
                 }
             }
 
-            // 3. Delete the transaction record
-            transaction.delete(db.collection('credit-transactions').doc(id));
+            await this.creditTransactionRepository.delete(id, ownerId, session);
+            await session.commitTransaction();
             return true;
-        });
+        } catch (error) {
+            await session.abortTransaction();
+            throw error;
+        } finally {
+            session.endSession();
+        }
     }
 }
 

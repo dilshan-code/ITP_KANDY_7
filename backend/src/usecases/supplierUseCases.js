@@ -49,7 +49,18 @@ class UpdateSupplier {
 
 class DeleteSupplier {
     constructor(supplierRepository) { this.supplierRepository = supplierRepository; }
-    async execute(id, ownerId) { return this.supplierRepository.delete(id, ownerId); }
+    async execute(id, ownerId) { 
+        if (!id || !ownerId) throw new Error('Supplier ID and Owner ID are required');
+        
+        const supplier = await this.supplierRepository.getById(id, ownerId);
+        if (!supplier) return false;
+
+        if (supplier.totalPayable > 0) {
+            throw new Error(`Cannot delete supplier with an outstanding balance of Rs ${supplier.totalPayable}. Please settle all payments first.`);
+        }
+
+        return this.supplierRepository.delete(id, ownerId); 
+    }
 }
 
 // Global aggregation for all suppliers owned by this user.

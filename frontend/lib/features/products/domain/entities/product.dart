@@ -4,6 +4,7 @@ class Product {
   final String name;
   final String category;
   final double sellingPrice;
+  final double purchasePrice;
   final int stockQuantity;
   final int minimumStockLevel;
   final String description;
@@ -18,6 +19,7 @@ class Product {
     required this.name,
     required this.category,
     required this.sellingPrice,
+    this.purchasePrice = 0,
     required this.stockQuantity,
     required this.minimumStockLevel,
     this.description = '',
@@ -37,6 +39,7 @@ class Product {
       category: json['category'] ?? '',
       // Ensure prices are parsed as doubles, even if the backend sends an integer
       sellingPrice: (json['sellingPrice'] ?? 0).toDouble(),
+      purchasePrice: (json['purchasePrice'] ?? 0).toDouble(),
       stockQuantity: (json['stockQuantity'] ?? 0).toInt(),
       minimumStockLevel: (json['minimumStockLevel'] ?? 0).toInt(),
       description: json['description'] ?? '',
@@ -55,6 +58,7 @@ class Product {
       'name': name,
       'category': category,
       'sellingPrice': sellingPrice,
+      'purchasePrice': purchasePrice,
       'stockQuantity': stockQuantity,
       'minimumStockLevel': minimumStockLevel,
       'description': description,

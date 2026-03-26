@@ -20,8 +20,8 @@ class Supplier {
         this.notes = notes || '';
         this.status = status || 'active';
         this.totalPayable = totalPayable || 0;
-        this.createdAt = createdAt || new Date().toISOString();
-        this.updatedAt = updatedAt || new Date().toISOString();
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     toJSON() {

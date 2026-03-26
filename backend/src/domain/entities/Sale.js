@@ -27,7 +27,11 @@ class Sale {
     toJSON() {
         return {
             id: this.id,
-            items: this.items,
+            items: this.items.map(item => ({
+                ...item,
+                name: item.productName || item.name,
+                price: item.unitPrice || item.price || 0
+            })),
             customerId: this.customerId,
             customerName: this.customerName,
             subtotal: this.subtotal,
