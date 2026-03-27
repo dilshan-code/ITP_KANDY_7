@@ -22,9 +22,8 @@ ClickBuy is a modern, full-stack application designed to streamline inventory ma
 
 ### Backend
 - **Core**: Node.js & [Express](https://expressjs.com/)
-- **Database**: [Firebase Firestore](https://firebase.google.com/docs/firestore)
-- **Admin**: Firebase Admin SDK
-- **Architecture**: Clean architecture with Use Cases, Interfaces, and Infrastructure layers.
+- **Database**: [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) (via [Mongoose](https://mongoosejs.com/))
+- **Architecture**: Clean architecture with Use Cases, Interfaces, and Infrastructure layers (Repositories).
 
 ## 📂 Project Structure
 
@@ -37,10 +36,10 @@ small_store_app/
 │   │   └── shared/     # Shared UI components & navigation (MainShell)
 ├── backend/            # Node.js API server
 │   ├── src/
-│   │   ├── domain/     # Business entities
+│   │   ├── domain/     # Business entities (Mongoose Schemas)
 │   │   ├── usecases/   # Business logic / application services
 │   │   ├── interfaces/ # Controllers and route definitions
-│   │   └── infrastructure/ # Database repositories (Firestore)
+│   │   └── infrastructure/ # Database repositories (MongoDB/Mongoose)
 └── README.md           # Project documentation
 ```
 
@@ -49,10 +48,10 @@ small_store_app/
 ### Prerequisites
 - [Flutter SDK](https://docs.flutter.dev/get-started/install)
 - [Node.js](https://nodejs.org/) (v14+)
-- **Firebase Service Account**: 
+- **MongoDB Connection**: 
     > [!IMPORTANT]
-    > For security, `serviceAccountKey.json` is **not** included in this repository. 
-    > You must obtain this file from the Firebase Console (Settings -> Service Accounts) and place it in the `backend/` folder before running the server.
+    > Create a `.env` file in the `backend/` directory with your `MONGODB_URI`.
+    > Example: `MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/clickbuy`
 
 - **Cloudinary Account**:
     > [!IMPORTANT]
@@ -79,6 +78,11 @@ small_store_app/
 
 > [!TIP]
 > **Android Emulator Connection**: The app is pre-configured to use `10.0.2.2:3000` to connect to the backend running on your host's localhost. Ensure the backend is running before launching the app on an Android emulator.
+
+## 📖 Documentation & Maintenance
+
+- **[bugs_and_fixes.md](file:///c:/Users/SADINSA/Desktop/IT%20Project/Mobile%20Application/Beta/small_store_app/bugs_and_fixes.md)**: A chronological log of every technical challenge resolved.
+- **[system_improvements.md](file:///c:/Users/SADINSA/Desktop/IT%20Project/Mobile%20Application/Beta/small_store_app/system_improvements.md)**: A roadmap of architectural evolution and feature updates.
 
 ## 📄 License
 This project is for internal use and development purposes.
