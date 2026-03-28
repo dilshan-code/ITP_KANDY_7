@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/core/theme/app_colors.dart';
@@ -42,56 +41,51 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true, // Allows content to appear behind the floating bar
       body: IndexedStack(index: _currentIndex, children: _screens),
-      bottomNavigationBar: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface.withValues(alpha: 0.8),
-              border: Border(
-                top: BorderSide(
-                  color: Colors.grey.withValues(alpha: 0.3),
-                  width: 0.5,
-                ),
-              ),
+      bottomNavigationBar: Container(
+        height: 80,
+        margin: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(40),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
             ),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8, bottom: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildNavItem(0, Icons.home_outlined, Icons.home, 'Home'),
-                    _buildNavItem(
-                      1,
-                      Icons.inventory_2_outlined,
-                      Icons.inventory_2,
-                      'Products',
-                    ),
-                    _buildNavItem(
-                      2,
-                      Icons.shopping_cart_outlined,
-                      Icons.shopping_cart,
-                      'Cart',
-                    ),
-                    _buildNavItem(
-                      3,
-                      Icons.people_outline,
-                      Icons.people,
-                      'Credit',
-                    ),
-                    _buildNavItem(
-                      4,
-                      Icons.person_outline,
-                      Icons.person,
-                      'Account',
-                    ),
-                  ],
-                ),
-              ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildNavItem(0, Icons.home_outlined, Icons.home, 'Home'),
+            _buildNavItem(
+              1,
+              Icons.inventory_2_outlined,
+              Icons.inventory_2,
+              'Products',
             ),
-          ),
+            _buildNavItem(
+              2,
+              Icons.shopping_cart_outlined,
+              Icons.shopping_cart,
+              'Cart',
+            ),
+            _buildNavItem(
+              3,
+              Icons.people_outline,
+              Icons.people,
+              'Credit',
+            ),
+            _buildNavItem(
+              4,
+              Icons.person_outline,
+              Icons.person,
+              'Account',
+            ),
+          ],
         ),
       ),
     );
@@ -107,44 +101,44 @@ class _MainShellState extends State<MainShell> {
     return GestureDetector(
       onTap: () {
         if (_currentIndex == index && index == 0) {
-          // If already on Home and Home is tapped again, trigger refresh
           MainShell.homeKey.currentState?.refresh();
         }
         if (_currentIndex == index && index == 1) {
-          // If already on Inventory and Products is tapped again, trigger refresh
           MainShell.inventoryKey.currentState?.refresh();
         }
 
         setState(() => _currentIndex = index);
-        if (index == 0) {
-          // Refresh when switching to Home tab
-          MainShell.homeKey.currentState?.refresh();
-        }
-        if (index == 1) {
-          // Refresh when switching to Products tab
-          MainShell.inventoryKey.currentState?.refresh();
-        }
+        if (index == 0) MainShell.homeKey.currentState?.refresh();
+        if (index == 1) MainShell.inventoryKey.currentState?.refresh();
       },
       behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 64,
-        child: Column(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               isActive ? activeIcon : icon,
-              color: isActive ? AppColors.primary : AppColors.textLight,
-              size: 28,
+              color: isActive ? AppColors.primary : Colors.white.withValues(alpha: 0.8),
+              size: 24,
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                color: isActive ? AppColors.primary : AppColors.textLight,
+            if (isActive) ...[
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
