@@ -1,4 +1,4 @@
-﻿# ============================================
+# ============================================
 # Main Root .gitignore for ClickBuy
 # (Consolidated Flutter frontend + Node.js backend)
 # ============================================
@@ -109,30 +109,6 @@ key.properties
 .svn/
 .swiftpm/
 migrate_working_dir/
+TROUBLESHOOTING.md
 tmp/
 walkthrough.md
-
-# Backend Utility & Dev Scripts
-backend/check_user.js
-backend/verify_*_mongo.js
-backend/test_mongo*.js
-backend/fix_demo_data*.js
-backend/count_collections.js
-backend/debug_data_tagging.js
-backend/get_demo_id.js
-backend/migrate_is_low_stock.js
-backend/reconcile_balances.js
-backend/check_notifications.js
-backend/checkMongo.js
-
-# Dev/Test Outputs
-backend/debug_out.txt
-backend/purchase_test_output.txt
-backend/test_output.txt
-backend/test_error.log
-backend/test_results.json
-backend/owner_debug.json
-backend/sort_results.txt
-frontend/lib/main_test.dart
-frontend/analysis_full.txt
-frontend/analysis_output.txt
