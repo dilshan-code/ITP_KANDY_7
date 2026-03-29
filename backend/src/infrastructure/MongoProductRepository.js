@@ -30,7 +30,7 @@ class MongoProductRepository extends IProductRepository {
         const docs = await mongoQuery.exec();
         
         return docs.map(doc => {
-            const product = new Product(doc.toJSON());
+            const product = new Product({ id: doc._id.toString(), ...doc.toJSON() });
             return product.toJSON();
         });
     }
@@ -58,8 +58,7 @@ class MongoProductRepository extends IProductRepository {
         const doc = await this.model.findOne({ _id: id, ownerId }).session(session);
         if (!doc) return null;
 
-        const product = new Product(doc.toJSON());
-        return product.toJSON();
+        return new Product({ id: doc._id.toString(), ...doc.toJSON() }).toJSON();
     }
 
     // Creates a new product record in the MongoDB collection.
@@ -78,8 +77,7 @@ class MongoProductRepository extends IProductRepository {
 
         // Using model.create with an array enables session-based transactions.
         const [doc] = await this.model.create([data], { session });
-        const product = new Product(doc.toJSON());
-        return product.toJSON();
+        return new Product({ id: doc._id.toString(), ...doc.toJSON() }).toJSON();
     }
 
     async update(id, productData, ownerId, session = null) {
@@ -99,9 +97,7 @@ class MongoProductRepository extends IProductRepository {
         );
 
         if (!doc) return null;
-        
-        const product = new Product(doc.toJSON());
-        return product.toJSON();
+        return new Product({ id: doc._id.toString(), ...doc.toJSON() }).toJSON();
     }
 
     async delete(id, ownerId, session = null) {

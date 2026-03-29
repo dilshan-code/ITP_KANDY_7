@@ -67,6 +67,14 @@ class MongoPurchaseRepository extends IPurchaseRepository {
             };
         });
 
+        // Auto-generate invoice number if not provided
+        if (!purchaseData.invoiceNumber || purchaseData.invoiceNumber.trim() === '') {
+            const date = new Date();
+            const datePart = date.toISOString().split('T')[0].replace(/-/g, ''); // YYYYMMDD
+            const randomPart = Math.floor(1000 + Math.random() * 9000); // 4-digit random
+            purchaseData.invoiceNumber = `INV-${datePart}-${randomPart}`;
+        }
+
         const data = {
             _id: purchaseData.id || purchaseData._id || uuidv4(),
             ...purchaseData,

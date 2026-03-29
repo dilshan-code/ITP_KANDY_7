@@ -3,6 +3,36 @@
 A professional record of technical challenges encountered and resolved during the development of the **ClickBuy** application. Categorized by date to track evolution and stability.
 
 ---
+## 📅 March 27, 2026
+> *Focus: Data Integrity and UX Resilience*
+
+### `[FIXED]` Record Purchase "Empty Submission" Bug
+- **Issue**: Users could save a purchase record without selecting a supplier or adding any products, leading to orphaned or empty data in the database.
+- **Fix**: Implemented strict frontend validation that prevents submission and provides visual feedback if required fields are missing.
+- **Context**: Ensuring data completeness is vital for accurate financial reporting and inventory tracking.
+
+---
+
+6: 
+7: ## 📅 March 26, 2026
+8: > *Focus: MongoDB Infrastructure and PDF Data Sync*
+9: 
+10: ### `[FIXED]` Mongoose Field Alias Mismatch
+11: - **Issue**: PDF generation failed for certain products due to missing `name` and `price` fields in MongoDB (stored as `productName` and `totalPrice`).
+12: - **Fix**: Enhanced domain entities with virtual fields and deliberate aliasing to ensure backward compatibility with the Flutter PDF engine.
+13: - **Context**: When migrating databases, field naming consistency is a common pitfall. Aliasing ensures the frontend remains unbroken while the backend evolves.
+14: 
+15: ### `[RESOLVED]` Transaction Race Condition
+16: - **Issue**: Concurrent sales occasionally failed during the Firestore-to-MongoDB transition.
+17: - **Fix**: Implemented robust Mongoose Sessions to handle atomic transactions across Products, Sales, and Customer collections.
+18: - **Context**: Atomic data updates are non-negotiable in POS systems. Sessions prevent partial data writes during system failures.
+19: 
+20: ### `[FIXED]` Schema Validation Runtime Errors
+21: - **Issue**: `ValidationError: _id is required` occurred in complex purchase workflows.
+22: - **Fix**: Standardized object ID handling across repositories and ensured all legacy Firestore IDs were correctly mapped to MongoDB `ObjectId`.
+23: - **Context**: Handling identity across different database paradigms requires careful casting to avoid runtime crashes.
+24: 
+25: ---
 
 ## 📅 March 25, 2026
 > *Focus: Data Consistency and Multi-tenant Integrity*
@@ -160,4 +190,4 @@ A professional record of technical challenges encountered and resolved during th
 - **Context**: Technical debt cleanup. We moved to a simpler price-only model to streamline the user interface.
 
 ---
-*Last Review: 2026-03-25 • Total Issues Logged: 23*
+*Last Review: 2026-03-27 • Total Issues Logged: 24*

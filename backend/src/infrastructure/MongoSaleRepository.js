@@ -52,7 +52,7 @@ class MongoSaleRepository extends ISaleRepository {
         }).sort({ createdAt: -1 });
 
         return docs.map(doc => {
-            const sale = new Sale(doc.toJSON());
+            const sale = new Sale({ id: doc._id.toString(), ...doc.toJSON() });
             return sale.toJSON();
         });
     }
@@ -67,13 +67,13 @@ class MongoSaleRepository extends ISaleRepository {
         if (limit) mongoQuery = mongoQuery.limit(parseInt(limit));
 
         const docs = await mongoQuery.exec();
-        return docs.map(doc => new Sale(doc.toJSON()).toJSON());
+        return docs.map(doc => new Sale({ id: doc._id.toString(), ...doc.toJSON() }).toJSON());
     }
 
     async getById(id, ownerId, session = null) {
         const doc = await this.model.findOne({ _id: id, ownerId }).session(session);
         if (!doc) return null;
-        return new Sale(doc.toJSON()).toJSON();
+        return new Sale({ id: doc._id.toString(), ...doc.toJSON() }).toJSON();
     }
 
     async getByCustomer(customerId, ownerId, limit = null, lastId = null) {
@@ -84,7 +84,7 @@ class MongoSaleRepository extends ISaleRepository {
         if (limit) mongoQuery = mongoQuery.limit(parseInt(limit));
 
         const docs = await mongoQuery.exec();
-        return docs.map(doc => new Sale(doc.toJSON()).toJSON());
+        return docs.map(doc => new Sale({ id: doc._id.toString(), ...doc.toJSON() }).toJSON());
     }
 
     async create(saleData, session = null) {
@@ -110,7 +110,7 @@ class MongoSaleRepository extends ISaleRepository {
         delete data.id;
 
         const [doc] = await this.model.create([data], { session });
-        return new Sale(doc.toJSON()).toJSON();
+        return new Sale({ id: doc._id.toString(), ...doc.toJSON() }).toJSON();
     }
 
     async update(id, saleData, ownerId, session = null) {
@@ -128,7 +128,7 @@ class MongoSaleRepository extends ISaleRepository {
         );
 
         if (!doc) return null;
-        return new Sale(doc.toJSON()).toJSON();
+        return new Sale({ id: doc._id.toString(), ...doc.toJSON() }).toJSON();
     }
 
     async delete(id, ownerId, session = null) {

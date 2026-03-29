@@ -23,6 +23,8 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
   String _selectedSupplierName = '';
   final List<Map<String, dynamic>> _purchasedItems = [];
   bool _isSubmitting = false;
+  bool _showSupplierError = false;
+  bool _showProductError = false;
 
   @override
   void initState() {
@@ -66,6 +68,7 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
         'unit': product.unit,
         'costPrice': product.sellingPrice, // Default to product's selling price if cost not known
       });
+      _showProductError = false;
     });
   }
 
@@ -83,7 +86,12 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
   }
 
   void _submit() async {
-    if (_selectedSupplierId == null) {
+    setState(() {
+      _showSupplierError = _selectedSupplierId == null;
+      _showProductError = _purchasedItems.isEmpty;
+    });
+
+    if (_showSupplierError) {
       SnackBarUtils.showSnackBar(
         context,
         'Please select a supplier',
@@ -91,7 +99,7 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
       );
       return;
     }
-    if (_purchasedItems.isEmpty) {
+    if (_showProductError) {
       SnackBarUtils.showSnackBar(
         context,
         'Please add at least one product',
@@ -153,7 +161,10 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
                   return _buildLoadingDropdown('Loading Suppliers...');
                 }
                 return Container(
-                  decoration: _containerDecoration(Icons.local_shipping_outlined),
+                  decoration: _containerDecoration(
+                    Icons.local_shipping_outlined,
+                    borderColor: _showSupplierError ? AppColors.error : Colors.grey.shade300,
+                  ),
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       key: ValueKey('supplier_id_dropdown_${supplierProvider.isLoading}_${_selectedSupplierId == null}'),
@@ -184,6 +195,7 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
                             (s) => s.id == value,
                           );
                           _selectedSupplierName = supplier.name;
+                          _showSupplierError = false;
                         });
                       },
                       icon: const Padding(
@@ -226,12 +238,17 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
             ],
 
             // Invoice number
-            _buildLabel('Invoice Number'),
+            _buildLabel('Invoice Number (Optional)'),
+            const SizedBox(height: 4),
+            const Text(
+              'Leave empty to auto-generate',
+              style: TextStyle(fontSize: 12, color: AppColors.textLight),
+            ),
             const SizedBox(height: 8),
             TextField(
               controller: _invoiceController,
               decoration: const InputDecoration(
-                hintText: 'INV-0001',
+                hintText: 'e.g. INV-0001',
                 prefixIcon: Icon(
                   Icons.receipt_outlined,
                   color: AppColors.textLight,
@@ -437,7 +454,9 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(
+              color: _showProductError ? AppColors.error : Colors.grey.shade300,
+            ),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
@@ -591,11 +610,11 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
     );
   }
 
-  BoxDecoration _containerDecoration(IconData icon) {
+  BoxDecoration _containerDecoration(IconData icon, {Color? borderColor}) {
     return BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.grey.shade300),
+      border: Border.all(color: borderColor ?? Colors.grey.shade300),
     );
   }
 

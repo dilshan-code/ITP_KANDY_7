@@ -113,7 +113,7 @@ class ProductController {
                 allTxns.push({
                     id: s.id,
                     type: s.paymentMethod === 'credit' ? 'credit' : 'order',
-                    title: s.paymentMethod === 'credit' ? 'Credit Sale' : `Sale #${s.id.substring(0, 5)}`,
+                    title: s.paymentMethod === 'credit' ? 'Credit Sale' : `Sale #${(s.id || '').substring(0, 5)}`,
                     subtitle: s.customerName || 'Walk-in Customer',
                     amount: s.totalAmount || 0,
                     time: s.createdAt,
@@ -124,7 +124,7 @@ class ProductController {
                 allTxns.push({
                     id: p.id,
                     type: 'purchase',
-                    title: `Purchase #${p.id.substring(0, 5)}`,
+                    title: `Purchase #${(p.id || '').substring(0, 5)}`,
                     subtitle: `Supplier: ${p.supplierName || 'Unknown'}`,
                     amount: -(p.totalAmount || 0),
                     time: p.purchaseDate || p.createdAt,

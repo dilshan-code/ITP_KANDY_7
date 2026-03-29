@@ -9,7 +9,7 @@ The Context Diagram shows the system as a single process and its interactions wi
 graph TD
     Manager((Store Manager))
     System[ClickBuy System]
-    DB[(Firebase Firestore)]
+    DB[(MongoDB Atlas)]
 
     Manager -- "Login Credentials" --> System
     Manager -- "Product & Sale Entries" --> System
@@ -28,7 +28,7 @@ The Level 1 DFD breaks down the system into its primary functional modules and s
 ```mermaid
 graph TD
     Manager((Store Manager))
-    DB[(Firebase Firestore)]
+    DB[(MongoDB Atlas)]
 
     subgraph ClickBuy System
         P1[Authentication Module]

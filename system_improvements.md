@@ -3,6 +3,41 @@
 A roadmap of architectural enhancements and user experience updates implemented to make **ClickBuy** a more robust and scalable platform.
 
 ---
+## 📅 March 27, 2026
+> *Focus: Transaction Automation and Form Integrity*
+
+### `[FEAT]` Auto-Generated Purchase Invoices
+- **Feature**: Automatic unique ID generation for purchase records.
+- **Description**: Implemented backend logic to generate a structured invoice number (`INV-YYYYMMDD-XXXX`) if the user leaves the field empty during purchase recording.
+- **Benefit**: streamlines the inventory restocking process. Users no longer need to manually track or invent invoice numbers if they don't have a physical receipt on hand.
+
+### `[UX]` Enhanced Purchase Form Validation
+- **Feature**: Real-time feedback and constraint enforcement for New Purchases.
+- **Description**: Added explicit validation for Supplier selection and Product counts. Updated the UI to include visual error indicators (red borders) and clear instructions for optional fields.
+- **Benefit**: Prevents accidental "empty" submissions and ensures that every purchase record in the database is linked to a valid supplier and at least one item.
+
+---
+
+6: 
+7: ## 📅 March 26, 2026
+8: > *Focus: Scalable Infrastructure and High-Performance Data Handling*
+9: 
+10: ### `[ARCH]` Migration to MongoDB Atlas
+11: - **Feature**: Full transition from Firestore to a native MongoDB-backed architecture.
+12: - **Description**: Refactored the entire infrastructure layer to use Mongoose. Replaced Firestore transactions with Mongoose Sessions for atomic data integrity.
+13: - **Benefit**: Increases scalability and provides more flexibility in querying. The move to MongoDB Atlas allows for more complex data relationships and faster indexing of large datasets.
+14: 
+15: ### `[FEAT]` System-Wide API Pagination
+16: - **Feature**: High-performance "Lazy Loading" for all list-heavy modules.
+17: - **Description**: Implemented backend pagination using MongoDB's `limit` and `skip` operators. Integrated the frontend `InfiniteScroll` pattern in Sales, Products, and Customers.
+18: - **Benefit**: Dramatically reduces initial load times and memory consumption on the mobile app, ensuring a smooth experience even with thousands of records.
+19: 
+20: ### `[ARCH]` PDF Generation Data Standardization
+21: - **Feature**: Unified Data-to-PDF pipeline.
+22: - **Description**: Mapped Mongoose entities to clean, aliased models that the Flutter PDF engine expects. Fixed field naming discrepancies (e.g., `productName` vs. `name`).
+23: - **Benefit**: Guarantees that exportable invoices and reports are always accurate and visually consistent, regardless of the underlying database schema.
+24: 
+25: ---
 
 ## 📅 March 25, 2026
 > *Focus: Enterprise-Grade Architecture and Validation*
@@ -173,4 +208,4 @@ A roadmap of architectural enhancements and user experience updates implemented 
 - **Benefit**: Gives the user full control over their data. Mistakes happen—now they can be fixed.
 
 ---
-*Last Update: 2026-03-25 • Status: Stable (Beta)*
+*Last Update: 2026-03-27 • Status: Stable (Beta)*

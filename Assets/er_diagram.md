@@ -2,13 +2,14 @@
 
 This document contains the core Entity-Relationship (ER) data architecture for **ClickBuy**, a modern, full-stack application designed to streamline inventory management, sales tracking, and customer credit.
 
-The diagram is written in Mermaid syntax and reflects the exact domain models used across both the ClickBuy backend (Firestore) and frontend (Flutter).
+The diagram is written in Mermaid syntax and reflects the exact domain models used across both the ClickBuy backend (MongoDB Atlas) and frontend (Flutter).
 
 ```mermaid
 erDiagram
     %% Entities
     OWNER {
         string id PK
+        string ownerId "Used as identifier"
         string name
         string shopName
         string phone
@@ -20,6 +21,7 @@ erDiagram
 
     CUSTOMER {
         string id PK
+        string ownerId FK "Multi-tenant ID"
         string name
         string phone
         string imageUrl
@@ -33,6 +35,7 @@ erDiagram
 
     SUPPLIER {
         string id PK
+        string ownerId FK "Multi-tenant ID"
         string name
         string phone
         string address
@@ -46,14 +49,17 @@ erDiagram
 
     PRODUCT {
         string id PK
+        string ownerId FK "Multi-tenant ID"
         string name
         string category
         number sellingPrice
+        number purchasePrice
         number stockQuantity
         number minimumStockLevel
         string description
         string imageUrl
         string unit
+        boolean notifyOutOfStock
         boolean isLowStock "Calculated"
         number inventoryValue "Calculated"
         datetime createdAt
@@ -62,6 +68,7 @@ erDiagram
 
     SALE {
         string id PK
+        string ownerId FK "Multi-tenant ID"
         string customerId FK "Optional"
         string customerName
         array items "List of maps (products)"
@@ -75,6 +82,7 @@ erDiagram
 
     PURCHASE {
         string id PK
+        string ownerId FK "Multi-tenant ID"
         string supplierId FK "Optional"
         string supplierName
         string invoiceNumber
@@ -93,6 +101,7 @@ erDiagram
 
     CREDIT_TRANSACTION {
         string id PK
+        string ownerId FK "Multi-tenant ID"
         string customerId FK
         string type "credit or payment"
         string title
@@ -103,6 +112,7 @@ erDiagram
 
     APP_NOTIFICATION {
         string id PK
+        string ownerId FK "Multi-tenant ID"
         string type "warning, success, info, alert"
         string title
         string message
@@ -123,7 +133,8 @@ erDiagram
 
 ## 📋 Architectural Notes
 
-- **NoSQL Document Structure:** Since ClickBuy utilizes a Firestore-like document database, relationships like `SALE <-> PRODUCT` or `PURCHASE <-> PRODUCT` are handled by embedding arrays of item snapshots rather than using strict foreign-key join tables. This guarantees historical invoice integrity if product prices or names change later.
+- **NoSQL Document Structure (MongoDB):** Since ClickBuy utilizes a MongoDB Atlas document database via Mongoose, relationships like `SALE <-> PRODUCT` or `PURCHASE <-> PRODUCT` are handled by embedding arrays of item snapshots rather than using strict foreign-key join tables. This guarantees historical invoice integrity and simplifies schema evolution.
+- **Multi-tenant Core:** Every document (save for the Owner profile itself) is strictly scoped using an `ownerId` field, ensuring 100% data isolation between different shop owners across the Atlas cluster.
 - **Calculated Fields (Frontend UI):** Several fields such as `Product.isLowStock` and `Product.inventoryValue` are dynamically provided via getters by the backend or evaluated globally to assist the frontend UI representation directly.
 - **Backend vs Frontend Models:** The `updatedAt` field acts generally as an internal backend timestamp hook for syncing, while it is primarily omitted in the dart-level app state models for simplicity.
 - **Customer & Supplier Relations:** A 1-to-Many relationship binds the customer profile to their checkout `SALE` records and `CREDIT_TRANSACTION` logs. Suppliers share a similar association tracing back through `PURCHASE` records.
