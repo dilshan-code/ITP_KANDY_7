@@ -1,3 +1,5 @@
+// Refactor MongoPurchaseRepository to streamline product object creation with consistent ID handling
+
 const { v4: uuidv4 } = require('uuid');
 const PurchaseModel = require('./models/Purchase');
 const Purchase = require('../domain/entities/Purchase');
