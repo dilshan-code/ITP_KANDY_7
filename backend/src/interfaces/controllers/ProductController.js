@@ -1,3 +1,4 @@
+//product Controller
 // The ProductController acts as the bridge between the network requests from the mobile app
 // and the business logic defined in the use cases. It manages inventory-related operations
 // like tracking stock levels and handling product lists.
@@ -151,3 +152,4 @@ class ProductController {
 }
 
 module.exports = ProductController;
+
