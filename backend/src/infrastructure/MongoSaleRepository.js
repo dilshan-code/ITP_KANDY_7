@@ -1,3 +1,4 @@
+//Refactor MongoSalesRepository to streamline product object creation with consistent ID handling
 const { v4: uuidv4 } = require('uuid');
 const SaleModel = require('./models/Sale');
 const Sale = require('../domain/entities/Sale');
