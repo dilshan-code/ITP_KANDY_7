@@ -1,3 +1,5 @@
+//Product: Refactor MongoProductRepository to streamline product object creation with consistent ID handling
+
 const { v4: uuidv4 } = require('uuid');
 const ProductModel = require('./models/Product');
 const Product = require('../domain/entities/Product');
@@ -109,3 +111,4 @@ class MongoProductRepository extends IProductRepository {
 }
 
 module.exports = MongoProductRepository;
+

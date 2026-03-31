@@ -1,3 +1,4 @@
+// refactor bottom navigation bar into custom floating design
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/core/theme/app_colors.dart';
