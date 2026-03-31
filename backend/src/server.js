@@ -13,19 +13,23 @@ const MongoCustomerRepository = require('./infrastructure/MongoCustomerRepositor
 const MongoCreditTransactionRepository = require('./infrastructure/MongoCreditTransactionRepository');
 const MongoSaleRepository = require('./infrastructure/MongoSaleRepository');
 const MongoNotificationRepository = require('./infrastructure/MongoNotificationRepository');
+const MongoFeedbackRepository = require('./infrastructure/MongoFeedbackRepository');
+
 
 // --- Use Cases ---
 const { GetAllProducts, GetProductById, CreateProduct, UpdateProduct, DeleteProduct } = require('./usecases/productUseCases');
-const { RegisterOwner, LoginOwner, GetOwnerProfile, UpdateOwnerProfile, ChangeOwnerPassword } = require('./usecases/authUseCases');
+const { RegisterOwner, LoginOwner, GetOwnerProfile, UpdateOwnerProfile, ChangeOwnerPassword, ResetPassword, UpdateOwnerByAdmin, DeleteOwner, GetAllOwners } = require('./usecases/authUseCases');
 const { GetAllSuppliers, GetSupplierById, CreateSupplier, UpdateSupplier, DeleteSupplier, GetSupplierSummary } = require('./usecases/supplierUseCases');
 const { GetAllPurchases, GetPurchaseById, CreatePurchase, GetPurchasesBySupplier, UpdatePurchase, DeletePurchase } = require('./usecases/purchaseUseCases');
 const { GetAllCustomers, GetCustomerById, CreateCustomer, UpdateCustomer, DeleteCustomer } = require('./usecases/customerUseCases');
 const { GetAllCreditTransactions, GetCreditTransactionsByCustomer, CreateCreditTransaction, UpdateCreditTransaction, DeleteCreditTransaction } = require('./usecases/creditTransactionUseCases');
 const { GetAllSales, GetSaleById, CreateSale, GetSalesByCustomer, DeleteSale, UpdateSale } = require('./usecases/saleUseCases');
 const { GetAllNotifications, CreateNotification, MarkNotificationAsRead, MarkAllNotificationsAsRead, DeleteNotification, DeleteAllNotifications } = require('./usecases/notificationUseCases');
-const { GetAllOwners } = require('./usecases/authUseCases');
+// --- Use Cases ---
 const { GetBusinessReport } = require('./usecases/reportUseCases');
 const { GetDashboardData } = require('./usecases/dashboardUseCases');
+const { SubmitFeedback, GetAllFeedback, DeleteFeedback } = require('./usecases/feedbackUseCases');
+
 
 // --- Interfaces ---
 const ProductController = require('./interfaces/controllers/ProductController');
@@ -38,6 +42,8 @@ const SaleController = require('./interfaces/controllers/SaleController');
 const NotificationController = require('./interfaces/controllers/NotificationController');
 const AdminController = require('./interfaces/controllers/AdminController');
 const ReportController = require('./interfaces/controllers/ReportController');
+const FeedbackController = require('./interfaces/controllers/FeedbackController');
+
 
 const createProductRoutes = require('./interfaces/routes/productRoutes');
 const createAuthRoutes = require('./interfaces/routes/authRoutes');
@@ -49,6 +55,8 @@ const createSaleRoutes = require('./interfaces/routes/saleRoutes');
 const createNotificationRoutes = require('./interfaces/routes/notificationRoutes');
 const createAdminRoutes = require('./interfaces/routes/adminRoutes');
 const createReportRoutes = require('./interfaces/routes/reportRoutes');
+const createFeedbackRoutes = require('./interfaces/routes/feedbackRoutes');
+
 
 // --- Middlewares ---
 const authMiddleware = require('./middlewares/authMiddleware');
@@ -66,6 +74,8 @@ const customerRepository = new MongoCustomerRepository();
 const creditTransactionRepository = new MongoCreditTransactionRepository();
 const saleRepository = new MongoSaleRepository();
 const notificationRepository = new MongoNotificationRepository();
+const feedbackRepository = new MongoFeedbackRepository();
+
 
 // 1. Setup Product Related Logic
 const productUseCases = {
@@ -91,6 +101,9 @@ const authUseCases = {
     getOwnerProfile: new GetOwnerProfile(ownerRepository),
     updateOwnerProfile: new UpdateOwnerProfile(ownerRepository),
     changeOwnerPassword: new ChangeOwnerPassword(ownerRepository),
+    resetPassword: new ResetPassword(ownerRepository),
+    updateOwnerByAdmin: new UpdateOwnerByAdmin(ownerRepository),
+    deleteOwner: new DeleteOwner(ownerRepository),
 };
 const authController = new AuthController(authUseCases);
 
@@ -161,6 +174,8 @@ const notificationController = new NotificationController(notificationUseCases);
 // Admin
 const adminUseCases = {
     getAllOwners: new GetAllOwners(ownerRepository),
+    updateOwnerProfile: authUseCases.updateOwnerByAdmin,
+    deleteOwner: authUseCases.deleteOwner,
 };
 const adminController = new AdminController(adminUseCases);
 
@@ -169,6 +184,15 @@ const reportUseCases = {
     getBusinessReport: new GetBusinessReport(saleRepository, purchaseRepository, productRepository, customerRepository),
 };
 const reportController = new ReportController(reportUseCases);
+
+// Feedback
+const feedbackUseCases = {
+    submitFeedback: new SubmitFeedback(feedbackRepository),
+    getAllFeedback: new GetAllFeedback(feedbackRepository),
+    deleteFeedback: new DeleteFeedback(feedbackRepository),
+};
+const feedbackController = new FeedbackController(feedbackUseCases);
+
 
 // ProductController injection
 const productController = new ProductController({
@@ -205,6 +229,8 @@ app.use('/api', createSaleRoutes(saleController));
 app.use('/api', createNotificationRoutes(notificationController));
 app.use('/api', createAdminRoutes(adminController));
 app.use('/api', createReportRoutes(reportController));
+app.use('/api', createFeedbackRoutes(feedbackController));
+
 
 // Health check
 app.get('/health', (req, res) => {

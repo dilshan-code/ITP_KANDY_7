@@ -42,52 +42,66 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true, // Allows content to appear behind the floating bar
-      body: IndexedStack(index: _currentIndex, children: _screens),
-      bottomNavigationBar: Container(
-        height: 80,
-        margin: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-        decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: BorderRadius.circular(40),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
+      backgroundColor: AppColors.background,
+      body: Stack(
+        children: [
+          // Screen Content with Global Padding to clear the absolute-positioned navbar
+          Padding(
+            padding: const EdgeInsets.only(bottom: 100),
+            child: IndexedStack(index: _currentIndex, children: _screens),
+          ),
+          // Absolute Positioned Navigation Bar
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              height: 80,
+              margin: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(40),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildNavItem(0, Icons.home_outlined, Icons.home, 'Home'),
+                  _buildNavItem(
+                    1,
+                    Icons.inventory_2_outlined,
+                    Icons.inventory_2,
+                    'Products',
+                  ),
+                  _buildNavItem(
+                    2,
+                    Icons.shopping_cart_outlined,
+                    Icons.shopping_cart,
+                    'Cart',
+                  ),
+                  _buildNavItem(
+                    3,
+                    Icons.people_outline,
+                    Icons.people,
+                    'Credit',
+                  ),
+                  _buildNavItem(
+                    4,
+                    Icons.person_outline,
+                    Icons.person,
+                    'Account',
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildNavItem(0, Icons.home_outlined, Icons.home, 'Home'),
-            _buildNavItem(
-              1,
-              Icons.inventory_2_outlined,
-              Icons.inventory_2,
-              'Products',
-            ),
-            _buildNavItem(
-              2,
-              Icons.shopping_cart_outlined,
-              Icons.shopping_cart,
-              'Cart',
-            ),
-            _buildNavItem(
-              3,
-              Icons.people_outline,
-              Icons.people,
-              'Credit',
-            ),
-            _buildNavItem(
-              4,
-              Icons.person_outline,
-              Icons.person,
-              'Account',
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

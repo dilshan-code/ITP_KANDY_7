@@ -143,7 +143,7 @@ class InventoryScreenState extends State<InventoryScreen> {
                             onRefresh: () => provider.fetchProducts(),
                             child: ListView.builder(
                               controller: _scrollController,
-                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                               itemCount: 1 + filteredProducts.length + (provider.isFetchingMore ? 1 : 0),
                               itemBuilder: (context, index) {
                                 // Add Header Cards (Inventory Value + Products Header) at the top

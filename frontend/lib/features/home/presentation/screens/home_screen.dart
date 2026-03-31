@@ -15,6 +15,7 @@ import 'package:frontend/features/notifications/presentation/providers/notificat
 import 'package:frontend/features/credit/presentation/providers/credit_provider.dart';
 import 'package:frontend/features/suppliers/presentation/providers/supplier_provider.dart';
 import 'package:frontend/features/home/presentation/utils/dashboard_pdf_utils.dart';
+import 'package:frontend/features/suppliers/presentation/screens/record_purchase_screen.dart';
 
 // The HomeScreen is the central command center for the shop owner.
 // It displays a high-level summary of the business, including real-time sales,
@@ -220,55 +221,46 @@ class HomeScreenState extends State<HomeScreen> {
           children: [
             Expanded(
               child: _StatCard(
-                icon: Icons.payments_outlined,
-                iconBgColor: const Color(0xFFD1FAE5),
-                iconColor: AppColors.primary,
-                circleBgColor: const Color(0xFFD1FAE5),
-                label: "Today's Sales",
-                value:
-                    'Rs. ${(data?['todaysSales'] ?? 0.00).toStringAsFixed(2)}',
+                icon: Icons.payments_rounded,
+                bgColor: const Color(0xFFE8F5E9), // Mint
+                accentColor: AppColors.primary,
+                label: "TODAY'S SALES",
+                value: 'Rs. ${(data?["todaysSales"] ?? 0.00).toStringAsFixed(2)}',
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             Expanded(
               child: _StatCard(
-                icon: Icons.inventory_2_outlined,
-                iconBgColor: const Color(0xFFFEE2E2),
-                iconColor: AppColors.error,
-                circleBgColor: const Color(0xFFFEE2E2),
-                label: 'Low Stock Items',
-                value: '${data?['lowStockCount'] ?? 0} Items',
-                badge: 'Alert',
-                badgeBgColor: const Color(0xFFFEF2F2),
-                badgeColor: AppColors.error,
+                icon: Icons.inventory_2_rounded,
+                bgColor: const Color(0xFFFFEBEE), // Rose
+                accentColor: AppColors.error,
+                label: "LOW STOCK",
+                value: '${data?["lowStockCount"] ?? 0} ITEMS',
+                badge: "Alert",
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
               child: _StatCard(
-                icon: Icons.account_balance_wallet_outlined,
-                iconBgColor: const Color(0xFFFEF3C7),
-                iconColor: const Color(0xFFF59E0B),
-                circleBgColor: const Color(0xFFFEF3C7),
-                label: 'Customer Credit',
-                value:
-                    'Rs. ${(data?['customerCredit'] ?? 0.00).toStringAsFixed(2)}',
+                icon: Icons.account_balance_wallet_rounded,
+                bgColor: const Color(0xFFFFF8E1), // Cream
+                accentColor: const Color(0xFFF59E0B),
+                label: "CUSTOMER CREDIT",
+                value: 'Rs. ${(data?["customerCredit"] ?? 0.00).toStringAsFixed(2)}',
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
             Expanded(
               child: _StatCard(
-                icon: Icons.local_shipping_outlined,
-                iconBgColor: const Color(0xFFDBEAFE),
-                iconColor: const Color(0xFF3B82F6),
-                circleBgColor: const Color(0xFFDBEAFE),
-                label: 'To Suppliers',
-                value:
-                    'Rs. ${(data?['toSuppliers'] ?? 0.00).toStringAsFixed(2)}',
+                icon: Icons.local_shipping_rounded,
+                bgColor: const Color(0xFFE3F2FD), // Sky
+                accentColor: const Color(0xFF3B82F6),
+                label: "TO SUPPLIERS",
+                value: 'Rs. ${(data?["toSuppliers"] ?? 0.00).toStringAsFixed(2)}',
               ),
             ),
           ],
@@ -327,6 +319,16 @@ class HomeScreenState extends State<HomeScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AddSupplierScreen()),
+                );
+              },
+            ),
+            _QuickActionButton(
+              icon: Icons.receipt_long_outlined,
+              label: 'Purchase\nRecord',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const RecordPurchaseScreen()),
                 );
               },
             ),
@@ -483,53 +485,54 @@ class HomeScreenState extends State<HomeScreen> {
 
 class _StatCard extends StatelessWidget {
   final IconData icon;
-  final Color iconBgColor;
-  final Color iconColor;
-  final Color circleBgColor;
+  final Color bgColor;
+  final Color accentColor;
   final String label;
   final String value;
   final String? badge;
-  final Color? badgeBgColor;
-  final Color? badgeColor;
 
   const _StatCard({
     required this.icon,
-    required this.iconBgColor,
-    required this.iconColor,
-    required this.circleBgColor,
+    required this.bgColor,
+    required this.accentColor,
     required this.label,
     required this.value,
     this.badge,
-    this.badgeBgColor,
-    this.badgeColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 140,
+      height: 155,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            color: accentColor.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
+          // Background Color Glow
           Positioned(
-            right: -16,
-            top: -16,
+            right: -24,
+            top: -24,
             child: Container(
-              width: 64,
-              height: 64,
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
-                color: circleBgColor.withValues(alpha: 0.5),
+                color: bgColor.withValues(alpha: 0.4),
                 shape: BoxShape.circle,
               ),
             ),
@@ -542,52 +545,55 @@ class _StatCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: iconBgColor,
-                      borderRadius: BorderRadius.circular(10),
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(16), // Squircle-like
                     ),
-                    child: Icon(icon, size: 20, color: iconColor),
+                    child: Icon(icon, size: 24, color: accentColor),
                   ),
                   if (badge != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
-                        vertical: 3,
+                        vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: badgeBgColor,
+                        color: accentColor,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         badge!,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: badgeColor,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
                         ),
                       ),
                     ),
                 ],
               ),
+              const SizedBox(height: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     label,
-                    style: const TextStyle(
-                      fontSize: 12,
+                    style: TextStyle(
+                      fontSize: 10,
                       color: AppColors.textMedium,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     value,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
                       color: AppColors.textDark,
+                      height: 1.1,
                     ),
                   ),
                 ],

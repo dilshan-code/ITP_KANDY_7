@@ -10,7 +10,9 @@ import 'package:frontend/features/sales/presentation/providers/sale_provider.dar
 import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart';
 import 'package:frontend/features/auth/presentation/screens/splash_screen.dart';
 import 'package:frontend/features/admin/presentation/providers/admin_provider.dart';
+import 'package:frontend/features/account/presentation/providers/feedback_provider.dart';
 import 'package:frontend/core/services/notification_service.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,7 +45,10 @@ class ClickBuyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         // Provides admin-level data (like owner lists).
         ChangeNotifierProvider(create: (_) => AdminProvider()),
+        // Manages user feedback, error reports, and improvement ideas.
+        ChangeNotifierProvider(create: (_) => FeedbackProvider()),
       ],
+
       child: MaterialApp(
         title: 'ClickBuy - Shop Manager',
         debugShowCheckedModeBanner: false,
