@@ -19,6 +19,16 @@ jest.mock('../src/config/firebaseAdmin', () => ({
     },
 }));
 
+// Mock mongoose to prevent startSession timeout
+jest.mock('mongoose', () => ({
+    startSession: jest.fn().mockResolvedValue({
+        startTransaction: jest.fn(),
+        commitTransaction: jest.fn(),
+        abortTransaction: jest.fn(),
+        endSession: jest.fn(),
+    }),
+}));
+
 const { CreateProduct, GetProductById, UpdateProduct } = require('../src/usecases/productUseCases');
 const { CreateCustomer, GetCustomerById } = require('../src/usecases/customerUseCases');
 const { CreateSale, DeleteSale } = require('../src/usecases/saleUseCases');

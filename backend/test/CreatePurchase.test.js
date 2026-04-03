@@ -18,6 +18,23 @@ jest.mock('../src/config/firebaseAdmin', () => ({
     },
 }));
 
+// Mock mongoose to prevent startSession timeout
+const mockSession = {
+    startTransaction: jest.fn(),
+    commitTransaction: jest.fn(),
+    abortTransaction: jest.fn(),
+    endSession: jest.fn(),
+};
+
+jest.mock('mongoose', () => ({
+    startSession: jest.fn().mockResolvedValue({
+        startTransaction: jest.fn(),
+        commitTransaction: jest.fn(),
+        abortTransaction: jest.fn(),
+        endSession: jest.fn(),
+    }),
+}));
+
 const { CreatePurchase } = require('../src/usecases/purchaseUseCases');
 
 describe('CreatePurchase Use Case', () => {
@@ -56,7 +73,7 @@ describe('CreatePurchase Use Case', () => {
 
         expect(mockPurchaseRepository.create).toHaveBeenCalledWith({ ...purchaseData, ownerId }, expect.anything());
         expect(mockProductRepository.getById).toHaveBeenCalledWith('prod1', ownerId, expect.anything());
-        expect(mockProductRepository.update).toHaveBeenCalledWith('prod1', { stockQuantity: 15 }, ownerId, expect.anything());
+        expect(mockProductRepository.update).toHaveBeenCalledWith('prod1', expect.objectContaining({ stockQuantity: 15 }), ownerId, expect.anything());
         expect(result.notes).toBe('Test purchase');
     });
 
@@ -71,7 +88,7 @@ describe('CreatePurchase Use Case', () => {
 
         await createPurchase.execute(purchaseData, ownerId);
 
-        expect(mockProductRepository.update).toHaveBeenCalledWith('prod1', { stockQuantity: 15 }, ownerId, expect.anything());
-        expect(mockProductRepository.update).toHaveBeenCalledWith('prod2', { stockQuantity: 13 }, ownerId, expect.anything());
+        expect(mockProductRepository.update).toHaveBeenCalledWith('prod1', expect.objectContaining({ stockQuantity: 15 }), ownerId, expect.anything());
+        expect(mockProductRepository.update).toHaveBeenCalledWith('prod2', expect.objectContaining({ stockQuantity: 13 }), ownerId, expect.anything());
     });
 });

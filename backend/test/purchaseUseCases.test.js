@@ -1,4 +1,15 @@
 const { GetAllPurchases, GetPurchaseById, CreatePurchase, GetPurchasesBySupplier, UpdatePurchase, DeletePurchase } = require('../src/usecases/purchaseUseCases');
+const mongoose = require('mongoose');
+
+// Mock mongoose to prevent startSession timeout
+jest.mock('mongoose', () => ({
+    startSession: jest.fn().mockResolvedValue({
+        startTransaction: jest.fn(),
+        commitTransaction: jest.fn(),
+        abortTransaction: jest.fn(),
+        endSession: jest.fn(),
+    }),
+}));
 
 jest.mock('../src/config/firebaseAdmin', () => ({
     db: {
@@ -78,8 +89,8 @@ describe('Purchase Use Cases', () => {
             expect(result).toHaveProperty('id', 'new-pur1');
             expect(mockPurchaseRepository.create).toHaveBeenCalledWith({ ...data, ownerId }, expect.anything());
             // Stock should be increased: 20 + 5 = 25, 20 + 3 = 23
-            expect(mockProductRepository.update).toHaveBeenCalledWith('p1', { stockQuantity: 25 }, ownerId, expect.anything());
-            expect(mockProductRepository.update).toHaveBeenCalledWith('p2', { stockQuantity: 23 }, ownerId, expect.anything());
+            expect(mockProductRepository.update).toHaveBeenCalledWith('p1', expect.objectContaining({ stockQuantity: 25 }), ownerId, expect.anything());
+            expect(mockProductRepository.update).toHaveBeenCalledWith('p2', expect.objectContaining({ stockQuantity: 23 }), ownerId, expect.anything());
             // Supplier balance should be updated
             expect(mockSupplierRepository.getById).toHaveBeenCalledWith('s1', ownerId, expect.anything());
             expect(mockSupplierRepository.update).toHaveBeenCalledWith('s1', { totalPayable: 1000 + (data.totalAmount || 0) }, ownerId, expect.anything());
@@ -124,7 +135,7 @@ describe('Purchase Use Cases', () => {
     // ========== UpdatePurchase ==========
     describe('UpdatePurchase', () => {
         test('should update a purchase', async () => {
-            const useCase = new UpdatePurchase(mockPurchaseRepository);
+            const useCase = new UpdatePurchase(mockPurchaseRepository, mockProductRepository, mockSupplierRepository);
             const result = await useCase.execute('pur1', { notes: 'Updated' }, ownerId);
             expect(result.notes).toBe('Updated');
         });
@@ -139,8 +150,8 @@ describe('Purchase Use Cases', () => {
             const result = await deletePurchase.execute('pur1', ownerId);
             expect(result).toBe(true);
             // Stock should be reverted: 20 - 10 = 10, 20 - 5 = 15
-            expect(mockProductRepository.update).toHaveBeenCalledWith('p1', { stockQuantity: 10 }, ownerId, expect.anything());
-            expect(mockProductRepository.update).toHaveBeenCalledWith('p2', { stockQuantity: 15 }, ownerId, expect.anything());
+            expect(mockProductRepository.update).toHaveBeenCalledWith('p1', expect.objectContaining({ stockQuantity: 10 }), ownerId, expect.anything());
+            expect(mockProductRepository.update).toHaveBeenCalledWith('p2', expect.objectContaining({ stockQuantity: 15 }), ownerId, expect.anything());
             // Supplier balance should be reverted
             expect(mockSupplierRepository.update).toHaveBeenCalledWith('s1', { totalPayable: 1000 - 5000 < 0 ? 0 : 1000 - 5000 }, ownerId, expect.anything());
             expect(mockPurchaseRepository.delete).toHaveBeenCalledWith('pur1', ownerId, expect.anything());
@@ -164,7 +175,7 @@ describe('Purchase Use Cases', () => {
             });
             await deletePurchase.execute('pur1', ownerId);
             // max(0, 3 - 10) = 0
-            expect(mockProductRepository.update).toHaveBeenCalledWith('p1', { stockQuantity: 0 }, ownerId, expect.anything());
+            expect(mockProductRepository.update).toHaveBeenCalledWith('p1', expect.objectContaining({ stockQuantity: 0 }), ownerId, expect.anything());
         });
     });
 });

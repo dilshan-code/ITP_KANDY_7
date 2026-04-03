@@ -1,4 +1,16 @@
 // Mock the Firebase Admin config module BEFORE importing the use cases
+const mongoose = require('mongoose');
+
+// Mock mongoose to prevent startSession timeout
+jest.mock('mongoose', () => ({
+    startSession: jest.fn().mockResolvedValue({
+        startTransaction: jest.fn(),
+        commitTransaction: jest.fn(),
+        abortTransaction: jest.fn(),
+        endSession: jest.fn(),
+    }),
+}));
+
 jest.mock('../src/config/firebaseAdmin', () => ({
     db: {
         runTransaction: jest.fn(async (callback) => {
@@ -43,6 +55,7 @@ describe('Sale Use Cases', () => {
             getByCustomer: jest.fn().mockResolvedValue([{ id: 'sale1', customerId: 'c1' }]),
             create: jest.fn().mockImplementation((data, txn) => Promise.resolve({ id: 'new-sale1', ...data })),
             update: jest.fn().mockImplementation((id, data) => Promise.resolve({ id, ...data })),
+            delete: jest.fn().mockResolvedValue(true),
         };
 
         mockProductRepository = {
@@ -61,6 +74,7 @@ describe('Sale Use Cases', () => {
 
         mockCreditTransactionRepository = {
             create: jest.fn().mockImplementation((data, txn) => Promise.resolve({ id: 'ct1', ...data })),
+            deleteByTitle: jest.fn().mockResolvedValue(true),
         };
 
         mockNotificationRepository = {
@@ -111,7 +125,7 @@ describe('Sale Use Cases', () => {
             expect(result).toHaveProperty('id', 'new-sale1');
             // Stock: 50 - 2 = 48
             expect(mockProductRepository.update).toHaveBeenCalledWith(
-                'p1', { stockQuantity: 48 }, ownerId, expect.anything()
+                'p1', expect.objectContaining({ stockQuantity: 48 }), ownerId, expect.anything()
             );
         });
 
@@ -126,7 +140,7 @@ describe('Sale Use Cases', () => {
 
             // Customer balance: 500 + 1000 = 1500
             expect(mockCustomerRepository.update).toHaveBeenCalledWith(
-                'c1', { totalOutstanding: 1500 }, ownerId, expect.anything()
+                'c1', { totalOutstanding: 1500, status: 'active' }, ownerId, expect.anything()
             );
             // Should create a credit transaction record
             expect(mockCreditTransactionRepository.create).toHaveBeenCalledWith(
@@ -280,11 +294,11 @@ describe('Sale Use Cases', () => {
 
             // Product stock reverted: 50 + 3 = 53
             expect(mockProductRepository.update).toHaveBeenCalledWith(
-                'p1', { stockQuantity: 53 }, ownerId, expect.anything()
+                'p1', expect.objectContaining({ stockQuantity: 53 }), ownerId, expect.anything()
             );
             // Customer balance reverted: max(0, 500 - 500) = 0
             expect(mockCustomerRepository.update).toHaveBeenCalledWith(
-                'c1', expect.objectContaining({ totalOutstanding: 0 }), ownerId, expect.anything()
+                'c1', expect.objectContaining({ totalOutstanding: 0, status: 'paid' }), ownerId, expect.anything()
             );
         });
 

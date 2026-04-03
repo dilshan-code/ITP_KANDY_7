@@ -1,4 +1,16 @@
 // Mock the Firebase Admin config module BEFORE importing the use cases
+const mongoose = require('mongoose');
+
+// Mock mongoose to prevent startSession timeout
+jest.mock('mongoose', () => ({
+    startSession: jest.fn().mockResolvedValue({
+        startTransaction: jest.fn(),
+        commitTransaction: jest.fn(),
+        abortTransaction: jest.fn(),
+        endSession: jest.fn(),
+    }),
+}));
+
 jest.mock('../src/config/firebaseAdmin', () => ({
     db: {
         runTransaction: jest.fn(async (callback) => {
@@ -32,6 +44,7 @@ describe('Credit Transaction Use Cases', () => {
                 id, customerId: 'c1', type: 'credit', amount: 500
             })),
             update: jest.fn().mockImplementation((id, data) => Promise.resolve({ id, ...data })),
+            delete: jest.fn().mockResolvedValue(true),
         };
 
         mockCustomerRepository = {
@@ -122,7 +135,7 @@ describe('Credit Transaction Use Cases', () => {
 
     describe('UpdateCreditTransaction', () => {
         test('should update a credit transaction', async () => {
-            const useCase = new UpdateCreditTransaction(mockCreditTransactionRepository);
+            const useCase = new UpdateCreditTransaction(mockCreditTransactionRepository, mockCustomerRepository);
             const result = await useCase.execute('ct1', { amount: 600 }, ownerId);
             expect(result.amount).toBe(600);
         });
@@ -150,6 +163,7 @@ describe('Credit Transaction Use Cases', () => {
             expect(mockCustomerRepository.update).toHaveBeenCalledWith(
                 'c1', { totalOutstanding: 500, status: 'active' }, ownerId, expect.anything()
             );
+            expect(mockCreditTransactionRepository.delete).toHaveBeenCalledWith('ct1', ownerId, expect.anything());
         });
 
         test('should delete a payment transaction and increase customer balance', async () => {

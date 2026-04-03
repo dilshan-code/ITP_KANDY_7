@@ -139,8 +139,17 @@ describe('Auth Use Cases', () => {
         let updateProfile;
         beforeEach(() => { updateProfile = new UpdateOwnerProfile(mockOwnerRepository); });
 
-        test('should update profile without password field', async () => {
-            await updateProfile.execute('o1', { name: 'New Name', password: 'shouldbestripped' });
+        test('should update profile and hash password if provided', async () => {
+            await updateProfile.execute('o1', { name: 'New Name', password: 'newpassword123' });
+            const callArgs = mockOwnerRepository.update.mock.calls[0][1];
+            expect(callArgs.name).toBe('New Name');
+            expect(callArgs).toHaveProperty('password');
+            const matches = await bcrypt.compare('newpassword123', callArgs.password);
+            expect(matches).toBe(true);
+        });
+
+        test('should update profile without password if not provided', async () => {
+            await updateProfile.execute('o1', { name: 'New Name' });
             const callArgs = mockOwnerRepository.update.mock.calls[0][1];
             expect(callArgs).not.toHaveProperty('password');
             expect(callArgs.name).toBe('New Name');

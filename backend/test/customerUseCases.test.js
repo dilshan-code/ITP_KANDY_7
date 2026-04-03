@@ -78,6 +78,7 @@ describe('Customer Use Cases', () => {
 
     describe('DeleteCustomer', () => {
         test('should delete a customer', async () => {
+            mockCustomerRepository.getById.mockResolvedValue({ id: 'c1', name: 'John', totalOutstanding: 0 });
             const useCase = new DeleteCustomer(mockCustomerRepository);
             const result = await useCase.execute('c1', ownerId);
             expect(result).toBe(true);
