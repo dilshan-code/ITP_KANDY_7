@@ -13,6 +13,8 @@ class ManageFeedbackScreen extends StatefulWidget {
 }
 
 class _ManageFeedbackScreenState extends State<ManageFeedbackScreen> {
+  String _selectedFilter = 'All';
+
   @override
   void initState() {
     super.initState();
@@ -55,24 +57,41 @@ class _ManageFeedbackScreenState extends State<ManageFeedbackScreen> {
         backgroundColor: Colors.white,
         foregroundColor: AppColors.textDark,
         elevation: 0,
+        automaticallyImplyLeading: false,
       ),
-      body: feedbackProvider.isLoading && feedbackProvider.feedbacks.isEmpty
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-          : feedbackProvider.feedbacks.isEmpty
-              ? _buildEmptyState()
-              : _buildFeedbackList(feedbackProvider),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildFilterBar(),
+            Expanded(
+              child: feedbackProvider.isLoading && feedbackProvider.feedbacks.isEmpty
+                  ? const Center(
+                      child: CircularProgressIndicator(color: AppColors.primary))
+                  : feedbackProvider.feedbacks.isEmpty
+                      ? _buildEmptyState()
+                      : _buildFeedbackList(feedbackProvider),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState({bool isFilter = false}) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.feedback_outlined, size: 64, color: Colors.grey[300]),
+          Icon(
+            isFilter ? Icons.search_off_outlined : Icons.feedback_outlined,
+            size: 64,
+            color: Colors.grey[300],
+          ),
           const SizedBox(height: 16),
           Text(
-            'No feedback received yet',
+            isFilter
+                ? 'No ${_selectedFilter.toLowerCase()} feedback yet'
+                : 'No feedback received yet',
             style: TextStyle(color: Colors.grey[500], fontSize: 16),
           ),
         ],
@@ -80,8 +99,64 @@ class _ManageFeedbackScreenState extends State<ManageFeedbackScreen> {
     );
   }
 
+  Widget _buildFilterBar() {
+    final filters = ['All', 'Error', 'Improvement', 'General'];
+    return Container(
+      height: 60,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: filters.length,
+        itemBuilder: (context, index) {
+          final filter = filters[index];
+          final isSelected = _selectedFilter == filter;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: Text(
+                filter,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppColors.textMedium,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 13,
+                ),
+              ),
+              selected: isSelected,
+              onSelected: (selected) {
+                if (selected) {
+                  setState(() => _selectedFilter = filter);
+                }
+              },
+              selectedColor: AppColors.primary,
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(
+                  color: isSelected ? AppColors.primary : Colors.grey[200]!,
+                ),
+              ),
+              showCheckmark: false,
+              elevation: 0,
+              pressElevation: 0,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildFeedbackList(FeedbackProvider provider) {
-    final grouped = _groupFeedback(provider.feedbacks);
+    final filteredFeedbacks = _selectedFilter == 'All'
+        ? provider.feedbacks
+        : provider.feedbacks
+            .where((f) => f.category.toLowerCase() == _selectedFilter.toLowerCase())
+            .toList();
+
+    if (filteredFeedbacks.isEmpty) {
+      return _buildEmptyState(isFilter: true);
+    }
+
+    final grouped = _groupFeedback(filteredFeedbacks);
     final sortedKeys = grouped.keys.toList();
 
     return RefreshIndicator(
@@ -183,7 +258,6 @@ class _ManageFeedbackScreenState extends State<ManageFeedbackScreen> {
           ),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           children: [
-            const Divider(height: 1),
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.topLeft,

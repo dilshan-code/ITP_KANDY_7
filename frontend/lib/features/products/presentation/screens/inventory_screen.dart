@@ -8,6 +8,7 @@ import 'package:frontend/features/sales/presentation/providers/sale_provider.dar
 import 'package:frontend/features/products/presentation/screens/add_product_screen.dart';
 import 'package:frontend/features/products/presentation/screens/edit_product_screen.dart';
 import 'package:frontend/features/products/presentation/utils/inventory_pdf_utils.dart';
+import 'package:frontend/features/products/presentation/utils/category_constants.dart';
 
 // InventoryScreen displays the complete list of products from the database.
 // It allows users to filter, search, view stock levels, and navigate to
@@ -21,6 +22,7 @@ class InventoryScreen extends StatefulWidget {
 
 class InventoryScreenState extends State<InventoryScreen> {
   String _selectedFilter = 'All Items';
+  final List<String> _selectedCategories = [];
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
 
@@ -61,18 +63,11 @@ class InventoryScreenState extends State<InventoryScreen> {
     // Apply category / stock filter chips
     if (_selectedFilter == 'Low Stock') {
       filtered = products.where((p) => p.isLowStock).toList();
-    } else if (_selectedFilter == 'Produce') {
-      filtered = products
-          .where(
-            (p) =>
-                p.category.toLowerCase().contains('fruit') ||
-                p.category.toLowerCase().contains('vegetable'),
-          )
-          .toList();
-    } else if (_selectedFilter == 'Dairy') {
-      filtered = products
-          .where((p) => p.category.toLowerCase().contains('dairy'))
-          .toList();
+    }
+
+    // Apply multi-category selection filters
+    if (_selectedCategories.isNotEmpty) {
+      filtered = filtered.where((p) => _selectedCategories.contains(p.category)).toList();
     }
     // Apply text search term
     final query = _searchController.text.toLowerCase();
@@ -101,6 +96,8 @@ class InventoryScreenState extends State<InventoryScreen> {
                 _buildHeader(context),
                 _buildSearchBar(),
                 _buildFilterChips(),
+                const SizedBox(height: 12),
+                _buildCategoryFilters(),
                 Expanded(
                   child: provider.isLoading
                       ? const Center(
@@ -274,7 +271,7 @@ class InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildFilterChips() {
-    final filters = ['All Items', 'Low Stock', 'Produce', 'Dairy'];
+    final filters = ['All Items', 'Low Stock'];
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 0, 8),
       child: SizedBox(
@@ -403,10 +400,10 @@ class InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildProductsHeader() {
-    return Row(
+    return const Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
+        Text(
           'Products',
           style: TextStyle(
             fontSize: 18,
@@ -414,22 +411,120 @@ class InventoryScreenState extends State<InventoryScreen> {
             color: AppColors.textDark,
           ),
         ),
-        RichText(
-          text: const TextSpan(
-            text: 'Sort by: ',
-            style: TextStyle(fontSize: 12, color: AppColors.textLight),
+      ],
+    );
+  }
+
+  Widget _buildCategoryFilters() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              TextSpan(
-                text: 'Newest',
+              const Text(
+                'CATEGORIES',
                 style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textMedium,
+                  letterSpacing: 1.0,
                 ),
               ),
+              if (_selectedCategories.isNotEmpty)
+                GestureDetector(
+                  onTap: () => setState(() => _selectedCategories.clear()),
+                  child: const Text(
+                    'Clear All',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
             ],
           ),
-        ),
-      ],
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: ProductCategories.list.map((category) {
+              final isSelected = _selectedCategories.contains(category);
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (isSelected) {
+                      _selectedCategories.remove(category);
+                    } else {
+                      _selectedCategories.add(category);
+                    }
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.primary.withValues(alpha: 0.05) : AppColors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSelected ? AppColors.primary : Colors.grey.shade200,
+                      width: 1.5,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Transform.scale(
+                        scale: 0.8,
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: Checkbox(
+                            value: isSelected,
+                            onChanged: (v) {
+                              setState(() {
+                                if (v == true) {
+                                  _selectedCategories.add(category);
+                                } else {
+                                  _selectedCategories.remove(category);
+                                }
+                              });
+                            },
+                            activeColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            side: BorderSide(color: Colors.grey.shade400),
+                          ),
+                        ),
+                      ),
+                      Text(
+                        category,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected ? AppColors.primary : AppColors.textDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 }

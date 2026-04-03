@@ -11,14 +11,23 @@ class MongoSaleRepository extends ISaleRepository {
     }
 
     // Calculates the total sales volume specifically for the current calendar day.
-    async getTodayTotal(ownerId) {
-        // Find the start of the current day.
+    async getTodayTotal(ownerId, timezoneOffset = 0) {
+        // Find the start of the current day in the user's local timezone.
+        // We adjust the current UTC time by the offset, reset to midnight, and adjust back to get the UTC starting point.
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        today.setUTCMinutes(today.getUTCMinutes() + timezoneOffset);
+        today.setUTCHours(0, 0, 0, 0);
+        today.setUTCMinutes(today.getUTCMinutes() - timezoneOffset);
 
         // Uses a MongoDB aggregation pipeline to filter sales by date and sum their totals.
         const result = await this.model.aggregate([
-            { $match: { ownerId, createdAt: { $gte: today.toISOString() } } },
+            { 
+                $match: { 
+                    ownerId, 
+                    createdAt: { $gte: today.toISOString() },
+                    status: 'completed'
+                } 
+            },
             { $group: { _id: null, total: { $sum: "$totalAmount" } } }
         ]);
 
@@ -38,7 +47,8 @@ class MongoSaleRepository extends ISaleRepository {
         const result = await this.model.aggregate([
             { $match: { 
                 ownerId, 
-                createdAt: { $gte: startDate, $lte: endDate } 
+                createdAt: { $gte: startDate, $lte: endDate },
+                status: 'completed'
             } },
             { $group: { _id: null, total: { $sum: "$totalAmount" } } }
         ]);

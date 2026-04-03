@@ -5,7 +5,7 @@ class ISaleRepository {
     async create(saleData, transaction = null) { throw new Error('Not implemented'); }
     async update(id, saleData, ownerId, transaction = null) { throw new Error('Not implemented'); }
     async delete(id, ownerId, transaction = null) { throw new Error('Not implemented'); }
-    async getTodayTotal(ownerId) { throw new Error('Not implemented'); }
+    async getTodayTotal(ownerId, timezoneOffset = 0) { throw new Error('Not implemented'); }
     async getTotalRevenue(ownerId) { throw new Error('Not implemented'); }
     async getAllByDateRange(ownerId, startDate, endDate) { throw new Error('Not implemented'); }
 }
