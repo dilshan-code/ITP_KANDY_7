@@ -32,8 +32,9 @@ class _SplashScreenState extends State<SplashScreen>
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
     _controller.forward();
 
-    // Navigate to Login after 3 seconds
-    Future.delayed(const Duration(seconds: 3), () {
+    // Navigate to Login immediately after initialization animations start
+    // If you want a small delay for branding, you can use 500ms or 1s
+    Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) {
         Navigator.pushReplacement(
           context,

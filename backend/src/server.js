@@ -3,6 +3,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/mongoConfig');
+const bcrypt = require('bcryptjs');
+const Owner = require('./infrastructure/models/Owner');
 
 // --- Infrastructure ---
 const MongoProductRepository = require('./infrastructure/MongoProductRepository');
@@ -29,6 +31,7 @@ const { GetAllNotifications, CreateNotification, MarkNotificationAsRead, MarkAll
 const { GetBusinessReport } = require('./usecases/reportUseCases');
 const { GetDashboardData } = require('./usecases/dashboardUseCases');
 const { SubmitFeedback, GetAllFeedback, DeleteFeedback } = require('./usecases/feedbackUseCases');
+const GetSystemHealth = require('./usecases/GetSystemHealth');
 
 
 // --- Interfaces ---
@@ -176,6 +179,8 @@ const adminUseCases = {
     getAllOwners: new GetAllOwners(ownerRepository),
     updateOwnerProfile: authUseCases.updateOwnerByAdmin,
     deleteOwner: authUseCases.deleteOwner,
+    getOwnerProfile: authUseCases.getOwnerProfile, // Inject profile fetcher for toggling logic
+    getSystemHealth: new GetSystemHealth(),
 };
 const adminController = new AdminController(adminUseCases);
 
@@ -208,7 +213,46 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Connect to MongoDB
-connectDB();
+connectDB().then(() => {
+    ensureAdminUser();
+});
+
+async function ensureAdminUser() {
+    try {
+        const adminEmail = 'admin@gmail.com';
+        const adminPassword = 'admin1234';
+        const existingAdmin = await Owner.findOne({ email: adminEmail });
+        
+        if (!existingAdmin) {
+            console.log(`[SEED] Admin user '${adminEmail}' not found. Creating...`);
+            const hashedPassword = await bcrypt.hash(adminPassword, 10);
+            const newAdmin = new Owner({
+                _id: 'admin_master_001',
+                name: 'System Administrator',
+                shopName: 'ClickBuy Network',
+                phone: '+94000000000',
+                email: adminEmail,
+                password: hashedPassword,
+                role: 'admin',
+                status: 'approved',
+                isSuspended: false,
+                createdAt: new Date().toISOString()
+            });
+            await newAdmin.save();
+            console.log(`[SEED] Admin user '${adminEmail}' created successfully.`);
+        } else {
+            console.log(`[SEED] Admin user '${adminEmail}' verified.`);
+            // Update role just in case it was 'owner' before
+            if (existingAdmin.role !== 'admin') {
+                existingAdmin.role = 'admin';
+                await existingAdmin.save();
+                console.log(`[SEED] Updated admin user role to 'admin'.`);
+            }
+        }
+    } catch (error) {
+        console.error('[SEED] Error ensuring admin user:', error);
+    }
+}
 
 app.use(cors());
 app.use(express.json());

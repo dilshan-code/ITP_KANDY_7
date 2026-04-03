@@ -27,7 +27,7 @@ describe('Product Use Cases', () => {
             const useCase = new GetAllProducts(mockProductRepository);
             const result = await useCase.execute(ownerId);
             expect(result).toHaveLength(2);
-            expect(mockProductRepository.getAll).toHaveBeenCalledWith(ownerId);
+            expect(mockProductRepository.getAll).toHaveBeenCalledWith(ownerId, null, null);
         });
     });
 

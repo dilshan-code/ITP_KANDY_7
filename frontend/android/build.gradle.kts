@@ -25,11 +25,8 @@ subprojects {
             if (getNamespace != null && setNamespace != null) {
                 val currentNamespace = getNamespace.invoke(android)
                 if (currentNamespace == null) {
-                    val fallbackNamespace = when (project.name) {
-                        "flutter_app_badger" -> "fr.snapp.flutterappbadger"
-                        else -> project.group.toString().takeIf { it.isNotBlank() && it != "unspecified" }
-                                ?: "com.plugin.missing.namespace.${project.name.replace("-", ".")}"
-                    }
+                    val fallbackNamespace = project.group.toString().takeIf { it.isNotBlank() && it != "unspecified" }
+                            ?: "com.plugin.missing.namespace.${project.name.replace("-", ".")}"
                     setNamespace.invoke(android, fallbackNamespace)
                 }
             }

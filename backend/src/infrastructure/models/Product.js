@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const ProductSchema = new mongoose.Schema({
     _id: { type: String, required: true },
     ownerId: { type: String, required: true, index: true },
-    name: { type: String, required: true },
+    name: { type: String, required: true, index: true },
     category: { type: String, default: 'General' },
     sellingPrice: { type: Number, required: true },
     purchasePrice: { type: Number, default: 0 },
@@ -14,12 +14,15 @@ const ProductSchema = new mongoose.Schema({
     imageUrl: { type: String, default: '' },
     unit: { type: String, default: 'ea' },
     notifyOutOfStock: { type: Boolean, default: true },
-    createdAt: { type: String },
+    createdAt: { type: String, index: true },
     updatedAt: { type: String }
 }, {
     _id: false, // Tell Mongoose we are providing the _id
     timestamps: false
 });
+
+ProductSchema.index({ ownerId: 1, name: 1 });
+ProductSchema.index({ ownerId: 1, createdAt: -1 });
 
 ProductSchema.virtual('id').get(function() {
     return this._id;

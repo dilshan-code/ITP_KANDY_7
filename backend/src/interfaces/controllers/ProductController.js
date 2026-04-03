@@ -79,7 +79,7 @@ class ProductController {
     // Handle GET /api/dashboard (Calculates stats for the home screen)
     async getDashboard(req, res) {
         try {
-            const dashboardData = await this.getDashboardData.execute(req.ownerId);
+            const dashboardData = await this.getDashboardData.execute(req.ownerId, req.timezoneOffset);
             
             // Format the time strings for the recent transactions
             const recentTransactions = dashboardData.recentTransactions.map(t => ({
@@ -106,8 +106,9 @@ class ProductController {
     // Retrieves a complete list of all transactions (both sales and purchases) for the history log.
     async getTransactions(req, res) {
         try {
-            const sales = this.getAllSales ? await this.getAllSales.execute(req.ownerId) : [];
-            const purchases = this.getAllPurchases ? await this.getAllPurchases.execute(req.ownerId) : [];
+            const limit = parseInt(req.query.limit) || 50;
+            const sales = this.getAllSales ? await this.getAllSales.execute(req.ownerId, limit) : [];
+            const purchases = this.getAllPurchases ? await this.getAllPurchases.execute(req.ownerId, limit) : [];
 
             let allTxns = [];
             sales.forEach(s => {

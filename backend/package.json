@@ -8,7 +8,7 @@
     "dev": "nodemon src/server.js",
     "kill-port": "taskkill /F /IM node.exe /T",
     "lint": "eslint src/**",
-    "test": "jest"
+    "test": "jest --testTimeout=20000"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

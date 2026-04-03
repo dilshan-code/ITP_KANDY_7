@@ -25,7 +25,10 @@ class ApiClient {
 
   // Helper to build headers with ownerId
   static Map<String, String> get _headers {
-    final Map<String, String> headers = {'Content-Type': 'application/json'};
+    final Map<String, String> headers = {
+      'Content-Type': 'application/json',
+      'x-timezone-offset': DateTime.now().timeZoneOffset.inMinutes.toString(),
+    };
     if (ownerId != null) {
       headers['x-owner-id'] = ownerId!;
     }
@@ -74,6 +77,22 @@ class ApiClient {
       Uri.parse('$baseUrl$path'),
       headers: _headers,
       body: jsonEncode(body),
+    );
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    throw Exception(_handleError(response));
+  }
+
+  // Perform an HTTP PATCH request to update part of the existing data
+  static Future<Map<String, dynamic>> patch(
+    String path, {
+    Map<String, dynamic>? body,
+  }) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl$path'),
+      headers: _headers,
+      body: body != null ? jsonEncode(body) : null,
     );
     if (response.statusCode == 200) {
       return jsonDecode(response.body);

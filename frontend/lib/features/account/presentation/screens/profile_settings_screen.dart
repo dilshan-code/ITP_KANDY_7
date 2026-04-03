@@ -18,6 +18,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   late TextEditingController _nameController;
   late TextEditingController _shopNameController;
   late TextEditingController _phoneController;
+  late TextEditingController _emailController;
 
   final _passwordFormKey = GlobalKey<FormState>();
   final _oldPasswordController = TextEditingController();
@@ -31,6 +32,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     _nameController = TextEditingController(text: owner?.name);
     _shopNameController = TextEditingController(text: owner?.shopName);
     _phoneController = TextEditingController(text: owner?.phone);
+    _emailController = TextEditingController(text: owner?.email);
   }
 
   @override
@@ -38,6 +40,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     _nameController.dispose();
     _shopNameController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
     _oldPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
@@ -51,6 +54,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
       'name': _nameController.text,
       'shopName': _shopNameController.text,
       'phone': normalizePhoneNumber(_phoneController.text),
+      'email': _emailController.text,
     });
 
     if (mounted) {
@@ -104,163 +108,175 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
         elevation: 0,
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            _buildSection(
-              title: 'PERSONAL INFORMATION',
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    _buildSettingsItem(
-                      icon: Icons.person_outline,
-                      label: 'Name',
-                      child: TextFormField(
-                        controller: _nameController,
-                        decoration: _inputDecoration('Enter your name'),
-                        validator: (v) => ValidationUtils.validateRequired(v, 'Name'),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              _buildSection(
+                title: 'PERSONAL INFORMATION',
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      _buildSettingsItem(
+                        icon: Icons.person_outline,
+                        label: 'Name',
+                        child: TextFormField(
+                          controller: _nameController,
+                          decoration: _inputDecoration('Enter your name'),
+                          validator: (v) => ValidationUtils.validateRequired(v, 'Name'),
+                        ),
                       ),
-                    ),
-                    _buildSettingsItem(
-                      icon: Icons.store_outlined,
-                      label: 'Shop Name',
-                      child: TextFormField(
-                        controller: _shopNameController,
-                        decoration: _inputDecoration('Enter shop name'),
-                        validator: (v) => ValidationUtils.validateRequired(v, 'Shop name'),
+                      _buildSettingsItem(
+                        icon: Icons.store_outlined,
+                        label: 'Shop Name',
+                        child: TextFormField(
+                          controller: _shopNameController,
+                          decoration: _inputDecoration('Enter shop name'),
+                          validator: (v) => ValidationUtils.validateRequired(v, 'Shop name'),
+                        ),
                       ),
-                    ),
-                    _buildSettingsItem(
-                      icon: Icons.phone_outlined,
-                      label: 'Phone',
-                      child: TextFormField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        decoration: _inputDecoration('Enter phone'),
-                        validator: ValidationUtils.validatePhone,
+                      _buildSettingsItem(
+                        icon: Icons.phone_outlined,
+                        label: 'Phone',
+                        child: TextFormField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          decoration: _inputDecoration('Enter phone'),
+                          validator: ValidationUtils.validatePhone,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+                      _buildSettingsItem(
+                        icon: Icons.email_outlined,
+                        label: 'Email',
+                        child: TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: _inputDecoration('Enter email'),
+                          validator: ValidationUtils.validateEmail,
+                        ),
                       ),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: context.watch<AuthProvider>().isLoading
-                              ? null
-                              : _updateProfile,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: context.watch<AuthProvider>().isLoading
+                                ? null
+                                : _updateProfile,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
-                          ),
-                          child: context.watch<AuthProvider>().isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
+                            child: context.watch<AuthProvider>().isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Save Profile Details',
+                                    style: TextStyle(fontWeight: FontWeight.w600),
                                   ),
-                                )
-                              : const Text(
-                                  'Save Profile Details',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            _buildSection(
-              title: 'SECURITY',
-              child: Form(
-                key: _passwordFormKey,
-                child: Column(
-                  children: [
-                    _buildSettingsItem(
-                      icon: Icons.lock_outline,
-                      label: 'Current Password',
-                      child: TextFormField(
-                        controller: _oldPasswordController,
-                        obscureText: true,
-                        decoration: _inputDecoration('Enter current password'),
-                        validator: (val) =>
-                            val == null || val.isEmpty ? 'Required' : null,
+              const SizedBox(height: 24),
+              _buildSection(
+                title: 'SECURITY',
+                child: Form(
+                  key: _passwordFormKey,
+                  child: Column(
+                    children: [
+                      _buildSettingsItem(
+                        icon: Icons.lock_outline,
+                        label: 'Current Password',
+                        child: TextFormField(
+                          controller: _oldPasswordController,
+                          obscureText: true,
+                          decoration: _inputDecoration('Enter current password'),
+                          validator: (val) =>
+                              val == null || val.isEmpty ? 'Required' : null,
+                        ),
                       ),
-                    ),
-                    _buildSettingsItem(
-                      icon: Icons.lock_reset_outlined,
-                      label: 'New Password',
-                      child: TextFormField(
-                        controller: _newPasswordController,
-                        obscureText: true,
-                        decoration: _inputDecoration('Min. 8 characters'),
-                        validator: ValidationUtils.validatePassword,
+                      _buildSettingsItem(
+                        icon: Icons.lock_reset_outlined,
+                        label: 'New Password',
+                        child: TextFormField(
+                          controller: _newPasswordController,
+                          obscureText: true,
+                          decoration: _inputDecoration('Min. 8 characters'),
+                          validator: ValidationUtils.validatePassword,
+                        ),
                       ),
-                    ),
-                    _buildSettingsItem(
-                      icon: Icons.lock_reset_outlined,
-                      label: 'Confirm Password',
-                      child: TextFormField(
-                        controller: _confirmPasswordController,
-                        obscureText: true,
-                        decoration: _inputDecoration('Re-enter new password'),
-                        validator: (val) {
-                          if (val != _newPasswordController.text) {
-                            return 'No match';
-                          }
-                          return null;
-                        },
+                      _buildSettingsItem(
+                        icon: Icons.lock_reset_outlined,
+                        label: 'Confirm Password',
+                        child: TextFormField(
+                          controller: _confirmPasswordController,
+                          obscureText: true,
+                          decoration: _inputDecoration('Re-enter new password'),
+                          validator: (val) {
+                            if (val != _newPasswordController.text) {
+                              return 'No match';
+                            }
+                            return null;
+                          },
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: context.watch<AuthProvider>().isLoading
-                              ? null
-                              : _changePassword,
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            side: const BorderSide(color: AppColors.primary),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: context.watch<AuthProvider>().isLoading
+                                ? null
+                                : _changePassword,
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: const BorderSide(color: AppColors.primary),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
-                          ),
-                          child: const Text(
-                            'Update Password',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
+                            child: const Text(
+                              'Update Password',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 40),
-          ],
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );

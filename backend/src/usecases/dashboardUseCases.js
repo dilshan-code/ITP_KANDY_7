@@ -10,7 +10,7 @@ class GetDashboardData {
     }
 
     // This is the core method that builds the dashboard summary report.
-    async execute(ownerId) {
+    async execute(ownerId, timezoneOffset = 0) {
         // We run all data-gathering queries at once (in parallel) to ensure the home screen loads instantly.
         const [
             todaysSales,
@@ -21,7 +21,7 @@ class GetDashboardData {
             recentSales,
             recentPurchases
         ] = await Promise.all([
-            this.saleRepository.getTodayTotal(ownerId),
+            this.saleRepository.getTodayTotal(ownerId, timezoneOffset),
             this.productRepository.getLowStockCount(ownerId),
             this.customerRepository.getTotalOutstanding(ownerId),
             this.supplierRepository.getTotalPayable(ownerId),

@@ -57,8 +57,9 @@ class HomeScreenState extends State<HomeScreen> {
       // Trigger API fetch for the dashboard statistics object
       final result = await ApiClient.get('/dashboard');
       
-      // Also refresh notifications and credit summaries in the background
-      if (mounted) {
+      // Only refresh other providers if it's the initial load or a manual refresh
+      if (mounted && !isSilent) {
+        // We call these in parallel but don't 'await' them here to avoid blocking the main UI update
         context.read<NotificationProvider>().fetchNotifications();
         context.read<CreditProvider>().fetchCustomers();
         context.read<SupplierProvider>().fetchSuppliers();
