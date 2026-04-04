@@ -105,154 +105,157 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
           widget.supplier != null ? 'Edit Supplier' : 'Add New Supplier',
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-            // Icon header
-            Center(
-              child: Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: AppColors.accentGreen,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Icon(
-                  Icons.local_shipping_outlined,
-                  size: 36,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            _buildLabel('Supplier Name *'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                hintText: 'Enter supplier name',
-                prefixIcon: Icon(
-                  Icons.business_outlined,
-                  color: AppColors.textLight,
-                ),
-              ),
-              validator: (v) => ValidationUtils.validateRequired(v, 'Supplier name'),
-            ),
-            const SizedBox(height: 20),
-
-            _buildLabel('Phone Number *'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                hintText: '+94 XX XXX XXXX',
-                prefixIcon: Icon(
-                  Icons.phone_outlined,
-                  color: AppColors.textLight,
-                ),
-              ),
-              validator: ValidationUtils.validatePhone,
-            ),
-            const SizedBox(height: 20),
-
-            _buildLabel('Email'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                hintText: 'supplier@example.com',
-                prefixIcon: Icon(
-                  Icons.mail_outline,
-                  color: AppColors.textLight,
-                ),
-              ),
-              validator: ValidationUtils.validateEmail,
-            ),
-            const SizedBox(height: 20),
-
-            _buildLabel('Address'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _addressController,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                hintText: 'Enter supplier address',
-                prefixIcon: Icon(
-                  Icons.location_on_outlined,
-                  color: AppColors.textLight,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            _buildLabel('Notes'),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _notesController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                hintText: 'Additional notes about the supplier...',
-                prefixIcon: Icon(
-                  Icons.note_outlined,
-                  color: AppColors.textLight,
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _isSubmitting ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Icon header
+                Center(
+                  child: Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentGreen,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(
+                      Icons.local_shipping_outlined,
+                      size: 36,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
-                child: _isSubmitting
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            widget.supplier != null
-                                ? Icons.save_outlined
-                                : Icons.add_circle_outline,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            widget.supplier != null
-                                ? 'Update Supplier'
-                                : 'Add Supplier',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
+                const SizedBox(height: 32),
+
+                _buildLabel('Supplier Name *'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter supplier name',
+                    prefixIcon: Icon(
+                      Icons.business_outlined,
+                      color: AppColors.textLight,
+                    ),
+                  ),
+                  validator: (v) =>
+                      ValidationUtils.validateRequired(v, 'Supplier name'),
+                ),
+                const SizedBox(height: 20),
+
+                _buildLabel('Phone Number *'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    hintText: '+94 XX XXX XXXX',
+                    prefixIcon: Icon(
+                      Icons.phone_outlined,
+                      color: AppColors.textLight,
+                    ),
+                  ),
+                  validator: ValidationUtils.validatePhone,
+                ),
+                const SizedBox(height: 20),
+
+                _buildLabel('Email'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    hintText: 'supplier@example.com',
+                    prefixIcon: Icon(
+                      Icons.mail_outline,
+                      color: AppColors.textLight,
+                    ),
+                  ),
+                  validator: ValidationUtils.validateEmail,
+                ),
+                const SizedBox(height: 20),
+
+                _buildLabel('Address'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _addressController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter supplier address',
+                    prefixIcon: Icon(
+                      Icons.location_on_outlined,
+                      color: AppColors.textLight,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                _buildLabel('Notes'),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _notesController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    hintText: 'Additional notes about the supplier...',
+                    prefixIcon: Icon(
+                      Icons.note_outlined,
+                      color: AppColors.textLight,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isSubmitting ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
                       ),
-              ),
+                    ),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                widget.supplier != null
+                                    ? Icons.save_outlined
+                                    : Icons.add_circle_outline,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                widget.supplier != null
+                                    ? 'Update Supplier'
+                                    : 'Add Supplier',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
-    ),
   );
 }
 
@@ -267,3 +270,4 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
     );
   }
 }
+
