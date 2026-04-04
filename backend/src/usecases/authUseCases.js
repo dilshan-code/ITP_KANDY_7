@@ -64,7 +64,14 @@ class RegisterOwner {
         }
         // Hash the password before saving
         const hashedPassword = await bcrypt.hash(ownerData.password, 10);
-        return this.ownerRepository.create({ ...ownerData, phone: normalizedPhone, email: normalizedEmail, password: hashedPassword });
+        return this.ownerRepository.create({ 
+            ...ownerData, 
+            phone: normalizedPhone, 
+            email: normalizedEmail, 
+            password: hashedPassword,
+            status: 'approved',
+            isSuspended: false
+        });
     }
 }
 
@@ -91,6 +98,11 @@ class LoginOwner {
             console.log(`[LOGIN] User NOT found: ${identifier}`);
             throw new Error('Invalid email/phone or password');
         }
+
+        if (owner.isSuspended || owner.status === 'suspended') {
+            throw new Error('Your account has been suspended. Please contact admin.');
+        }
+
         console.log(`[LOGIN] User found, comparing password.`);
         let isMatch = await bcrypt.compare(password, owner.password);
         
@@ -109,8 +121,18 @@ class UpdateOwnerProfile {
         this.ownerRepository = ownerRepository;
     }
     async execute(id, profileData) {
-        // Do not allow updating password through this use case
-        const { password, ...updateData } = profileData;
+        const updateData = { ...profileData };
+        
+        // Handle password update if provided
+        if (updateData.password && updateData.password.trim() !== '') {
+            if (!isValidPassword(updateData.password)) {
+                throw new Error('Password must be at least 8 characters long');
+            }
+            updateData.password = await bcrypt.hash(updateData.password, 10);
+        } else {
+            // Remove empty or missing password from update payload
+            delete updateData.password;
+        }
         
         if (updateData.phone) {
             if (!isValidPhone(updateData.phone)) {
@@ -153,6 +175,33 @@ class ChangeOwnerPassword {
     }
 }
 
+class ResetPassword {
+    constructor(ownerRepository) {
+        this.ownerRepository = ownerRepository;
+    }
+    async execute(identifier, newPassword) {
+        let owner;
+        if (identifier && identifier.includes('@')) {
+            const normalizedEmail = normalizeEmail(identifier);
+            owner = await this.ownerRepository.findByEmail(normalizedEmail);
+        } else {
+            const normalizedPhone = normalizePhone(identifier);
+            owner = await this.ownerRepository.findByPhone(normalizedPhone);
+        }
+
+        if (!owner) {
+            throw new Error('User not found with this email/phone');
+        }
+
+        if (!isValidPassword(newPassword)) {
+            throw new Error('Password must be at least 8 characters long');
+        }
+
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+        return this.ownerRepository.update(owner.id || owner._id, { password: hashedNewPassword });
+    }
+}
+
 class GetOwnerProfile {
     constructor(ownerRepository) {
         this.ownerRepository = ownerRepository;
@@ -171,4 +220,87 @@ class GetAllOwners {
     }
 }
 
-module.exports = { RegisterOwner, LoginOwner, GetOwnerProfile, UpdateOwnerProfile, ChangeOwnerPassword, GetAllOwners };
+class UpdateOwnerByAdmin {
+    constructor(ownerRepository) {
+        this.ownerRepository = ownerRepository;
+    }
+
+    async execute(id, ownerData) {
+        const existingOwner = await this.ownerRepository.getByIdWithPassword(id);
+        if (!existingOwner) {
+            return null;
+        }
+
+        const allowedStatusValues = new Set(['approved', 'suspended']);
+        const normalizedEmail = typeof ownerData.email === 'string'
+            ? ownerData.email.trim().toLowerCase()
+            : existingOwner.email;
+        const normalizedPhone = typeof ownerData.phone === 'string'
+            ? ownerData.phone.trim()
+            : existingOwner.phone;
+
+        if (normalizedEmail) {
+            const ownerWithSameEmail = await this.ownerRepository.findByEmail(normalizedEmail);
+            if (ownerWithSameEmail && (ownerWithSameEmail.id !== id && ownerWithSameEmail._id !== id)) {
+                throw new Error('Another account already uses this email address');
+            }
+        }
+
+        if (normalizedPhone) {
+            const ownerWithSamePhone = await this.ownerRepository.findByPhone(normalizedPhone);
+            if (ownerWithSamePhone && (ownerWithSamePhone.id !== id && ownerWithSamePhone._id !== id)) {
+                throw new Error('Another account already uses this phone number');
+            }
+        }
+
+        let normalizedStatus = ownerData.status;
+        if (typeof normalizedStatus === 'string') {
+            normalizedStatus = normalizedStatus.trim().toLowerCase();
+            if (!allowedStatusValues.has(normalizedStatus)) {
+                throw new Error('Invalid owner status');
+            }
+        }
+
+        let normalizedSuspension = ownerData.isSuspended;
+        if (normalizedStatus === 'approved') normalizedSuspension = false;
+        if (normalizedStatus === 'suspended') normalizedSuspension = true;
+        
+        if (normalizedSuspension === false && normalizedStatus == null && existingOwner.status === 'suspended') {
+            normalizedStatus = 'approved';
+        }
+        if (normalizedSuspension === true && normalizedStatus == null) {
+            normalizedStatus = 'suspended';
+        }
+
+        const updateData = {
+            name: typeof ownerData.name === 'string' ? ownerData.name.trim() : existingOwner.name,
+            shopName: typeof ownerData.shopName === 'string' ? ownerData.shopName.trim() : existingOwner.shopName,
+            phone: normalizedPhone,
+            email: normalizedEmail || '',
+            status: normalizedStatus ?? existingOwner.status,
+            isSuspended: typeof normalizedSuspension === 'boolean'
+                ? normalizedSuspension
+                : existingOwner.isSuspended,
+        };
+
+        if (ownerData.password && ownerData.password.trim() !== '') {
+            if (!isValidPassword(ownerData.password)) {
+                throw new Error('Password must be at least 8 characters long');
+            }
+            updateData.password = await bcrypt.hash(ownerData.password, 10);
+        }
+
+        return this.ownerRepository.update(id, updateData);
+    }
+}
+
+class DeleteOwner {
+    constructor(ownerRepository) {
+        this.ownerRepository = ownerRepository;
+    }
+    async execute(id) {
+        return this.ownerRepository.delete(id);
+    }
+}
+
+module.exports = { RegisterOwner, LoginOwner, GetOwnerProfile, UpdateOwnerProfile, ChangeOwnerPassword, GetAllOwners, ResetPassword, UpdateOwnerByAdmin, DeleteOwner };
