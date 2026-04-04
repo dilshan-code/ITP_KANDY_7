@@ -10,4 +10,5 @@ abstract class AuthRepository {
     String oldPassword,
     String newPassword,
   );
+  Future<void> resetPassword(String identifier, String newPassword);
 }
