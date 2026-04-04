@@ -9,7 +9,9 @@ class Owner {
         password, // Encrypted password string
         createdAt, 
         updatedAt,
-        role
+        role,
+        status,
+        isSuspended
     }) {
         this.id = id;
         this.name = name || '';
@@ -17,6 +19,8 @@ class Owner {
         this.phone = phone || '';
         this.email = email || '';
         this.password = password || '';
+        this.status = status || 'approved';
+        this.isSuspended = isSuspended ?? false;
         this.createdAt = createdAt || new Date().toISOString();
         this.updatedAt = updatedAt || new Date().toISOString();
         this.role = role || 'owner';
@@ -29,6 +33,8 @@ class Owner {
             shopName: this.shopName,
             phone: this.phone,
             email: this.email,
+            status: this.status,
+            isSuspended: this.isSuspended,
             createdAt: this.createdAt,
             updatedAt: this.updatedAt,
             role: this.role
