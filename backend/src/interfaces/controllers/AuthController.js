@@ -1,11 +1,12 @@
 // AuthController handles everything related to user accounts: signing up, logging in, and managing profiles.
 class AuthController {
-    constructor({ registerOwner, loginOwner, getOwnerProfile, updateOwnerProfile, changeOwnerPassword }) {
+    constructor({ registerOwner, loginOwner, getOwnerProfile, updateOwnerProfile, changeOwnerPassword, resetPassword }) {
         this.registerOwner = registerOwner;
         this.loginOwner = loginOwner;
         this.getOwnerProfile = getOwnerProfile;
         this.updateOwnerProfile = updateOwnerProfile;
         this.changeOwnerPassword = changeOwnerPassword;
+        this.resetPasswordUseCase = resetPassword;
     }
 
     // Registers a brand new shop owner account.
@@ -90,6 +91,21 @@ class AuthController {
             res.json({ success: true, message: 'Password changed successfully', data: owner });
         } catch (error) {
             const statusCode = error.message.includes('not match') ? 401 : 500;
+            res.status(statusCode).json({ success: false, error: error.message });
+        }
+    }
+
+    // Allows unauthenticated password reset for cases where users forgot their password.
+    async resetPassword(req, res) {
+        try {
+            const { identifier, newPassword } = req.body;
+            if (!identifier || !newPassword) {
+                return res.status(400).json({ success: false, error: 'Email/Phone and new password are required' });
+            }
+            const owner = await this.resetPasswordUseCase.execute(identifier, newPassword);
+            res.json({ success: true, message: 'Password reset successfully', data: owner });
+        } catch (error) {
+            const statusCode = error.message.includes('not found') ? 404 : 400;
             res.status(statusCode).json({ success: false, error: error.message });
         }
     }
