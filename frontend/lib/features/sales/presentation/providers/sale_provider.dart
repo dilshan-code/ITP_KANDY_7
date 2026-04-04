@@ -209,18 +209,6 @@ class SaleProvider extends ChangeNotifier {
       // Step 3: Clear the local cart now that the sale is recorded in the database.
       _cartItems.clear();
       _isLoading = false;
-
-      // Step 4: Refresh local history so the user sees the new sale immediately.
-      fetchSales();
-      fetchProducts(); // Refresh products to show updated stock counts.
-      
-      // Update: Trigger a notification fetch to show any new alerts (e.g., credit limit)
-      // Note: We can't access context here easily, but we can return success and let the UI handle it.
-      // However, we can use a callback or just return the data.
-      // For simplicity, we'll assume the UI or the caller will handle CreditProvider refresh
-      // if we can't do it here without context.
-      // BUT wait, I can pass a reference or just let the caller do it.
-      // Let's check where completeSale is called.
       
       notifyListeners();
       // Return the recorded sale data back to the UI.
@@ -256,3 +244,4 @@ class SaleProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
+
