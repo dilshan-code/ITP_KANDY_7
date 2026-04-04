@@ -68,15 +68,17 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : _error != null
-          ? _buildErrorView()
-          : _transactions == null || _transactions!.isEmpty
-          ? _buildEmptyView()
-          : _buildTransactionList(),
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              )
+            : _error != null
+            ? _buildErrorView()
+            : _transactions == null || _transactions!.isEmpty
+            ? _buildEmptyView()
+            : _buildTransactionList(),
+      ),
     );
   }
 
