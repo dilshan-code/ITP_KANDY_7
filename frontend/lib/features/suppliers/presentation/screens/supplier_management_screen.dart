@@ -66,69 +66,73 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            SliverAppBar(
-              title: const Text('Supplier Management'),
-              floating: true,
-              pinned: true,
-              expandedHeight: 0,
-              forceElevated: innerBoxIsScrolled,
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.picture_as_pdf_outlined),
-                  onPressed: () {
-                    if (_tabController.index == 0) {
-                      final suppliers = context.read<SupplierProvider>().suppliers;
-                      if (suppliers.isNotEmpty) {
-                        SupplierExportUtils.exportSuppliersPdf(suppliers);
+      body: SafeArea(
+        child: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverAppBar(
+                title: const Text('Supplier Management'),
+                floating: true,
+                pinned: true,
+                expandedHeight: 0,
+                forceElevated: innerBoxIsScrolled,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.picture_as_pdf_outlined),
+                    onPressed: () {
+                      if (_tabController.index == 0) {
+                        final suppliers =
+                            context.read<SupplierProvider>().suppliers;
+                        if (suppliers.isNotEmpty) {
+                          SupplierExportUtils.exportSuppliersPdf(suppliers);
+                        }
+                      } else {
+                        final purchases =
+                            context.read<PurchaseProvider>().purchases;
+                        if (purchases.isNotEmpty) {
+                          SupplierExportUtils.exportPurchasesPdf(purchases);
+                        }
                       }
-                    } else {
-                      final purchases = context.read<PurchaseProvider>().purchases;
-                      if (purchases.isNotEmpty) {
-                        SupplierExportUtils.exportPurchasesPdf(purchases);
-                      }
-                    }
-                  },
-                  tooltip: 'Download PDF',
-                ),
-              ],
-            ),
-            SliverToBoxAdapter(
-              child: Consumer<SupplierProvider>(
-                builder: (context, provider, _) => _buildSummaryCards(provider),
-              ),
-            ),
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _SliverAppBarDelegate(
-                TabBar(
-                  controller: _tabController,
-                  dividerColor: Colors.transparent,
-                  indicatorColor: AppColors.primary,
-                  indicatorWeight: 3,
-                  labelColor: AppColors.primary,
-                  unselectedLabelColor: AppColors.textLight,
-                  labelStyle: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
+                    },
+                    tooltip: 'Download PDF',
                   ),
-                  tabs: const [
-                    Tab(text: 'Suppliers'),
-                    Tab(text: 'Purchase Records'),
-                  ],
+                ],
+              ),
+              SliverToBoxAdapter(
+                child: Consumer<SupplierProvider>(
+                  builder: (context, provider, _) => _buildSummaryCards(provider),
                 ),
               ),
-            ),
-          ];
-        },
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildSuppliersTab(),
-            _buildPurchaseRecordsTab(),
-          ],
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _SliverAppBarDelegate(
+                  TabBar(
+                    controller: _tabController,
+                    dividerColor: Colors.transparent,
+                    indicatorColor: AppColors.primary,
+                    indicatorWeight: 3,
+                    labelColor: AppColors.primary,
+                    unselectedLabelColor: AppColors.textLight,
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                    tabs: const [
+                      Tab(text: 'Suppliers'),
+                      Tab(text: 'Purchase Records'),
+                    ],
+                  ),
+                ),
+              ),
+            ];
+          },
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildSuppliersTab(),
+              _buildPurchaseRecordsTab(),
+            ],
+          ),
         ),
       ),
       floatingActionButton: _tabController.index == 0
@@ -598,6 +602,13 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
       child: _tabBar,
     );
   }
+
+  @override
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
+  }
+}
+
 
   @override
   bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
