@@ -5,11 +5,28 @@ import 'package:frontend/features/auth/domain/entities/owner.dart';
 class AdminProvider extends ChangeNotifier {
   List<Owner> _owners = [];
   bool _isLoading = false;
+  bool _isActionInProgress = false;
   String? _error;
+  Map<String, dynamic>? _systemHealth;
 
   List<Owner> get owners => _owners;
   bool get isLoading => _isLoading;
+  bool get isActionInProgress => _isActionInProgress;
   String? get error => _error;
+  Map<String, dynamic>? get systemHealth => _systemHealth;
+
+  // Fetch real-time system health and MongoDB metrics.
+  Future<void> fetchSystemHealth() async {
+    try {
+      final response = await ApiClient.get('/admin/system-health');
+      if (response['success'] == true) {
+        _systemHealth = response['data']['mongodb'];
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error fetching system health: $e');
+    }
+  }
 
   // Fetch all store owners for the client dashboard
   Future<void> fetchOwners() async {
@@ -35,6 +52,94 @@ class AdminProvider extends ChangeNotifier {
 
   // Helper for dashboard stats
   int get totalOwners => _owners.length;
+  int get activeOwners =>
+      _owners
+          .where(
+            (owner) => owner.isSuspended == false && owner.status != 'suspended',
+          )
+          .length;
+  int get suspendedOwners =>
+      _owners
+          .where(
+            (owner) => owner.isSuspended || owner.status == 'suspended',
+          )
+          .length;
+
+  Future<bool> _runOwnerAction(
+    String ownerId,
+    Future<Map<String, dynamic>> Function() request,
+    String fallbackError,
+  ) async {
+    try {
+      _isActionInProgress = true;
+      _error = null;
+      notifyListeners();
+
+      final response = await request();
+      if (response['success'] == true) {
+        _applyOwnerActionResult(ownerId, response);
+        _error = null;
+        notifyListeners();
+        return true;
+      }
+      _error = response['error'] ?? fallbackError;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _error = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    } finally {
+      _isActionInProgress = false;
+      notifyListeners();
+    }
+  }
+
+  void _applyOwnerActionResult(String ownerId, Map<String, dynamic> response) {
+    if (response['message'] == 'Owner deleted successfully') {
+       _owners.removeWhere((owner) => owner.id == ownerId);
+       return;
+    }
+
+    final dynamic data = response['data'];
+    if (data is Map<String, dynamic>) {
+      final updatedOwner = Owner.fromJson(data);
+      final index = _owners.indexWhere((owner) => owner.id == ownerId);
+      if (index >= 0) {
+        _owners[index] = updatedOwner;
+      } else {
+        _owners.add(updatedOwner);
+      }
+      return;
+    }
+  }
+
+  // Update owner details
+  Future<bool> updateOwner(String id, Map<String, dynamic> data) async {
+    return _runOwnerAction(
+      id,
+      () => ApiClient.put('/admin/owners/$id', data),
+      'Failed to update owner',
+    );
+  }
+
+  // Suspend or Unsuspend an owner
+  Future<bool> suspendOwner(String id) async {
+    return _runOwnerAction(
+      id,
+      () => ApiClient.patch('/admin/owners/$id/suspend'),
+      'Failed to update suspension status',
+    );
+  }
+
+  // Delete an owner account
+  Future<bool> deleteOwner(String id) async {
+    return _runOwnerAction(
+      id,
+      () => ApiClient.delete('/admin/owners/$id'),
+      'Failed to delete owner',
+    );
+  }
 
   // Clear any existing errors
   void clearError() {
