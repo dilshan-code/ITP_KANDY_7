@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/features/admin/presentation/providers/admin_provider.dart';
 import 'package:frontend/features/admin/presentation/screens/admin_dashboard_screen.dart';
+import 'package:frontend/features/admin/presentation/screens/manage_feedback_screen.dart';
 import 'package:frontend/features/admin/presentation/screens/manage_owners_screen.dart';
 import 'package:frontend/features/admin/presentation/screens/admin_account_screen.dart';
 
@@ -20,12 +21,17 @@ class _AdminShellState extends State<AdminShell> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<AdminProvider>().fetchOwners();
+      if (mounted) {
+        final adminProvider = context.read<AdminProvider>();
+        adminProvider.fetchOwners();
+        adminProvider.fetchSystemHealth();
+      }
     });
   }
 
   final List<Widget> _screens = [
     const AdminDashboardScreen(),
+    const ManageFeedbackScreen(),
     const ManageOwnersScreen(),
     const AdminAccountScreen(),
   ];
@@ -68,12 +74,18 @@ class _AdminShellState extends State<AdminShell> {
                     ),
                     _buildNavItem(
                       1,
+                      Icons.feedback_outlined,
+                      Icons.feedback,
+                      'Feedback',
+                    ),
+                    _buildNavItem(
+                      2,
                       Icons.people_outline,
                       Icons.people,
                       'Owners',
                     ),
                     _buildNavItem(
-                      2,
+                      3,
                       Icons.admin_panel_settings_outlined,
                       Icons.admin_panel_settings,
                       'Admin',
