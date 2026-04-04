@@ -5,6 +5,7 @@ function createAuthRoutes(authController, authMiddleware) {
     // Public routes
     router.post('/auth/register', (req, res) => authController.register(req, res));
     router.post('/auth/login', (req, res) => authController.login(req, res));
+    router.post('/auth/reset-password', (req, res) => authController.resetPassword(req, res));
     
     // Private routes (protected by authMiddleware)
     router.get('/auth/profile/:id', authMiddleware, (req, res) => authController.getProfile(req, res));
