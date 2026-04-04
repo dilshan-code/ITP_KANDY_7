@@ -16,237 +16,247 @@ class AccountScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Profile header
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.primary, AppColors.primaryDark],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              // Profile header
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.primary, AppColors.primaryDark],
+                  ),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(32),
+                    bottomRight: Radius.circular(32),
+                  ),
                 ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(32),
-                  bottomRight: Radius.circular(32),
-                ),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Account',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Account',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Consumer<AuthProvider>(
-                    builder: (context, auth, _) {
-                      return Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 40,
-                            backgroundColor: Colors.white.withValues(alpha: 0.2),
-                            child: const Icon(
-                              Icons.person,
-                              size: 40,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            auth.currentOwner?.name ?? 'Shop Owner',
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            auth.currentOwner?.shopName ?? 'ClickBuy Store',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white.withValues(alpha: 0.8),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 24),
-
-                  const SizedBox(height: 24),
-                  // Settings section
-                  const Text(
-                    'Settings',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDark,
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildMenuItem(
-                    context,
-                    Icons.person_outline,
-                    'Profile Settings',
-                    'Update your personal info',
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ProfileSettingsScreen(),
-                        ),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 24),
-                  // Management section
-                  const Text(
-                    'Management',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildMenuItem(
-                    context,
-                    Icons.local_shipping_outlined,
-                    'Supplier Management',
-                    'Manage your suppliers & purchases',
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const SupplierManagementScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    Icons.notifications_outlined,
-                    'Notifications',
-                    'View alerts and updates',
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const NotificationScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    Icons.bar_chart_outlined,
-                    'Reports',
-                    'View your business analytics',
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ReportsScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    context,
-                    Icons.receipt_long_outlined,
-                    'Invoice History',
-                    'View your past sales & invoices',
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const InvoiceHistoryScreen(),
-                        ),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 24),
-                  _buildMenuItem(
-                    context,
-                    Icons.help_outline,
-                    'Help & Support',
-                    'Get help with the app',
-                    () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const HelpSupportScreen(),
-                        ),
-                      );
-                    },
-                  ),
-
-                  const SizedBox(height: 24),
-                  // Logout button
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Provider.of<AuthProvider>(
-                          context,
-                          listen: false,
-                        ).logout();
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const LoginScreen(),
-                          ),
-                          (route) => false,
+                    const SizedBox(height: 16),
+                    Consumer<AuthProvider>(
+                      builder: (context, auth, _) {
+                        return Column(
+                          children: [
+                            CircleAvatar(
+                              radius: 40,
+                              backgroundColor: Colors.white.withValues(alpha: 0.2),
+                              child: const Icon(
+                                Icons.person,
+                                size: 40,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              auth.currentOwner?.name ?? 'Shop Owner',
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              auth.currentOwner?.shopName ?? 'ClickBuy Store',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white.withValues(alpha: 0.8),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              auth.currentOwner?.email ?? '',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ],
                         );
                       },
-                      icon: const Icon(Icons.logout, color: AppColors.error),
-                      label: const Text(
-                        'Logout',
-                        style: TextStyle(
-                          color: AppColors.error,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 24),
+
+                    const SizedBox(height: 24),
+                    // Settings section
+                    const Text(
+                      'Settings',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
                       ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: BorderSide(
-                          color: AppColors.error.withValues(alpha: 0.3),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildMenuItem(
+                      context,
+                      Icons.person_outline,
+                      'Profile Settings',
+                      'Update your personal info',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ProfileSettingsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+                    // Management section
+                    const Text(
+                      'Management',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildMenuItem(
+                      context,
+                      Icons.local_shipping_outlined,
+                      'Supplier Management',
+                      'Manage your suppliers & purchases',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SupplierManagementScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      Icons.notifications_outlined,
+                      'Notifications',
+                      'View alerts and updates',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const NotificationScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      Icons.bar_chart_outlined,
+                      'Reports',
+                      'View your business analytics',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ReportsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildMenuItem(
+                      context,
+                      Icons.receipt_long_outlined,
+                      'Invoice History',
+                      'View your past sales & invoices',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const InvoiceHistoryScreen(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+                    _buildMenuItem(
+                      context,
+                      Icons.help_outline,
+                      'Help & Support',
+                      'Get help with the app',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const HelpSupportScreen(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+                    // Logout button
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Provider.of<AuthProvider>(
+                            context,
+                            listen: false,
+                          ).logout();
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const LoginScreen(),
+                            ),
+                            (route) => false,
+                          );
+                        },
+                        icon: const Icon(Icons.logout, color: AppColors.error),
+                        label: const Text(
+                          'Logout',
+                          style: TextStyle(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(
+                            color: AppColors.error.withValues(alpha: 0.3),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
