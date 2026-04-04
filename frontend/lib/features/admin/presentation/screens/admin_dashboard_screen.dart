@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/features/admin/presentation/providers/admin_provider.dart';
 import 'package:frontend/features/auth/domain/entities/owner.dart';
+import 'package:frontend/features/admin/presentation/screens/manage_feedback_screen.dart';
+import 'package:frontend/features/account/presentation/providers/feedback_provider.dart';
+
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -14,7 +17,16 @@ class AdminDashboardScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () => adminProvider.fetchOwners(),
+          onRefresh: () async {
+            await adminProvider.fetchOwners();
+            if (context.mounted) {
+              await adminProvider.fetchSystemHealth();
+              if (context.mounted) {
+                await context.read<FeedbackProvider>().fetchAllFeedback();
+              }
+            }
+          },
+
           color: Colors.indigo,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -22,7 +34,7 @@ class AdminDashboardScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(),
+                _buildHeader(context, adminProvider),
                 const SizedBox(height: 32),
                 if (adminProvider.isLoading && adminProvider.owners.isEmpty)
                   const Center(
@@ -32,9 +44,10 @@ class AdminDashboardScreen extends StatelessWidget {
                     ),
                   )
                 else ...[
-                  _buildStatCards(adminProvider),
+                  _buildStatCards(context, adminProvider),
                   const SizedBox(height: 32),
-                  _buildSystemHealth(),
+
+                  _buildSystemHealth(adminProvider),
                   const SizedBox(height: 32),
                   _buildRecentActivity(adminProvider),
                 ],
@@ -46,29 +59,61 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
-    return Column(
+  Widget _buildHeader(BuildContext context, AdminProvider provider) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Client Dashboard',
-          style: TextStyle(
-            color: Color(0xFF1E293B),
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            letterSpacing: -0.5,
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Client Dashboard',
+              style: TextStyle(
+                color: Color(0xFF1E293B),
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Overview of ClickBuy partner network',
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            ),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          'Overview of ClickBuy partner network',
-          style: TextStyle(color: Colors.grey[600], fontSize: 14),
+        IconButton.filled(
+          onPressed: provider.isLoading
+              ? null
+              : () async {
+                  await provider.fetchOwners();
+                  if (context.mounted) {
+                    await provider.fetchSystemHealth();
+                    if (context.mounted) {
+                      await context.read<FeedbackProvider>().fetchAllFeedback();
+                    }
+                  }
+                },
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.indigo,
+            side: BorderSide(color: Colors.grey[200]!),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+          icon: provider.isLoading
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.refresh_rounded, size: 22),
         ),
       ],
     );
   }
 
-  Widget _buildStatCards(AdminProvider provider) {
+  Widget _buildStatCards(BuildContext context, AdminProvider provider) {
     return Row(
       children: [
         Expanded(
@@ -81,18 +126,34 @@ class AdminDashboardScreen extends StatelessWidget {
         ),
         const SizedBox(width: 16),
         Expanded(
-          child: const _AdminStatCard(
-            title: 'Active Today',
-            value: '2', // Mock data for now
-            icon: Icons.bolt,
-            color: Colors.green,
+          child: Consumer<FeedbackProvider>(
+            builder: (context, feedbackProvider, _) {
+              return _AdminStatCard(
+                title: 'User Feedback',
+                value: feedbackProvider.feedbacks.length.toString(),
+                icon: Icons.feedback_outlined,
+                color: Colors.amber,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ManageFeedbackScreen()),
+                  );
+                },
+              );
+            },
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSystemHealth() {
+
+  Widget _buildSystemHealth(AdminProvider provider) {
+    final mongo = provider.systemHealth;
+    final storage = mongo?['storageUsed'] ?? 'Optimal';
+    final reads = mongo?['reads']?.toString() ?? '...';
+    final writes = mongo?['writes']?.toString() ?? '...';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -148,9 +209,9 @@ class AdminDashboardScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          _buildHealthRow('API Server', '99.9% Uptime', Colors.green),
-          _buildHealthRow('Firestore DB', 'Optimal', Colors.green),
-          _buildHealthRow('Notification Service', 'Running', Colors.green),
+          _buildHealthRow('MongoDB Storage', storage, Colors.indigo),
+          _buildHealthRow('DB Network Load', 'Reads: $reads | Writes: $writes', Colors.green),
+          _buildHealthRow('API Server', 'Running', Colors.green),
         ],
       ),
     );
@@ -221,7 +282,7 @@ class AdminDashboardScreen extends StatelessWidget {
                 Icon(Icons.people_outline, color: Colors.grey[300], size: 40),
                 const SizedBox(height: 12),
                 Text(
-                  'No registrations yet',
+                  'No owners found',
                   style: TextStyle(color: Colors.grey[400], fontSize: 14),
                 ),
               ],
@@ -229,7 +290,8 @@ class AdminDashboardScreen extends StatelessWidget {
           )
         else
           Column(
-            children: provider.owners
+            children: (provider.owners.toList()
+                  ..sort((a, b) => b.createdAt.compareTo(a.createdAt)))
                 .take(3)
                 .map((owner) => _OwnerMiniTile(owner: owner))
                 .toList(),
@@ -279,7 +341,6 @@ class _OwnerMiniTile extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, color: Colors.grey, size: 16),
         ],
       ),
     );
@@ -291,17 +352,22 @@ class _AdminStatCard extends StatelessWidget {
   final String value;
   final IconData icon;
   final Color color;
+  final VoidCallback? onTap;
 
   const _AdminStatCard({
     required this.title,
     required this.value,
     required this.icon,
     required this.color,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -346,6 +412,8 @@ class _AdminStatCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }
+
