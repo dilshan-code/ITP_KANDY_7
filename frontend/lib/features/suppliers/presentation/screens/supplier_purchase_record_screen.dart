@@ -255,241 +255,267 @@ class _SupplierPurchaseRecordScreenState extends State<SupplierPurchaseRecordScr
         title: const Text('New Purchase Record'),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionTitle('Transaction Details'),
-              const SizedBox(height: 16),
-              
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('Supplier *'),
-                        Consumer<SupplierProvider>(
-                          builder: (context, provider, _) {
-                            if (provider.isLoading) {
-                              return _buildLoadingDropdown('Loading...');
-                            }
-                            return Container(
-                              decoration: _containerDecoration(Icons.local_shipping_outlined),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  key: ValueKey('supplier_dropdown_${provider.isLoading}_${_selectedSupplierId == null}'),
-                                  isExpanded: true,
-                                  value: _selectedSupplierId,
-                                  hint: const Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 16),
-                                    child: Text('Select Supplier'),
-                                  ),
-                                  items: provider.suppliers
-                                      .map((s) => s.id)
-                                      .toSet()
-                                      .map((id) {
-                                    final s = provider.suppliers.firstWhere((sup) => sup.id == id);
-                                    return DropdownMenuItem(
-                                      value: id.toString(),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                                        child: Text(s.name),
-                                      ),
-                                    );
-                                  }).toList(),
-                                  onChanged: (val) {
-                                    setState(() {
-                                      _selectedSupplierId = val;
-                                      if (val != null) {
-                                        _selectedSupplierName = provider.suppliers.firstWhere((s) => s.id == val).name;
-                                      }
-                                    });
-                                  },
-                                  icon: const Padding(
-                                    padding: EdgeInsets.only(right: 12),
-                                    child: Icon(Icons.arrow_drop_down, color: AppColors.primary),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionTitle('Transaction Details'),
+                const SizedBox(height: 16),
+
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Supplier *'),
+                          Consumer<SupplierProvider>(
+                            builder: (context, provider, _) {
+                              if (provider.isLoading) {
+                                return _buildLoadingDropdown('Loading...');
+                              }
+                              return Container(
+                                decoration: _containerDecoration(
+                                    Icons.local_shipping_outlined),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    key: ValueKey(
+                                        'supplier_dropdown_${provider.isLoading}_${_selectedSupplierId == null}'),
+                                    isExpanded: true,
+                                    value: _selectedSupplierId,
+                                    hint: const Padding(
+                                      padding:
+                                          EdgeInsets.symmetric(horizontal: 16),
+                                      child: Text('Select Supplier'),
+                                    ),
+                                    items: provider.suppliers
+                                        .map((s) => s.id)
+                                        .toSet()
+                                        .map((id) {
+                                      final s = provider.suppliers
+                                          .firstWhere((sup) => sup.id == id);
+                                      return DropdownMenuItem(
+                                        value: id.toString(),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16),
+                                          child: Text(s.name),
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _selectedSupplierId = val;
+                                        if (val != null) {
+                                          _selectedSupplierName = provider
+                                              .suppliers
+                                              .firstWhere((s) => s.id == val)
+                                              .name;
+                                        }
+                                      });
+                                    },
+                                    icon: const Padding(
+                                      padding: EdgeInsets.only(right: 12),
+                                      child: Icon(Icons.arrow_drop_down,
+                                          color: AppColors.primary),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('Invoice #'),
-                        TextFormField(
-                          controller: _invoiceController,
-                          decoration: _inputDecoration(Icons.receipt_long_outlined),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // Product Dropdown
-              _buildLabel('Product *'),
-              Consumer<ProductProvider>(
-                builder: (context, provider, _) {
-                  if (provider.isLoading) {
-                    return _buildLoadingDropdown('Loading Products...');
-                  }
-                  return Container(
-                    decoration: _containerDecoration(Icons.inventory_2_outlined),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        key: ValueKey('product_dropdown_${provider.isLoading}_${_selectedProductId == null}'),
-                        isExpanded: true,
-                        value: _selectedProductId,
-                        hint: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('Select Product'),
-                        ),
-                        items: provider.products
-                            .map((p) => p.id)
-                            .toSet() // Ensure unique IDs
-                            .map((id) {
-                          final p = provider.products.firstWhere((prod) => prod.id == id);
-                          return DropdownMenuItem(
-                            value: id.toString(),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: Text('${p.name} (${p.stockQuantity} ${p.unit} in stock)'),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          setState(() {
-                            _selectedProductId = val;
-                            if (val != null && _priceController.text.isEmpty) {
-                              final product = provider.products.firstWhere((p) => p.id == val);
-                              _priceController.text = product.sellingPrice.toString();
-                            }
-                          });
-                        },
-                        icon: const Padding(
-                          padding: EdgeInsets.only(right: 12),
-                          child: Icon(Icons.arrow_drop_down, color: AppColors.primary),
-                        ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
-                  );
-                },
-              ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Invoice #'),
+                          TextFormField(
+                            controller: _invoiceController,
+                            decoration:
+                                _inputDecoration(Icons.receipt_long_outlined),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
 
-              const SizedBox(height: 20),
-              _buildSectionTitle('Purchase Information'),
-              const SizedBox(height: 16),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('Quantity *'),
-                        TextFormField(
-                          controller: _quantityController,
-                          keyboardType: TextInputType.number,
-                          decoration: _inputDecoration(Icons.add_shopping_cart),
-                          validator: (val) {
-                            if (val == null || val.isEmpty) return 'Required';
-                            if (int.tryParse(val) == null || int.parse(val) <= 0) return 'Invalid';
-                            return null;
+                // Product Dropdown
+                _buildLabel('Product *'),
+                Consumer<ProductProvider>(
+                  builder: (context, provider, _) {
+                    if (provider.isLoading) {
+                      return _buildLoadingDropdown('Loading Products...');
+                    }
+                    return Container(
+                      decoration:
+                          _containerDecoration(Icons.inventory_2_outlined),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          key: ValueKey(
+                              'product_dropdown_${provider.isLoading}_${_selectedProductId == null}'),
+                          isExpanded: true,
+                          value: _selectedProductId,
+                          hint: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16),
+                            child: Text('Select Product'),
+                          ),
+                          items: provider.products
+                              .map((p) => p.id)
+                              .toSet() // Ensure unique IDs
+                              .map((id) {
+                            final p = provider.products
+                                .firstWhere((prod) => prod.id == id);
+                            return DropdownMenuItem(
+                              value: id.toString(),
+                              child: Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
+                                child: Text(
+                                    '${p.name} (${p.stockQuantity} ${p.unit} in stock)'),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedProductId = val;
+                              if (val != null && _priceController.text.isEmpty) {
+                                final product = provider.products
+                                    .firstWhere((p) => p.id == val);
+                                _priceController.text =
+                                    product.sellingPrice.toString();
+                              }
+                            });
                           },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('Unit Price (Optional)'),
-                        TextFormField(
-                          controller: _priceController,
-                          keyboardType: TextInputType.number,
-                          decoration: _inputDecoration(Icons.attach_money),
-                          // Optional as per request
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 20),
-              
-              _buildLabel('Date'),
-              TextFormField(
-                controller: _dateController,
-                readOnly: true,
-                onTap: () => _selectDate(context),
-                decoration: _inputDecoration(Icons.calendar_today_outlined),
-              ),
-
-              const SizedBox(height: 20),
-
-              _buildLabel('Payment Status'),
-              DropdownButtonFormField<String>(
-                initialValue: _paymentStatus,
-                items: ['Paid', 'Pending', 'Partial'].map((s) {
-                  return DropdownMenuItem(value: s, child: Text(s));
-                }).toList(),
-                onChanged: (val) => setState(() => _paymentStatus = val!),
-                decoration: _inputDecoration(Icons.paid_outlined),
-              ),
-
-              const SizedBox(height: 20),
-
-              _buildLabel('Notes (Optional)'),
-              TextFormField(
-                controller: _notesController,
-                maxLines: 3,
-                decoration: _inputDecoration(Icons.note_alt_outlined),
-              ),
-
-              const SizedBox(height: 32),
-
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 2,
-                  ),
-                  child: _isSubmitting
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Save Purchase',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                          icon: const Padding(
+                            padding: EdgeInsets.only(right: 12),
+                            child: Icon(Icons.arrow_drop_down,
+                                color: AppColors.primary),
                           ),
                         ),
+                      ),
+                    );
+                  },
                 ),
-              ),
-              const SizedBox(height: 20),
-            ],
+
+                const SizedBox(height: 20),
+                _buildSectionTitle('Purchase Information'),
+                const SizedBox(height: 16),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Quantity *'),
+                          TextFormField(
+                            controller: _quantityController,
+                            keyboardType: TextInputType.number,
+                            decoration:
+                                _inputDecoration(Icons.add_shopping_cart),
+                            validator: (val) {
+                              if (val == null || val.isEmpty) {
+                                return 'Required';
+                              }
+                              if (int.tryParse(val) == null ||
+                                  int.parse(val) <= 0) {
+                                return 'Invalid';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Unit Price (Optional)'),
+                          TextFormField(
+                            controller: _priceController,
+                            keyboardType: TextInputType.number,
+                            decoration: _inputDecoration(Icons.attach_money),
+                            // Optional as per request
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                _buildLabel('Date'),
+                TextFormField(
+                  controller: _dateController,
+                  readOnly: true,
+                  onTap: () => _selectDate(context),
+                  decoration: _inputDecoration(Icons.calendar_today_outlined),
+                ),
+
+                const SizedBox(height: 20),
+
+                _buildLabel('Payment Status'),
+                DropdownButtonFormField<String>(
+                  initialValue: _paymentStatus,
+                  items: ['Paid', 'Pending', 'Partial'].map((s) {
+                    return DropdownMenuItem(value: s, child: Text(s));
+                  }).toList(),
+                  onChanged: (val) => setState(() => _paymentStatus = val!),
+                  decoration: _inputDecoration(Icons.paid_outlined),
+                ),
+
+                const SizedBox(height: 20),
+
+                _buildLabel('Notes (Optional)'),
+                TextFormField(
+                  controller: _notesController,
+                  maxLines: 3,
+                  decoration: _inputDecoration(Icons.note_alt_outlined),
+                ),
+
+                const SizedBox(height: 32),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isSubmitting ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: _isSubmitting
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            'Save Purchase',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
@@ -559,3 +585,4 @@ class _SupplierPurchaseRecordScreenState extends State<SupplierPurchaseRecordScr
     );
   }
 }
+
