@@ -6,6 +6,7 @@ import 'package:frontend/features/suppliers/presentation/providers/purchase_prov
 import 'package:frontend/features/suppliers/presentation/providers/supplier_provider.dart';
 import 'package:frontend/features/products/presentation/providers/product_provider.dart';
 import 'package:frontend/features/products/domain/entities/product.dart';
+import 'package:frontend/shared/main_shell.dart';
 
 class RecordPurchaseScreen extends StatefulWidget {
   const RecordPurchaseScreen({super.key});
@@ -134,6 +135,9 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
 
       // Refresh products to show updated stock
       await productProvider.fetchProducts();
+
+      // Refresh dashboard statistics on Home Screen
+      MainShell.homeKey.currentState?.refresh();
       
       if (mounted) {
         Navigator.pop(context, true);
@@ -147,248 +151,258 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Record Purchase')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Supplier selection
-            _buildLabel('Select Supplier *'),
-            const SizedBox(height: 8),
-            Consumer<SupplierProvider>(
-              builder: (context, supplierProvider, _) {
-                if (supplierProvider.isLoading && supplierProvider.suppliers.isEmpty) {
-                  return _buildLoadingDropdown('Loading Suppliers...');
-                }
-                return Container(
-                  decoration: _containerDecoration(
-                    Icons.local_shipping_outlined,
-                    borderColor: _showSupplierError ? AppColors.error : Colors.grey.shade300,
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      key: ValueKey('supplier_id_dropdown_${supplierProvider.isLoading}_${_selectedSupplierId == null}'),
-                      isExpanded: true,
-                      value: _selectedSupplierId,
-                      hint: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('Choose a supplier'),
-                      ),
-                      items: supplierProvider.suppliers
-                          .map((s) => s.id)
-                          .toSet()
-                          .map((id) {
-                        final s = supplierProvider.suppliers.firstWhere((sup) => sup.id == id);
-                        return DropdownMenuItem(
-                          value: id,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(s.name),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setState(() {
-                          _selectedSupplierId = value;
-                          final supplier = supplierProvider.suppliers.firstWhere(
-                            (s) => s.id == value,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Supplier selection
+              _buildLabel('Select Supplier *'),
+              const SizedBox(height: 8),
+              Consumer<SupplierProvider>(
+                builder: (context, supplierProvider, _) {
+                  if (supplierProvider.isLoading &&
+                      supplierProvider.suppliers.isEmpty) {
+                    return _buildLoadingDropdown('Loading Suppliers...');
+                  }
+                  return Container(
+                    decoration: _containerDecoration(
+                      Icons.local_shipping_outlined,
+                      borderColor: _showSupplierError
+                          ? AppColors.error
+                          : Colors.grey.shade300,
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        key: ValueKey(
+                            'supplier_id_dropdown_${supplierProvider.isLoading}_${_selectedSupplierId == null}'),
+                        isExpanded: true,
+                        value: _selectedSupplierId,
+                        hint: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Text('Choose a supplier'),
+                        ),
+                        items: supplierProvider.suppliers
+                            .map((s) => s.id)
+                            .toSet()
+                            .map((id) {
+                          final s = supplierProvider.suppliers
+                              .firstWhere((sup) => sup.id == id);
+                          return DropdownMenuItem(
+                            value: id,
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(s.name),
+                            ),
                           );
-                          _selectedSupplierName = supplier.name;
-                          _showSupplierError = false;
-                        });
-                      },
-                      icon: const Padding(
-                        padding: EdgeInsets.only(right: 12),
-                        child: Icon(Icons.arrow_drop_down, color: AppColors.primary),
+                        }).toList(),
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setState(() {
+                            _selectedSupplierId = value;
+                            final supplier =
+                                supplierProvider.suppliers.firstWhere(
+                              (s) => s.id == value,
+                            );
+                            _selectedSupplierName = supplier.name;
+                            _showSupplierError = false;
+                          });
+                        },
+                        icon: const Padding(
+                          padding: EdgeInsets.only(right: 12),
+                          child: Icon(Icons.arrow_drop_down,
+                              color: AppColors.primary),
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-
-            // Product Selection
-            _buildLabel('Add Products to Stock *'),
-            const SizedBox(height: 8),
-            _buildProductSelector(),
-            const SizedBox(height: 16),
-
-            if (_purchasedItems.isNotEmpty) ...[
-              const Text(
-                'Purchased Items',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: AppColors.textMedium,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _purchasedItems.length,
-                itemBuilder: (context, index) {
-                  final item = _purchasedItems[index];
-                  return _buildPurchasedItemCard(index, item);
+                  );
                 },
               ),
               const SizedBox(height: 20),
-            ],
 
-            // Invoice number
-            _buildLabel('Invoice Number (Optional)'),
-            const SizedBox(height: 4),
-            const Text(
-              'Leave empty to auto-generate',
-              style: TextStyle(fontSize: 12, color: AppColors.textLight),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _invoiceController,
-              decoration: const InputDecoration(
-                hintText: 'e.g. INV-0001',
-                prefixIcon: Icon(
-                  Icons.receipt_outlined,
-                  color: AppColors.textLight,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
+              // Product Selection
+              _buildLabel('Add Products to Stock *'),
+              const SizedBox(height: 8),
+              _buildProductSelector(),
+              const SizedBox(height: 16),
 
-            // Amounts
-            _buildLabel('Subtotal'),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Row(
-                children: [
-                  const Text(
-                    'Rs ',
-                    style: TextStyle(
-                      color: AppColors.textLight,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _subtotal.toStringAsFixed(2),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            _buildLabel('Tax Amount'),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _taxController,
-              keyboardType: TextInputType.number,
-              onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                hintText: '0.00',
-                prefixIcon: Icon(Icons.percent, color: AppColors.textLight),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            _buildLabel('Amount Paid'),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _amountPaidController,
-              keyboardType: TextInputType.number,
-              onChanged: (_) => setState(() {}),
-              decoration: const InputDecoration(
-                hintText: '0.00',
-                prefixIcon: Icon(
-                  Icons.payments_outlined,
-                  color: AppColors.textLight,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Summary
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.accentGreen,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Column(
-                children: [
-                  _buildSummaryRow(
-                    'Subtotal',
-                    'Rs ${_subtotal.toStringAsFixed(2)}',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildSummaryRow('Tax', 'Rs ${_tax.toStringAsFixed(2)}'),
-                  const Divider(height: 20),
-                  _buildSummaryRow(
-                    'Total Amount',
-                    'Rs ${_totalAmount.toStringAsFixed(2)}',
-                    isBold: true,
-                  ),
-                  const SizedBox(height: 8),
-                  _buildSummaryRow(
-                    'Amount Paid',
-                    'Rs ${_amountPaid.toStringAsFixed(2)}',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildSummaryRow(
-                    'Remaining',
-                    'Rs ${_remaining.toStringAsFixed(2)}',
-                    isBold: true,
-                    valueColor: _remaining > 0
-                        ? AppColors.error
-                        : AppColors.primary,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _isSubmitting ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+              if (_purchasedItems.isNotEmpty) ...[
+                const Text(
+                  'Purchased Items',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: AppColors.textMedium,
                   ),
                 ),
-                child: _isSubmitting
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text(
-                        'Record Purchase',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
+                const SizedBox(height: 12),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _purchasedItems.length,
+                  itemBuilder: (context, index) {
+                    final item = _purchasedItems[index];
+                    return _buildPurchasedItemCard(index, item);
+                  },
+                ),
+                const SizedBox(height: 20),
+              ],
+
+              // Invoice number
+              _buildLabel('Invoice Number (Optional)'),
+              const SizedBox(height: 4),
+              const Text(
+                'Leave empty to auto-generate',
+                style: TextStyle(fontSize: 12, color: AppColors.textLight),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _invoiceController,
+                decoration: const InputDecoration(
+                  hintText: 'e.g. INV-0001',
+                  prefixIcon: Icon(
+                    Icons.receipt_outlined,
+                    color: AppColors.textLight,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Amounts
+              _buildLabel('Subtotal'),
+              const SizedBox(height: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Rs ',
+                      style: TextStyle(
+                        color: AppColors.textLight,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _subtotal.toStringAsFixed(2),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+
+              _buildLabel('Tax Amount'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _taxController,
+                keyboardType: TextInputType.number,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  hintText: '0.00',
+                  prefixIcon: Icon(Icons.percent, color: AppColors.textLight),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              _buildLabel('Amount Paid'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _amountPaidController,
+                keyboardType: TextInputType.number,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  hintText: '0.00',
+                  prefixIcon: Icon(
+                    Icons.payments_outlined,
+                    color: AppColors.textLight,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Summary
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.accentGreen,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  children: [
+                    _buildSummaryRow(
+                      'Subtotal',
+                      'Rs ${_subtotal.toStringAsFixed(2)}',
+                    ),
+                    const SizedBox(height: 8),
+                    _buildSummaryRow('Tax', 'Rs ${_tax.toStringAsFixed(2)}'),
+                    const Divider(height: 20),
+                    _buildSummaryRow(
+                      'Total Amount',
+                      'Rs ${_totalAmount.toStringAsFixed(2)}',
+                      isBold: true,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildSummaryRow(
+                      'Amount Paid',
+                      'Rs ${_amountPaid.toStringAsFixed(2)}',
+                    ),
+                    const SizedBox(height: 8),
+                    _buildSummaryRow(
+                      'Remaining',
+                      'Rs ${_remaining.toStringAsFixed(2)}',
+                      isBold: true,
+                      valueColor:
+                          _remaining > 0 ? AppColors.error : AppColors.primary,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _isSubmitting ? null : _submit,
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Record Purchase',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
