@@ -172,12 +172,13 @@ class InvoiceDialog extends StatelessWidget {
             Row(
               children: [
                 Expanded(
+                  flex: 3,
                   child: ElevatedButton.icon(
                     onPressed: () => InvoicePdfUtils.generateAndDownloadInvoice(
                       saleDetails: saleDetails,
                     ),
-                    icon: const Icon(Icons.download_outlined, size: 20),
-                    label: const Text('Download PDF'),
+                    icon: const Icon(Icons.download_outlined, size: 18),
+                    label: const Text('PDF', style: TextStyle(fontSize: 13)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: AppColors.primary,
@@ -193,8 +194,28 @@ class InvoiceDialog extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    onPressed: () => InvoicePdfUtils.shareInvoice(
+                      saleDetails: saleDetails,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                      foregroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Icon(Icons.share_rounded, size: 20),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: ElevatedButton.styleFrom(
@@ -207,7 +228,7 @@ class InvoiceDialog extends StatelessWidget {
                       'Close',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
-                        fontSize: 16,
+                        fontSize: 15,
                       ),
                     ),
                   ),
