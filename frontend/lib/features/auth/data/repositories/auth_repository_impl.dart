@@ -47,4 +47,12 @@ class AuthRepositoryImpl implements AuthRepository {
       'newPassword': newPassword,
     });
   }
+
+  @override
+  Future<void> resetPassword(String identifier, String newPassword) async {
+    await ApiClient.post('/auth/reset-password', {
+      'identifier': identifier,
+      'newPassword': newPassword,
+    });
+  }
 }
