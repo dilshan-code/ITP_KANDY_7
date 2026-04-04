@@ -66,90 +66,92 @@ class InvoiceHistoryScreenState extends State<InvoiceHistoryScreen> {
         elevation: 0,
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          _buildSearchHeader(),
-          Expanded(
-            child: Consumer<SaleProvider>(
-              builder: (context, provider, child) {
-                if (provider.isLoading && provider.sales.isEmpty) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  );
-                }
-
-                if (provider.error != null && provider.sales.isEmpty) {
-                  return _buildErrorView(provider.error!);
-                }
-
-                final filteredSales = provider.sales.where((sale) {
-                  final query = _searchQuery.toLowerCase();
-                  final customerName = (sale['customerName'] ?? '')
-                      .toString()
-                      .toLowerCase();
-                  final invoiceId = (sale['id'] ?? '').toString().toLowerCase();
-                  return customerName.contains(query) ||
-                      invoiceId.contains(query);
-                }).toList();
-
-                if (filteredSales.isEmpty) {
-                  return _buildEmptyView();
-                }
-
-                // Group sales by date
-                final groupedSales = <String, List<Map<String, dynamic>>>{};
-                for (var sale in filteredSales) {
-                  final date = DateTime.parse(
-                    sale['createdAt'] ?? DateTime.now().toString(),
-                  ).toLocal();
-                  final dateStr = DateFormat('yyyy-MM-dd').format(date);
-                  if (!groupedSales.containsKey(dateStr)) {
-                    groupedSales[dateStr] = [];
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildSearchHeader(),
+            Expanded(
+              child: Consumer<SaleProvider>(
+                builder: (context, provider, child) {
+                  if (provider.isLoading && provider.sales.isEmpty) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: AppColors.primary),
+                    );
                   }
-                  groupedSales[dateStr]!.add(sale);
-                }
 
-                final sortedDates = groupedSales.keys.toList()
-                  ..sort((a, b) => b.compareTo(a));
+                  if (provider.error != null && provider.sales.isEmpty) {
+                    return _buildErrorView(provider.error!);
+                  }
 
-                return RefreshIndicator(
-                  onRefresh: () => provider.fetchSales(),
-                  color: AppColors.primary,
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                    itemCount: sortedDates.length + (provider.isFetchingMore ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      if (index == sortedDates.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
+                  final filteredSales = provider.sales.where((sale) {
+                    final query = _searchQuery.toLowerCase();
+                    final customerName = (sale['customerName'] ?? '')
+                        .toString()
+                        .toLowerCase();
+                    final invoiceId = (sale['id'] ?? '').toString().toLowerCase();
+                    return customerName.contains(query) ||
+                        invoiceId.contains(query);
+                  }).toList();
+
+                  if (filteredSales.isEmpty) {
+                    return _buildEmptyView();
+                  }
+
+                  // Group sales by date
+                  final groupedSales = <String, List<Map<String, dynamic>>>{};
+                  for (var sale in filteredSales) {
+                    final date = DateTime.parse(
+                      sale['createdAt'] ?? DateTime.now().toString(),
+                    ).toLocal();
+                    final dateStr = DateFormat('yyyy-MM-dd').format(date);
+                    if (!groupedSales.containsKey(dateStr)) {
+                      groupedSales[dateStr] = [];
+                    }
+                    groupedSales[dateStr]!.add(sale);
+                  }
+
+                  final sortedDates = groupedSales.keys.toList()
+                    ..sort((a, b) => b.compareTo(a));
+
+                  return RefreshIndicator(
+                    onRefresh: () => provider.fetchSales(),
+                    color: AppColors.primary,
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
+                      itemCount: sortedDates.length + (provider.isFetchingMore ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == sortedDates.length) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        }
+                        final dateStr = sortedDates[index];
+                        final sales = groupedSales[dateStr]!;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildDateHeader(dateStr),
+                            const SizedBox(height: 12),
+                            ...sales
+                                .map((sale) => _buildInvoiceCard(sale)),
+                            const SizedBox(height: 8),
+                          ],
                         );
-                      }
-                      final dateStr = sortedDates[index];
-                      final sales = groupedSales[dateStr]!;
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildDateHeader(dateStr),
-                          const SizedBox(height: 12),
-                          ...sales
-                              .map((sale) => _buildInvoiceCard(sale)),
-                          const SizedBox(height: 8),
-                        ],
-                      );
-                    },
-                  ),
-                );
-              },
+                      },
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
