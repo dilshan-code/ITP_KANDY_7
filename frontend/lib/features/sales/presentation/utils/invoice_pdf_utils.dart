@@ -1,13 +1,46 @@
 
+import 'dart:io';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class InvoicePdfUtils {
   static Future<void> generateAndDownloadInvoice({
     required Map<String, dynamic> saleDetails,
   }) async {
+    final pdf = _buildPdfDocument(saleDetails);
+    final invoiceId = saleDetails['id']?.toString().toUpperCase() ?? 'N/A';
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+      name: 'Invoice_$invoiceId.pdf',
+    );
+  }
+
+  static Future<void> shareInvoice({
+    required Map<String, dynamic> saleDetails,
+  }) async {
+    final pdf = _buildPdfDocument(saleDetails);
+    final invoiceId = saleDetails['id']?.toString().toUpperCase() ?? 'N/A';
+    final bytes = await pdf.save();
+
+    final tempDir = await getTemporaryDirectory();
+    final file = File('${tempDir.path}/Invoice_$invoiceId.pdf');
+    await file.writeAsBytes(bytes);
+
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path)],
+        text: 'Invoice #$invoiceId from Small Store',
+        subject: 'Invoice #$invoiceId',
+      ),
+    );
+  }
+
+  static pw.Document _buildPdfDocument(Map<String, dynamic> saleDetails) {
     final pdf = pw.Document();
 
     final items = saleDetails['items'] as List<dynamic>? ?? [];
@@ -189,10 +222,7 @@ class InvoicePdfUtils {
       ),
     );
 
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-      name: 'Invoice_$invoiceId.pdf',
-    );
+    return pdf;
   }
 
   static pw.Padding _buildTableCell(String text, {bool isHeader = false}) {
