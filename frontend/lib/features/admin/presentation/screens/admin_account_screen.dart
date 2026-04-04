@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart';
 import 'package:frontend/features/auth/presentation/screens/login_screen.dart';
+import 'package:frontend/features/admin/presentation/screens/admin_profile_screen.dart';
 
 class AdminAccountScreen extends StatelessWidget {
   const AdminAccountScreen({super.key});
@@ -24,15 +25,18 @@ class AdminAccountScreen extends StatelessWidget {
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        automaticallyImplyLeading: false,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            _buildProfileSection(authProvider),
-            const SizedBox(height: 32),
-            _buildSettingsList(context, authProvider),
-          ],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              _buildProfileSection(authProvider),
+              const SizedBox(height: 32),
+              _buildSettingsList(context, authProvider),
+            ],
+          ),
         ),
       ),
     );
@@ -63,16 +67,16 @@ class AdminAccountScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        const Text(
-          'System Administrator',
-          style: TextStyle(
+        Text(
+          auth.currentOwner?.name ?? 'System Administrator',
+          style: const TextStyle(
             color: Color(0xFF1E293B),
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
         Text(
-          'admin@clickbuy.com',
+          auth.currentOwner?.email ?? 'admin@gmail.com',
           style: TextStyle(color: Colors.grey[500], fontSize: 14),
         ),
       ],
@@ -95,6 +99,17 @@ class AdminAccountScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
+          _buildSettingsItem(
+            icon: Icons.person_outline,
+            title: 'Personal Information',
+            subtitle: 'Update your name, email and phone',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminProfileScreen()),
+              );
+            },
+          ),
           _buildSettingsItem(
             icon: Icons.security,
             title: 'Security Logs',
