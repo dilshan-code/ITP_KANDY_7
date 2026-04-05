@@ -7,9 +7,10 @@ import 'package:frontend/features/notifications/presentation/providers/notificat
 import 'package:frontend/features/products/presentation/providers/product_provider.dart';
 import 'package:frontend/features/credit/presentation/screens/credit_list_screen.dart';
 import 'package:frontend/features/credit/domain/entities/customer.dart';
-import 'package:frontend/features/sales/presentation/screens/invoice_dialog.dart';
 import 'package:frontend/features/sales/presentation/screens/payment_confirmation_dialog.dart';
+import 'package:frontend/features/sales/presentation/screens/payment_success_screen.dart';
 import 'package:frontend/features/credit/presentation/providers/credit_provider.dart';
+import 'package:frontend/shared/main_shell.dart';
 
 class NewSaleScreen extends StatefulWidget {
   const NewSaleScreen({super.key});
@@ -66,7 +67,8 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
           ),
         ],
       ),
-      body: Consumer<SaleProvider>(
+      body: SafeArea(
+        child: Consumer<SaleProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading) {
             return const Center(
@@ -385,6 +387,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
           );
         },
       ),
+    ),
     );
   }
 
@@ -456,42 +459,55 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     String invoiceId,
     Customer? selectedCustomer,
   ) async {
-    final saleDetails = await provider.completeSale(
-      id: invoiceId,
-      paymentMethod: method,
-      customerId: selectedCustomer?.id ?? '',
-      customerName: selectedCustomer?.name ?? '',
-    );
+    try {
+      final saleDetails = await provider.completeSale(
+        id: invoiceId,
+        paymentMethod: method,
+        customerId: selectedCustomer?.id ?? '',
+        customerName: selectedCustomer?.name ?? '',
+      );
 
-    if (!context.mounted) return;
+      if (!context.mounted) return;
 
-    if (saleDetails != null) {
-      // Stock reduced on backend, now refresh local list in ProductProvider
-      context.read<ProductProvider>().fetchProducts();
+      if (saleDetails != null) {
+        // Stock reduced on backend, now refresh local list in ProductProvider
+        context.read<ProductProvider>().fetchProducts();
+        
+        // Also refresh sales history in SaleProvider since we removed it from the provider itself
+        context.read<SaleProvider>().fetchSales();
 
-      // Refresh CreditProvider if this was a credit sale or for a specific customer
-      if (selectedCustomer != null) {
-        context.read<CreditProvider>().fetchCustomers();
+        // Refresh CreditProvider if this was a credit sale or for a specific customer
+        if (selectedCustomer != null) {
+          context.read<CreditProvider>().fetchCustomers();
+        }
+
+        // Refresh global notification state
+        context.read<NotificationProvider>().fetchNotifications();
+
+        // Refresh dashboard statistics on Home Screen
+        MainShell.homeKey.currentState?.refresh();
+
+        // Navigate to Success screen
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => PaymentSuccessScreen(saleDetails: saleDetails),
+          ),
+        );
+      } else {
+        SnackBarUtils.showSnackBar(
+          context,
+          'Failed to complete sale.',
+          isError: true,
+        );
       }
-
-      // Refresh global notification state to show any backend-triggered alerts (like Low Stock or Credit Limit)
-      context.read<NotificationProvider>().fetchNotifications();
-
-      SnackBarUtils.showSnackBar(
-        context,
-        'Payment of Rs. ${saleDetails['totalAmount'].toStringAsFixed(2)} successful.',
-      );
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => InvoiceDialog(saleDetails: saleDetails),
-      );
-    } else {
-      SnackBarUtils.showSnackBar(
-        context,
-        'Failed to complete sale.',
-        isError: true,
-      );
+    } catch (e) {
+      if (context.mounted) {
+        SnackBarUtils.showSnackBar(
+          context,
+          'Error completing sale: $e',
+          isError: true,
+        );
+      }
     }
   }
 }

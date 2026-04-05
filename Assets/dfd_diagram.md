@@ -10,14 +10,22 @@ graph TD
     Manager((Store Manager))
     System[ClickBuy System]
     DB[(MongoDB Atlas)]
+    CDN[Cloudinary Media]
+    Auth[Firebase Phone Auth]
 
-    Manager -- "Login Credentials" --> System
+    Manager -- "Login Credentials / OTP" --> System
     Manager -- "Product & Sale Entries" --> System
-    System -- "Authentication Status" --> Manager
+    System -- "Auth Status / Token" --> Manager
     System -- "Reports & Notifications" --> Manager
 
     System -- "CRUD Operations" --> DB
-    DB -- "Stored Data Updates" --> System
+    DB -- "Data Stream" --> System
+
+    System -- "Image Upload/Delete" --> CDN
+    CDN -- "Image URLs" --> System
+
+    System -- "Verify Code" --> Auth
+    Auth -- "Auth Success" --> System
 ```
 
 ---
@@ -37,15 +45,25 @@ graph TD
         P4[Customer Credit Tracking]
         P5[Supplier & Purchase Mgmt]
         P6[Notifications & Analytics]
+        P7[Media Management]
     end
 
+    CDN[Cloudinary Media]
+    FAuth[Firebase Phone Auth]
+
     %% Auth Flow
-    Manager -- "Credentials" --> P1
+    Manager -- "Phone / OTP" --> P1
+    P1 -- "Verify OTP" --> FAuth
+    FAuth -- "User Data" --> P1
     P1 -- "Auth Token / Status" --> Manager
-    P1 -- "User Data" --> DB
+    P1 -- "Account Mapping" --> DB
 
     %% Inventory Flow
     Manager -- "Product Info / Category" --> P2
+    P2 -- "Trigger Upload" --> P7
+    P7 -- "Upload/Delete" --> CDN
+    CDN -- "Image URL" --> P7
+    P7 -- "Persist Metadata" --> DB
     P2 -- "Stock Updates / Product CRUD" --> DB
     DB -- "Inventory Data" --> P2
     P2 -- "Low Stock Trigger" --> P6

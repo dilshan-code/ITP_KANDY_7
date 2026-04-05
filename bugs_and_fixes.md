@@ -3,6 +3,52 @@
 A professional record of technical challenges encountered and resolved during the development of the **ClickBuy** application. Categorized by date to track evolution and stability.
 
 ---
+
+## 📅 April 5, 2026
+> *Focus: Workspace Integrity & Sync Synchronization*
+
+### `[RESOLVED]` Git Workspace Synchronization
+- **Issue**: critical screen files (e.g., `login_screen.dart`, `registration_screen.dart`) were missing after a branch switch or merge conflict.
+- **Fix**: Restored missing assets from local cache and synchronized the git state with current project requirements.
+- **Context**: maintaining a clean development environment is essential for team collaboration and version control reliability.
+
+---
+
+## 📅 April 3, 2026
+> *Focus: Refactoring Legacy Inventory Filtering*
+
+### `[FIXED]` Legacy Filter Chip Redundancy
+- **Issue**: Hardcoded, non-functional filter chips in the product inventory screen created confusion and technical debt.
+- **Fix**: Removed legacy UI elements and replaced them with a dynamic, multi-select checkbox system using centralized category constants.
+- **Context**: Cleaning up "dead code" and UI artifacts ensures a professional interface and easier maintenance as categories expand.
+
+---
+
+## 📅 April 2, 2026
+> *Focus: Media Orchestration & Authentication UX*
+
+### `[FIXED]` OTP Screen Linting & Deprecation
+- **Issue**: `otp_verification_screen.dart` contained several linting warnings and deprecated method calls that could lead to future runtime failures.
+- **Fix**: Standardized controller disposal, updated UI tokens, and resolved linting issues across the authentication flow.
+- **Context**: proactive code quality audits prevent "silent failures" in critical user paths like account verification.
+
+### `[RESOLVED]` Cloudinary Metadata Mismatch
+- **Issue**: Deleted products occasionally left "orphaned" images on Cloudinary, wasting storage and causing potential data drift.
+- **Fix**: Verified and reinforced the backend deletion hooks to ensure `cloudinary.uploader.destroy` is triggered correctly upon product removal.
+- **Context**: automated asset lifecycle management is vital for cloud cost control and data integrity.
+
+---
+
+## 📅 April 1, 2026
+> *Focus: Standardizing User Management*
+
+### `[RESOLVED]` Admin UI Terminology "Registration" -> "Owner"
+- **Issue**: Confusion between user "Registration" (an action) and "Owner" (a role) in the admin management dashboard.
+- **Fix**: Renamed all instances of "Registration Management" to "Owner Management" across the frontend and updated empty-state illustrations.
+- **Context**: Precise terminology improves administrative UX and makes the platform easier for new managers to navigate.
+
+---
+
 ## 📅 March 27, 2026
 > *Focus: Data Integrity and UX Resilience*
 
@@ -13,14 +59,6 @@ A professional record of technical challenges encountered and resolved during th
 
 ---
 
-6: 
-7: ## 📅 March 26, 2026
-8: > *Focus: MongoDB Infrastructure and PDF Data Sync*
-9: 
-10: ### `[FIXED]` Mongoose Field Alias Mismatch
-11: - **Issue**: PDF generation failed for certain products due to missing `name` and `price` fields in MongoDB (stored as `productName` and `totalPrice`).
-12: - **Fix**: Enhanced domain entities with virtual fields and deliberate aliasing to ensure backward compatibility with the Flutter PDF engine.
-13: - **Context**: When migrating databases, field naming consistency is a common pitfall. Aliasing ensures the frontend remains unbroken while the backend evolves.
 14: 
 15: ### `[RESOLVED]` Transaction Race Condition
 16: - **Issue**: Concurrent sales occasionally failed during the Firestore-to-MongoDB transition.

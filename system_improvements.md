@@ -18,14 +18,6 @@ A roadmap of architectural enhancements and user experience updates implemented 
 
 ---
 
-6: 
-7: ## 📅 March 26, 2026
-8: > *Focus: Scalable Infrastructure and High-Performance Data Handling*
-9: 
-10: ### `[ARCH]` Migration to MongoDB Atlas
-11: - **Feature**: Full transition from Firestore to a native MongoDB-backed architecture.
-12: - **Description**: Refactored the entire infrastructure layer to use Mongoose. Replaced Firestore transactions with Mongoose Sessions for atomic data integrity.
-13: - **Benefit**: Increases scalability and provides more flexibility in querying. The move to MongoDB Atlas allows for more complex data relationships and faster indexing of large datasets.
 14: 
 15: ### `[FEAT]` System-Wide API Pagination
 16: - **Feature**: High-performance "Lazy Loading" for all list-heavy modules.
