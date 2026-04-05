@@ -20,12 +20,14 @@ const SaleSchema = new mongoose.Schema({
     totalAmount: { type: Number, required: true },
     paymentMethod: { type: String, default: 'cash' },
     status: { type: String, default: 'completed' },
-    createdAt: { type: String },
+    createdAt: { type: String, index: true },
     updatedAt: { type: String }
 }, {
     _id: false,
     timestamps: false
 });
+
+SaleSchema.index({ ownerId: 1, createdAt: -1 });
 
 SaleSchema.virtual('id').get(function() {
     return this._id;

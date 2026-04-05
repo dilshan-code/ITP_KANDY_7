@@ -14,7 +14,7 @@ const PurchaseSchema = new mongoose.Schema({
     supplierId: { type: String, required: true },
     supplierName: { type: String, default: '' },
     invoiceNumber: { type: String, default: '' },
-    purchaseDate: { type: String },
+    purchaseDate: { type: String, index: true },
     items: [PurchaseItemSchema],
     subtotal: { type: Number, default: 0 },
     tax: { type: Number, default: 0 },
@@ -23,12 +23,15 @@ const PurchaseSchema = new mongoose.Schema({
     remaining: { type: Number, default: 0 },
     status: { type: String, default: 'pending' },
     notes: { type: String, default: '' },
-    createdAt: { type: String },
+    createdAt: { type: String, index: true },
     updatedAt: { type: String }
 }, {
     _id: false,
     timestamps: false
 });
+
+PurchaseSchema.index({ ownerId: 1, createdAt: -1 });
+PurchaseSchema.index({ ownerId: 1, purchaseDate: -1 });
 
 PurchaseSchema.virtual('id').get(function() {
     return this._id;

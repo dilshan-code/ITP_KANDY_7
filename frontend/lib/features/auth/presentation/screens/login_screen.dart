@@ -6,6 +6,7 @@ import 'package:frontend/shared/main_shell.dart';
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart';
 import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart';
 import 'package:frontend/features/auth/presentation/screens/register_screen.dart';
+import 'package:frontend/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:frontend/features/admin/presentation/screens/admin_shell.dart';
 import 'package:frontend/core/utils/phone_utils.dart';
 import 'package:frontend/core/utils/validation_utils.dart';
@@ -60,10 +61,19 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
         'Welcome back, ${authProvider.currentOwner?.shopName ?? authProvider.currentOwner?.name ?? 'Partner'}!',
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const MainShell()),
-      );
+      
+      // Role-based navigation
+      if (authProvider.currentOwner?.role == 'admin') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminShell()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const MainShell()),
+        );
+      }
     } else {
       SnackBarUtils.showSnackBar(
         context,
@@ -76,8 +86,9 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
           children: [
             // Green header
             Container(
@@ -225,7 +236,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ResetPasswordScreen(),
+                        ),
+                      ),
                       child: const Text(
                         'Forgot Password?',
                         style: TextStyle(
@@ -357,36 +373,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Admin entry point
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AdminShell()),
-                      ),
-                      icon: const Icon(
-                        Icons.admin_panel_settings,
-                        color: Colors.grey,
-                      ),
-                      label: Text(
-                        'Access Client Dashboard',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
           ),
         ],
+          ),
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildSocialButton(IconData icon, VoidCallback onTap) {
     return GestureDetector(
