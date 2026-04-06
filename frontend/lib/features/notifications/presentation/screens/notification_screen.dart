@@ -61,87 +61,90 @@ class _NotificationScreenState extends State<NotificationScreen> {
           ),
         ],
       ),
-      body: Consumer<NotificationProvider>(
-        builder: (context, provider, _) {
-          if (provider.isLoading && provider.notifications.isEmpty) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
-          }
-          if (provider.notifications.isEmpty) {
-            return _buildEmptyState();
-          }
+      body: SafeArea(
+        child: Consumer<NotificationProvider>(
+          builder: (context, provider, _) {
+            if (provider.isLoading && provider.notifications.isEmpty) {
+              return const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              );
+            }
+            if (provider.notifications.isEmpty) {
+              return _buildEmptyState();
+            }
 
-          return RefreshIndicator(
-            onRefresh: provider.fetchNotifications,
-            color: AppColors.primary,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-              itemCount: provider.notifications.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final notification = provider.notifications[index];
-                return Dismissible(
-                  key: Key(notification.id),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: AppColors.error,
-                      borderRadius: BorderRadius.circular(14),
+            return RefreshIndicator(
+              onRefresh: provider.fetchNotifications,
+              color: AppColors.primary,
+              child: ListView.separated(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                itemCount: provider.notifications.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final notification = provider.notifications[index];
+                  return Dismissible(
+                    key: Key(notification.id),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: AppColors.error,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.white,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.delete_outline,
-                      color: Colors.white,
-                    ),
-                  ),
-                  confirmDismiss: (direction) async {
-                    return await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        title: const Text('Delete Notification'),
-                        content: const Text(
-                          'Are you sure you want to delete this notification?',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Cancel'),
+                    confirmDismiss: (direction) async {
+                      return await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            child: const Text(
-                              'Delete',
-                              style: TextStyle(
-                                color: AppColors.error,
-                                fontWeight: FontWeight.w600,
+                          title: const Text('Delete Notification'),
+                          content: const Text(
+                            'Are you sure you want to delete this notification?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text(
+                                'Delete',
+                                style: TextStyle(
+                                  color: AppColors.error,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  onDismissed: (direction) {
-                    provider.deleteNotification(notification.id);
-                  },
-                  child: _NotificationListTile(
-                    notification: notification,
-                    onTap: () {
-                      if (!notification.isRead) {
-                        provider.markAsRead(notification.id);
-                      }
+                          ],
+                        ),
+                      );
                     },
-                  ),
-                );
-              },
-            ),
-          );
-        },
+                    onDismissed: (direction) {
+                      provider.deleteNotification(notification.id);
+                    },
+                    child: _NotificationListTile(
+                      notification: notification,
+                      onTap: () {
+                        if (!notification.isRead) {
+                          provider.markAsRead(notification.id);
+                        }
+                      },
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
       ),
     );
   }
