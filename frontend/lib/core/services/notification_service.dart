@@ -1,5 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_app_badger/flutter_app_badger.dart';
+import 'package:app_badge_plus/app_badge_plus.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -11,7 +11,7 @@ class NotificationService {
 
   Future<void> initialize() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mip-map/ic_launcher');
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings(
@@ -69,13 +69,9 @@ class NotificationService {
   }
 
   Future<void> updateBadgeCount(int count) async {
-    bool isSupported = await FlutterAppBadger.isAppBadgeSupported();
+    bool isSupported = await AppBadgePlus.isSupported();
     if (isSupported) {
-      if (count > 0) {
-        FlutterAppBadger.updateBadgeCount(count);
-      } else {
-        FlutterAppBadger.removeBadge();
-      }
+      AppBadgePlus.updateBadge(count);
     }
   }
 }
