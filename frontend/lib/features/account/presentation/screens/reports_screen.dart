@@ -68,54 +68,56 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : _error != null
-              ? _buildErrorState()
-              : _reportData == null
-                  ? const Center(child: Text('No data available'))
-                  : RefreshIndicator(
-                      onRefresh: _fetchReportData,
-                      color: AppColors.primary,
-                      child: CustomScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        slivers: [
-                          _buildSliverAppBar(),
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: _buildSalesTrendSection(),
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              )
+            : _error != null
+                ? _buildErrorState()
+                : _reportData == null
+                    ? const Center(child: Text('No data available'))
+                    : RefreshIndicator(
+                        onRefresh: _fetchReportData,
+                        color: AppColors.primary,
+                        child: CustomScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          slivers: [
+                            _buildSliverAppBar(),
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: _buildSalesTrendSection(),
+                              ),
                             ),
-                          ),
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                              child: _buildSectionTitle('Financial Highlights'),
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                                child: _buildSectionTitle('Financial Highlights'),
+                              ),
                             ),
-                          ),
-                          _buildFinancialGrid(currencyFormat),
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-                              child: _buildSectionTitle('Inventory Pulse'),
+                            _buildFinancialGrid(currencyFormat),
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+                                child: _buildSectionTitle('Inventory Pulse'),
+                              ),
                             ),
-                          ),
-                          SliverToBoxAdapter(
-                            child: _buildInventoryPulse(currencyFormat),
-                          ),
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-                              child: _buildSectionTitle('Performance Leaderboard'),
+                            SliverToBoxAdapter(
+                              child: _buildInventoryPulse(currencyFormat),
                             ),
-                          ),
-                          _buildTopProductsList(currencyFormat),
-                          const SliverToBoxAdapter(child: SizedBox(height: 40)),
-                        ],
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+                                child: _buildSectionTitle('Performance Leaderboard'),
+                              ),
+                            ),
+                            _buildTopProductsList(currencyFormat),
+                            const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                          ],
+                        ),
                       ),
-                    ),
+      ),
     );
   }
 
@@ -147,14 +149,6 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           ),
           child: Stack(
             children: [
-              Positioned(
-                right: -20,
-                top: -20,
-                child: CircleAvatar(
-                  radius: 60,
-                  backgroundColor: Colors.white.withValues(alpha: 0.1),
-                ),
-              ),
               Positioned(
                 left: 100,
                 bottom: -30,
