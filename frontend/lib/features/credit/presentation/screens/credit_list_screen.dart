@@ -16,7 +16,8 @@ class CreditListScreen extends StatefulWidget {
   State<CreditListScreen> createState() => _CreditListScreenState();
 }
 
-class _CreditListScreenState extends State<CreditListScreen> {
+class _CreditListScreenState extends State<CreditListScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   String _searchQuery = '';
@@ -27,6 +28,7 @@ class _CreditListScreenState extends State<CreditListScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<CreditProvider>().fetchCustomers();
     });
+    _tabController = TabController(length: 2, vsync: this);
     _searchController.addListener(_onSearchChanged);
     _scrollController.addListener(_onScroll);
   }
@@ -46,6 +48,7 @@ class _CreditListScreenState extends State<CreditListScreen> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -62,9 +65,21 @@ class _CreditListScreenState extends State<CreditListScreen> {
             IconButton(
               icon: const Icon(Icons.picture_as_pdf_outlined),
               onPressed: () {
-                final outstanding = context.read<CreditProvider>().outstandingCustomers;
-                if (outstanding.isNotEmpty) {
-                  CreditExportUtils.exportActiveCreditsPdf(outstanding);
+                final provider = context.read<CreditProvider>();
+                if (_tabController.index == 0) {
+                  final outstanding = provider.outstandingCustomers;
+                  if (outstanding.isNotEmpty) {
+                    CreditExportUtils.exportActiveCreditsPdf(outstanding);
+                  } else {
+                    SnackBarUtils.showSnackBar(context, 'No active credit users to export');
+                  }
+                } else {
+                  final settled = provider.settledCustomers;
+                  if (settled.isNotEmpty) {
+                    CreditExportUtils.exportSettledCreditsPdf(settled);
+                  } else {
+                    SnackBarUtils.showSnackBar(context, 'No settled customers to export');
+                  }
                 }
               },
               tooltip: 'Download PDF',
@@ -79,6 +94,7 @@ class _CreditListScreenState extends State<CreditListScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: TabBar(
+                controller: _tabController,
                 dividerColor: Colors.transparent,
                 indicatorSize: TabBarIndicatorSize.tab,
                 indicator: BoxDecoration(
@@ -103,7 +119,8 @@ class _CreditListScreenState extends State<CreditListScreen> {
             ),
           ),
         ),
-        body: Consumer<CreditProvider>(
+        body: SafeArea(
+          child: Consumer<CreditProvider>(
           builder: (context, provider, _) {
             if (provider.isLoading && provider.customers.isEmpty) {
               return const Center(child: CircularProgressIndicator());
@@ -120,6 +137,7 @@ class _CreditListScreenState extends State<CreditListScreen> {
             }).toList();
 
             return TabBarView(
+              controller: _tabController,
               children: [
                 _buildCustomerList(
                   context,
@@ -137,15 +155,16 @@ class _CreditListScreenState extends State<CreditListScreen> {
             );
           },
         ),
-        floatingActionButton: FloatingActionButton(
-          heroTag: 'credit_add_customer_btn',
-          onPressed: () => _showAddCustomerDialog(context),
-          backgroundColor: AppColors.primary,
-          child: const Icon(Icons.person_add, color: Colors.white),
-        ),
       ),
-    );
-  }
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'credit_add_customer_btn',
+        onPressed: () => _showAddCustomerDialog(context),
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.person_add, color: Colors.white),
+      ),
+    ),
+  );
+}
 
   Widget _buildCustomerList(
     BuildContext context,
