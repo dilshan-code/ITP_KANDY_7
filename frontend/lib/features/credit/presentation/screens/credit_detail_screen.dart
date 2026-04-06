@@ -10,6 +10,7 @@ import 'package:frontend/features/sales/presentation/providers/sale_provider.dar
 import 'package:frontend/features/sales/presentation/screens/invoice_dialog.dart';
 import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart';
 import 'package:frontend/features/credit/presentation/utils/credit_pdf_utils.dart';
+import 'package:frontend/shared/main_shell.dart';
 
 class CreditDetailScreen extends StatefulWidget {
   final Customer customer;
@@ -83,7 +84,8 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
               }).toList();
 
               final filteredTransactions = creditProvider.transactions.where(
-                (txn) => !(txn.type == 'credit' && txn.title.startsWith('Purchase Loan')),
+                (txn) => !(txn.type == 'credit' && txn.title.startsWith('Purchase Loan')) &&
+                         !(txn.type == 'payment' && (txn.title == 'Full Balance Settlement' || txn.title == 'Partial Credit Payment')),
               ).toList();
 
               final List<dynamic> combined = [
@@ -107,193 +109,196 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: Consumer2<CreditProvider, SaleProvider>(
-        builder: (context, provider, saleProvider, _) {
-          final customerSales = saleProvider.sales.where((sale) {
-            if (sale is Map) {
-              return sale['customerId'] == _currentCustomer.id;
+      body: SafeArea(
+        child: Consumer2<CreditProvider, SaleProvider>(
+          builder: (context, provider, saleProvider, _) {
+            final customerSales = saleProvider.sales.where((sale) {
+              if (sale is Map) {
+                return sale['customerId'] == _currentCustomer.id;
+              }
+              return false;
+            }).toList();
+
+            // Update character if found in provider list (to reflect edits)
+            final updatedCustomer = provider.customers.isEmpty
+                ? null
+                : provider.customers.cast<Customer?>().firstWhere(
+                    (c) => c?.id == _currentCustomer.id,
+                    orElse: () => null,
+                  );
+
+            if (updatedCustomer != null) {
+              _currentCustomer = updatedCustomer;
             }
-            return false;
-          }).toList();
 
-          // Update character if found in provider list (to reflect edits)
-          final updatedCustomer = provider.customers.isEmpty
-              ? null
-              : provider.customers.cast<Customer?>().firstWhere(
-                  (c) => c?.id == _currentCustomer.id,
-                  orElse: () => null,
-                );
+            final filteredTransactions = provider.transactions.where(
+              (txn) => !(txn.type == 'credit' && txn.title.startsWith('Purchase Loan')) &&
+                       !(txn.type == 'payment' && (txn.title == 'Full Balance Settlement' || txn.title == 'Partial Credit Payment')),
+            ).toList();
 
-          if (updatedCustomer != null) {
-            _currentCustomer = updatedCustomer;
-          }
-
-          final filteredTransactions = provider.transactions.where(
-            (txn) => !(txn.type == 'credit' && txn.title.startsWith('Purchase Loan')),
-          ).toList();
-
-          return SingleChildScrollView(
-            controller: _scrollController,
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Customer header card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [AppColors.primary, AppColors.primaryDark],
+            return SingleChildScrollView(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Customer header card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [AppColors.primary, AppColors.primaryDark],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(
-                    children: [
-                      CircleAvatar(
-                        radius: 32,
-                        backgroundColor: Colors.white.withValues(alpha: 0.2),
-                        child: Text(
-                          _currentCustomer.name.isNotEmpty
-                              ? _currentCustomer.name[0].toUpperCase()
-                              : '?',
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 32,
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          child: Text(
+                            _currentCustomer.name.isNotEmpty
+                                ? _currentCustomer.name[0].toUpperCase()
+                                : '?',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 28,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _currentCustomer.name,
                           style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
                             color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 28,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        _currentCustomer.name,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                        const SizedBox(height: 4),
+                        Text(
+                          _currentCustomer.phone,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _currentCustomer.phone,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.8),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildStatItem(
+                              'Active Credit',
+                              'Rs ${_currentCustomer.totalOutstanding.toStringAsFixed(0)}',
+                            ),
+                            Container(
+                              width: 1,
+                              height: 32,
+                              color: Colors.white.withValues(alpha: 0.3),
+                            ),
+                            _buildStatItem(
+                              'Limit',
+                              'Rs ${_currentCustomer.creditLimit.toStringAsFixed(0)}',
+                            ),
+                            Container(
+                              width: 1,
+                              height: 32,
+                              color: Colors.white.withValues(alpha: 0.3),
+                            ),
+                            _buildStatItem(
+                              'Status',
+                              _currentCustomer.totalOutstanding <= 0 
+                                  ? 'PAID' 
+                                  : _currentCustomer.status.toUpperCase(),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildStatItem(
-                            'Active Credit',
-                            'Rs ${_currentCustomer.totalOutstanding.toStringAsFixed(0)}',
-                          ),
-                          Container(
-                            width: 1,
-                            height: 32,
-                            color: Colors.white.withValues(alpha: 0.3),
-                          ),
-                          _buildStatItem(
-                            'Limit',
-                            'Rs ${_currentCustomer.creditLimit.toStringAsFixed(0)}',
-                          ),
-                          Container(
-                            width: 1,
-                            height: 32,
-                            color: Colors.white.withValues(alpha: 0.3),
-                          ),
-                          _buildStatItem(
-                            'Status',
-                            _currentCustomer.totalOutstanding <= 0 
-                                ? 'PAID' 
-                                : _currentCustomer.status.toUpperCase(),
+                        if (_currentCustomer.totalOutstanding > 0) ...[
+                          const SizedBox(height: 20),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () => _showSettleConfirmation(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: AppColors.primary,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                'Settle Full Balance',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
                           ),
                         ],
-                      ),
-                      if (_currentCustomer.totalOutstanding > 0) ...[
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () => _showSettleConfirmation(context),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: AppColors.primary,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: const Text(
-                              'Settle Full Balance',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // History section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'History & Invoices',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      if (provider.isLoading)
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 24),
+                  const SizedBox(height: 12),
 
-                // History section
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'History & Invoices',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textDark,
+                  if (!provider.isLoading &&
+                      !saleProvider.isLoading &&
+                      filteredTransactions.isEmpty &&
+                      customerSales.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 40),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.receipt_long_outlined,
+                              size: 48,
+                              color: Colors.grey.shade200,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No history found',
+                              style: TextStyle(color: AppColors.textLight),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    if (provider.isLoading)
-                      const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                if (!provider.isLoading &&
-                    !saleProvider.isLoading &&
-                    filteredTransactions.isEmpty &&
-                    customerSales.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 40),
-                      child: Column(
-                        children: [
-                          Icon(
-                            Icons.receipt_long_outlined,
-                            size: 48,
-                            color: Colors.grey.shade200,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No history found',
-                            style: TextStyle(color: AppColors.textLight),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  _buildCombinedHistory(context, filteredTransactions, customerSales, provider.isFetchingMoreTransactions || saleProvider.isFetchingMore),
-              ],
-            ),
-          );
-        },
+                    )
+                  else
+                    _buildCombinedHistory(context, filteredTransactions, customerSales, provider.isFetchingMoreTransactions || saleProvider.isFetchingMore),
+                ],
+              ),
+            );
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'credit_add_transaction_btn',
@@ -566,6 +571,10 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
               if (context.mounted) {
                 context.read<NotificationProvider>().fetchNotifications();
                 context.read<SaleProvider>().fetchSales();
+                
+                // Refresh dashboard statistics on Home Screen
+                MainShell.homeKey.currentState?.refresh();
+
                 SnackBarUtils.showSnackBar(
                   context,
                   'Credit settled successfully',
@@ -761,6 +770,9 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                   context.read<CreditProvider>().fetchTransactions(
                     widget.customer.id,
                   );
+
+                  // Refresh dashboard statistics on Home Screen
+                  MainShell.homeKey.currentState?.refresh();
                 }
               },
               child: const Text('Add'),
