@@ -80,7 +80,7 @@ class CreatePurchase {
                 const purchase = await this.purchaseRepository.create({ ...purchaseData, ownerId }, session);
 
                 // 4. Update Inventory & Costing
-                const stockUpdates = productDocs.map(({ item, product }) => ({
+                const stockUpdates = productDocs.map(({ item, _ }) => ({
                     productId: item.productId,
                     amount: (parseInt(item.quantity) || 0)
                 }));

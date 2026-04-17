@@ -258,7 +258,7 @@ async function ensureAdminUser() {
         if (!existingAdmin) {
             const adminEmail = 'admin@gmail.com';
             const adminPassword = 'admin1234';
-            console.log(`[SEED] Administrator account not found. Initializing '${adminEmail}'...`);
+            console.log(`[SEED] Administrator account not found. Initializing...`);
             
             const hashedPassword = await bcrypt.hash(adminPassword, 10);
             const newAdmin = new Owner({
@@ -277,7 +277,7 @@ async function ensureAdminUser() {
             console.log(`[SEED] Master administrator created successfully.`);
         } else {
             // Identity verified via persistent ID (regardless of what the current email is)
-            console.log(`[SEED] Administrator identity verified (${existingAdmin.email}).`);
+            console.log(`[SEED] Administrator identity verified.`);
 
             // Demo Data Logic: Populate the admin account with samples only if the inventory is empty.
             const productCount = await productRepository.getTotalStockQuantity(adminId);
@@ -325,7 +325,7 @@ async function ensureAdminUser() {
             if (existingAdmin.role !== 'admin') {
                 existingAdmin.role = 'admin';
                 await existingAdmin.save();
-                console.log(`[SEED] Restored administrative privileges for '${existingAdmin.email}'.`);
+                console.log(`[SEED] Restored administrative privileges.`);
             }
         }
     } catch (error) {

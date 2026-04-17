@@ -96,7 +96,7 @@ class CreateSale {
                 const sale = await this.saleRepository.create(finalSaleData, session);
 
                 // 2. Inventory Depletion & Alerting (Optimized with Bulk Write)
-                const stockUpdates = productDocs.map(({ item, product }) => ({
+                const stockUpdates = productDocs.map(({ item, _ }) => ({
                     productId: item.productId,
                     amount: -(parseInt(item.quantity) || 0)
                 }));

@@ -55,7 +55,7 @@ small_store_app/
 - [Node.js](https://nodejs.org/) (v14+)
 - **MongoDB Connection**: 
     > [!IMPORTANT]
-    > Create a `.env` file in the `backend/` directory with your `MONGODB_URI`.
+    > Create a `.env` file in the `backend/` directory. You can use `.env.example` as a template.
     > Example: `MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/clickbuy`
 
 - **Cloudinary Account**:

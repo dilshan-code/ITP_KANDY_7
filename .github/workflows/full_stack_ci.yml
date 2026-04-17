@@ -5,6 +5,8 @@ on:
     branches:
       - Beta
       - main
+    tags:
+      - 'v*'
   pull_request:
     branches:
       - Beta
@@ -48,6 +50,8 @@ jobs:
   frontend-build:
     name: Frontend Android Build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     needs: backend-qa # Only build the App if the Backend tests pass (optional but recommended)
     defaults:
       run:
@@ -83,3 +87,19 @@ jobs:
         with:
           name: clickbuy-app-v${{ github.run_number }}
           path: frontend/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: frontend/build/app/outputs/flutter-apk/app-release.apk
+          name: ClickBuy Release ${{ github.ref_name }}
+          body: |
+            Automated Build for version ${{ github.ref_name }}
+            
+            **Build Number:** ${{ github.run_number }}
+            **Date:** ${{ github.event.head_commit.timestamp }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
