@@ -8,6 +8,7 @@ jest.mock('mongoose', () => ({
         commitTransaction: jest.fn(),
         abortTransaction: jest.fn(),
         endSession: jest.fn(),
+        withTransaction: jest.fn(callback => callback()),
     }),
 }));
 
@@ -48,7 +49,7 @@ describe('Sale Use Cases', () => {
                 { id: 'sale1', totalAmount: 1000, paymentMethod: 'cash', items: [{ productId: 'p1', quantity: 2 }], createdAt: new Date().toISOString() }
             ]),
             getById: jest.fn().mockImplementation((id, owId, txn) => Promise.resolve({
-                id, totalAmount: 500, paymentMethod: 'credit', customerId: 'c1',
+                id, totalAmount: 500, remaining: 500, paymentMethod: 'credit', customerId: 'c1',
                 items: [{ productId: 'p1', quantity: 3, name: 'Rice' }],
                 createdAt: new Date().toISOString()
             })),

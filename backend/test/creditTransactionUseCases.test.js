@@ -8,6 +8,7 @@ jest.mock('mongoose', () => ({
         commitTransaction: jest.fn(),
         abortTransaction: jest.fn(),
         endSession: jest.fn(),
+        withTransaction: jest.fn(callback => callback()),
     }),
 }));
 
@@ -52,6 +53,9 @@ describe('Credit Transaction Use Cases', () => {
                 id, name: 'Customer A', totalOutstanding: 1000, status: 'active'
             })),
             update: jest.fn().mockResolvedValue(true),
+            incrementOutstanding: jest.fn().mockImplementation((id, owId, amount) => Promise.resolve({
+                id, totalOutstanding: 1000 + amount, status: (1000 + amount) <= 0 ? 'paid' : 'active'
+            })),
         };
     });
 
@@ -89,8 +93,9 @@ describe('Credit Transaction Use Cases', () => {
             await createTransaction.execute(data, ownerId);
 
             // 1000 + 300 = 1300, still active
+            expect(mockCustomerRepository.incrementOutstanding).toHaveBeenCalledWith('c1', ownerId, 300, expect.anything());
             expect(mockCustomerRepository.update).toHaveBeenCalledWith(
-                'c1', { totalOutstanding: 1300, status: 'active' }, ownerId, expect.anything()
+                'c1', { status: 'active' }, ownerId, expect.anything()
             );
         });
 
@@ -99,8 +104,9 @@ describe('Credit Transaction Use Cases', () => {
             await createTransaction.execute(data, ownerId);
 
             // 1000 - 400 = 600, still active
+            expect(mockCustomerRepository.incrementOutstanding).toHaveBeenCalledWith('c1', ownerId, -400, expect.anything());
             expect(mockCustomerRepository.update).toHaveBeenCalledWith(
-                'c1', { totalOutstanding: 600, status: 'active' }, ownerId, expect.anything()
+                'c1', { status: 'active' }, ownerId, expect.anything()
             );
         });
 
@@ -109,8 +115,9 @@ describe('Credit Transaction Use Cases', () => {
             await createTransaction.execute(data, ownerId);
 
             // 1000 - 1000 = 0
+            expect(mockCustomerRepository.incrementOutstanding).toHaveBeenCalledWith('c1', ownerId, -1000, expect.anything());
             expect(mockCustomerRepository.update).toHaveBeenCalledWith(
-                'c1', { totalOutstanding: 0, status: 'paid' }, ownerId, expect.anything()
+                'c1', { status: 'paid' }, ownerId, expect.anything()
             );
         });
 
@@ -119,8 +126,9 @@ describe('Credit Transaction Use Cases', () => {
             await createTransaction.execute(data, ownerId);
 
             // max(0, 1000 - 1500) = 0
+            expect(mockCustomerRepository.incrementOutstanding).toHaveBeenCalledWith('c1', ownerId, -1500, expect.anything());
             expect(mockCustomerRepository.update).toHaveBeenCalledWith(
-                'c1', { totalOutstanding: 0, status: 'paid' }, ownerId, expect.anything()
+                'c1', { status: 'paid' }, ownerId, expect.anything()
             );
         });
 
@@ -160,8 +168,9 @@ describe('Credit Transaction Use Cases', () => {
             expect(result).toBe(true);
 
             // Revert: 1000 - 500 = 500, still active
+            expect(mockCustomerRepository.incrementOutstanding).toHaveBeenCalledWith('c1', ownerId, -500, expect.anything());
             expect(mockCustomerRepository.update).toHaveBeenCalledWith(
-                'c1', { totalOutstanding: 500, status: 'active' }, ownerId, expect.anything()
+                'c1', { status: 'active' }, ownerId, expect.anything()
             );
             expect(mockCreditTransactionRepository.delete).toHaveBeenCalledWith('ct1', ownerId, expect.anything());
         });
@@ -173,8 +182,9 @@ describe('Credit Transaction Use Cases', () => {
             await deleteTransaction.execute('ct2', ownerId);
 
             // Revert: 1000 + 200 = 1200, still active
+            expect(mockCustomerRepository.incrementOutstanding).toHaveBeenCalledWith('c1', ownerId, 200, expect.anything());
             expect(mockCustomerRepository.update).toHaveBeenCalledWith(
-                'c1', { totalOutstanding: 1200, status: 'active' }, ownerId, expect.anything()
+                'c1', { status: 'active' }, ownerId, expect.anything()
             );
         });
 

@@ -25,6 +25,7 @@ jest.mock('mongoose', () => ({
         commitTransaction: jest.fn(),
         abortTransaction: jest.fn(),
         endSession: jest.fn(),
+        withTransaction: jest.fn(callback => callback()),
     }),
 }));
 
