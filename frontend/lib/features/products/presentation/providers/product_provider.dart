@@ -1,52 +1,64 @@
-import 'package:image_picker/image_picker.dart';
-import 'package:flutter/material.dart';
-import 'package:cloudinary_public/cloudinary_public.dart';
-import 'package:frontend/core/config/cloudinary_config.dart';
-import 'package:frontend/features/products/domain/entities/product.dart';
-import 'package:frontend/features/products/data/repositories/product_repository_impl.dart';
+// ------------------------------------------------------------------------------
+// File: product_provider.dart
+// Purpose: Inventory Lifecycle and Stock Health Orchestration.
+// Rationale: Manages the comprehensive product state including paginated data 
+//   fetching, cloud-based media persistence (Cloudinary), and reactive stock 
+//   health metrics for dashboard diagnostics.
+// ------------------------------------------------------------------------------
+import 'dart:typed_data'; // Infrastructure: Byte manipulation for Web blobs
+import 'package:image_picker/image_picker.dart'; // Media: Local file selection
+import 'package:flutter/material.dart'; // Core: Flutter reactive system
+import 'package:cloudinary_public/cloudinary_public.dart'; // Cloud: Image storage API
+import 'package:frontend/core/config/cloudinary_config.dart'; // Config: Cloud credentials
+import 'package:frontend/core/error/exceptions.dart'; // Infrastructure: Custom exceptions
+import 'package:frontend/features/products/domain/entities/product.dart'; // Domain: Entity
+import 'package:frontend/features/products/data/repositories/product_repository_impl.dart'; // Data: Adapter
 
-// ProductProvider manages the state of the products in the app.
-// It notifies the UI to rebuild whenever data changes (using notifyListeners()).
 class ProductProvider extends ChangeNotifier {
-  final ProductRepositoryImpl _repository = ProductRepositoryImpl();
+  final ProductRepositoryImpl _repository = ProductRepositoryImpl(); // Logic: Backend adapter
 
-  // Internal state variables
-  List<Product> _products = [];
-  bool _isLoading = false;
-  bool _isFetchingMore = false;
-  bool _hasMore = true;
-  String? _error;
-  final int _pageSize = 20;
+  // --- Reactive State ---
+  List<Product> _products = []; // Cache: In-memory product list
+  bool _isLoading = false; // Status: Initial load indicator
+  bool _isFetchingMore = false; // Status: Pagination load indicator
+  bool _hasMore = true; // Pagination: Whether more pages exist
+  String? _error; // Feedback: User-facing error message
+  String? _technicalDetails; // Diagnostics: Raw error detail for troubleshooting
+  final int _pageSize = 20; // Config: Items per pagination page
 
-  // Public getters to allow UI to read the state
+  // --- Public Getters ---
   List<Product> get products => _products;
   bool get isLoading => _isLoading;
   bool get isFetchingMore => _isFetchingMore;
   bool get hasMore => _hasMore;
   String? get error => _error;
+  String? get technicalDetails => _technicalDetails;
 
-  // Derived getter: returns only products that are critically low on stock
+  // --- Derived Stock Health Metrics ---
+
+  /// Returns only products flagged as critically low on stock by the backend.
   List<Product> get lowStockProducts =>
-      // Iterate through all products and 'where' filters in only those whose 'isLowStock' property is true
       _products.where((p) => p.isLowStock).toList();
 
-  // Derived getter: calculates the total monetary value of all stock
-  // Returns the grand total value of all items currently sitting in the shop.
+  /// Aggregates the total monetary value of all inventory (sum of inventoryValue).
   double get totalInventoryValue =>
       _products.fold(0.0, (sum, p) => sum + p.inventoryValue);
  
-  // Calculates the sum of all individual items currently on the shelves.
+  /// Returns the total unit count across all products.
   int get totalItemsInStock =>
       _products.fold(0, (sum, p) => sum + p.stockQuantity);
  
-  // Identifies products that have reached or dropped below their 'minimumStockLevel'.
-  // This is used for the 'Low Stock' alert badge on the dashboard.
+  /// Count of products below their minimum stock level (for dashboard badges).
   int get lowStockCount => _products.where((p) => p.isLowStock).length;
  
-  // Returns a filtered list of products that need reordering.
+  /// Filtered list of products that need immediate reordering.
   List<Product> get lowStockItems => _products.where((p) => p.isLowStock).toList();
 
-  // Fetches the latest products from the backend with pagination support
+  /*
+   * Logic: Paginated Product Fetch.
+   * Rationale: Supports both initial load (refresh=true) and infinite scroll
+   * (refresh=false) using cursor-based pagination via the lastId parameter.
+   */
   Future<void> fetchProducts({bool refresh = true}) async {
     if (refresh) {
       _isLoading = true;
@@ -78,16 +90,23 @@ class ProductProvider extends ChangeNotifier {
       _isFetchingMore = false;
       notifyListeners();
     } catch (e) {
-      _error = e.toString();
-      _isLoading = false;
+      if (e is AppException) {
+        _error = e.message;
+        _technicalDetails = e.details;
+      } else {
+        _error = e.toString();
+      }
       _isFetchingMore = false;
       notifyListeners();
     }
   }
 
-  // Private helper to upload an image file to the Cloudinary cloud storage.
+  /*
+   * Logic: Cloud Image Upload Pipeline.
+   * Rationale: Uploads product images to Cloudinary for CDN-backed delivery.
+   * Returns the secure URL on success, or null on failure/missing config.
+   */
   Future<String?> _uploadImage(XFile imageFile) async {
-    // Check if Cloudinary configuration is available.
     if (CloudinaryConfig.cloudName.isEmpty ||
         CloudinaryConfig.uploadPreset.isEmpty) {
       debugPrint('Cloudinary config is missing. Skipping upload.');
@@ -95,41 +114,43 @@ class ProductProvider extends ChangeNotifier {
     }
 
     try {
-      // Initialize the Cloudinary client with our API credentials.
       final cloudinary = CloudinaryPublic(
         CloudinaryConfig.cloudName,
         CloudinaryConfig.uploadPreset,
-        cache: false, // Disable caching for fresh uploads
+        cache: false, // Strategy: Disable caching for fresh uploads
       );
 
       final bytes = await imageFile.readAsBytes();
-      final byteData = bytes.buffer.asByteData();
 
-      // Upload the file as a 'product' resource to the 'products' folder.
+      // Transmission: Send to Cloudinary. For Web blobs, ensure a valid identifier.
+      String fileName = imageFile.name;
+      if (fileName.isEmpty || fileName == 'blob' || !fileName.contains('.')) {
+        fileName = 'product_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      }
+
       final CloudinaryResponse response = await cloudinary.uploadFile(
         CloudinaryFile.fromByteData(
-          byteData,
-          identifier: imageFile.name,
+          ByteData.view(bytes.buffer),
+          identifier: fileName,
           folder: 'products',
           resourceType: CloudinaryResourceType.Image,
         ),
       );
 
-      // Return the secure URL provided by Cloudinary to store in our database.
       return response.secureUrl;
     } catch (e) {
       debugPrint('❌ Cloudinary Upload Error: $e');
-      _error = 'Image upload failed: $e'; // Set error message for UI
+      _error = 'Image upload failed: $e';
       return null;
     }
   }
 
-  // Creates a new product, saves it via backend, and refreshes the list
+  /*
+   * Logic: Product Creation Pipeline.
+   * Rationale: Optionally uploads a product image before persisting the record,
+   * then auto-refreshes the product list to reflect the addition.
+   */
   Future<bool> createProduct(Map<String, dynamic> data, {XFile? imageFile}) async {
-    // --- Front-end Validation Note ---
-    // User data is typically validated at the form level using 'ValidationUtils'.
-    // Here we ensure data is sent to the backend where authoritative validation happens.
-    
     try {
       if (imageFile != null) {
         final url = await _uploadImage(imageFile);
@@ -138,7 +159,7 @@ class ProductProvider extends ChangeNotifier {
         }
       }
       await _repository.createProduct(data);
-      await fetchProducts(); // Refresh list to include the new product
+      await fetchProducts(); // Refresh: Sync list with server state
       return true;
     } catch (e) {
       _error = e.toString();
@@ -147,14 +168,12 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  // Updates an existing product, saves it via backend, and refreshes the list
+  /*
+   * Logic: Product Mutation Pipeline.
+   * Rationale: Optionally replaces the product image before persisting updates,
+   * then auto-refreshes to show the latest data.
+   */
   Future<bool> updateProduct(String id, Map<String, dynamic> data, {XFile? imageFile}) async {
-    // --- Front-end Validation Note ---
-    // Updates should first be validated against existing rules:
-    // 1. Name cannot be empty if updated.
-    // 2. Selling price must be a valid positive number.
-    // 3. Stock levels must be non-negative.
-    
     try {
       if (imageFile != null) {
         final url = await _uploadImage(imageFile);
@@ -163,7 +182,7 @@ class ProductProvider extends ChangeNotifier {
         }
       }
       await _repository.updateProduct(id, data);
-      await fetchProducts(); // Refresh list to reflect updates
+      await fetchProducts(); // Refresh: Sync list with server state
       return true;
     } catch (e) {
       _error = e.toString();
@@ -172,11 +191,15 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 
-  // Deletes a product, saves the deletion via backend, and refreshes the list
+  /*
+   * Logic: Product Deletion Pipeline.
+   * Rationale: Removes the product from the backend and auto-refreshes
+   * the list to reflect the removal.
+   */
   Future<bool> deleteProduct(String id) async {
     try {
       await _repository.deleteProduct(id);
-      await fetchProducts(); // Refresh list to remove the deleted product
+      await fetchProducts(); // Refresh: Sync list with server state
       return true;
     } catch (e) {
       _error = e.toString();
@@ -185,3 +208,4 @@ class ProductProvider extends ChangeNotifier {
     }
   }
 }
+

@@ -1,14 +1,25 @@
-import 'dart:io' show File;
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
-import 'package:frontend/core/theme/app_colors.dart';
-import 'package:frontend/core/utils/snackbar_utils.dart';
-import 'package:frontend/features/products/presentation/providers/product_provider.dart';
-import 'package:frontend/core/utils/validation_utils.dart';
-import 'package:frontend/shared/main_shell.dart';
-import 'package:frontend/features/products/presentation/utils/category_constants.dart';
+// ------------------------------------------------------------------------------
+// File: add_product_screen.dart
+// Purpose: Multi-modal Merchandise Onboarding Interface.
+// Rationale: Orchestrates the comprehensive product creation lifecycle, 
+//   integrating multi-field validation, stock configuration, and Cloudinary-backed 
+//   media persistence via the global ProductProvider.
+// ------------------------------------------------------------------------------
+import 'dart:io' show File; // Platform: File I/O for image preview
+import 'package:flutter/material.dart'; // Core: Flutter UI reactive system
+import 'package:google_fonts/google_fonts.dart'; // Typography: Brand font sets
+import 'package:flutter/foundation.dart'; // Platform: Web/native detection (kIsWeb)
+import 'package:image_picker/image_picker.dart'; // Media: Camera/gallery access
+import 'package:provider/provider.dart'; // State: Dependency injection system
+import 'package:frontend/core/theme/app_colors.dart'; // Styling: Design system tokens
+import 'package:frontend/core/utils/snackbar_utils.dart'; // Feedback: Status notification component
+import 'package:frontend/features/products/presentation/providers/product_provider.dart'; // State: Inventory manager
+import 'package:frontend/core/utils/validation_utils.dart'; // Logic: Form field validators
+import 'package:frontend/shared/main_shell.dart'; // Navigation: Dashboard refresh trigger
+import 'package:frontend/shared/widgets/app_back_button.dart'; // Standardized navigation trigger
+import 'package:frontend/features/products/presentation/utils/category_constants.dart'; // Config: Product taxonomy
+import 'package:frontend/core/utils/image_helper.dart'; // Logic: Unified pick-and-crop utility
+
 
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
@@ -29,7 +40,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
   bool _notifyOutOfStock = true;
   bool _saving = false;
   XFile? _imageFile;
-  final ImagePicker _picker = ImagePicker();
   final _formKey = GlobalKey<FormState>();
 
   final List<String> _categories = ProductCategories.list;
@@ -52,28 +62,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
     super.dispose();
   }
 
-  // Opens the camera or gallery to let the user pick a product image.
   Future<void> _pickImage(ImageSource source) async {
     try {
-      // Use the ImagePicker to select a file.
-      final XFile? pickedFile = await _picker.pickImage(
+      final croppedFile = await ImageHelper.pickAndCropImage(
+        context: context,
         source: source,
-        maxWidth: 1000, // Downscale large images to save bandwidth and storage.
-        maxHeight: 1000,
-        imageQuality: 85, // Slightly compress to reduce file size without losing much detail.
       );
-      if (pickedFile != null) {
-        // If the user picked a file, update the state to show the preview on screen.
+      
+      if (croppedFile != null) {
         setState(() {
-          _imageFile = pickedFile;
+          _imageFile = croppedFile;
         });
       }
     } catch (e) {
-      // If something goes wrong (like permission denied), show a top snackbar alert.
       if (mounted) {
         SnackBarUtils.showSnackBar(
           context,
-          'Error picking image: $e',
+          'Error processing image: $e',
           isError: true,
         );
       }
@@ -84,30 +89,30 @@ class _AddProductScreenState extends State<AddProductScreen> {
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
  
-    // Step 2: Show a loading state so the user knows work is happening.
+    // Trigger UI loading state.
     setState(() => _saving = true);
  
-    // Step 3: Bundle all the form fields into a Map for the API.
+    // Data normalization for API transmission.
     final data = {
       'name': _nameController.text.trim(),
-      'category': _selectedCategory,
-      // Use double.tryParse to handle empty or invalid price inputs gracefully.
+      'category': _selectedCategory, // Hierarchical grouping
+      // Numeric parsing with zero fallbacks.
       'sellingPrice': double.tryParse(_sellingPriceController.text) ?? 0.0,
       'purchasePrice': double.tryParse(_purchasePriceController.text) ?? 0.0,
-      'stockQuantity': _initialStock,
-      'minimumStockLevel': int.tryParse(_minStockController.text) ?? 0,
+      'stockQuantity': _initialStock, // Opening balance
+      'minimumStockLevel': int.tryParse(_minStockController.text) ?? 0, // Threshold for system alerts
       'description': _descriptionController.text.trim(),
-      'unit': _selectedUnit,
-      'notifyOutOfStock': _notifyOutOfStock,
+      'unit': _selectedUnit, // Base measurement (kg, pcs, etc.)
+      'notifyOutOfStock': _notifyOutOfStock, // Subscription to stock events
     };
  
-    // Step 4: Call the ProductProvider to handle the image upload and API POST request.
+    // Multipart request handling for simultaneous JSON and Image upload.
     final success = await context.read<ProductProvider>().createProduct(
           data,
           imageFile: _imageFile,
         );
 
-    // Guard against the widget being unmounted out from under us during the async call
+    // Context guard for async safety.
     if (!context.mounted) return;
 
     if (mounted) {
@@ -115,15 +120,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
       if (success && mounted) {
         SnackBarUtils.showSnackBar(context, 'Product added successfully');
         
-        // Refresh dashboard statistics on Home Screen
+        // Invalidate Home Screen stats to force a re-fetch of business metrics.
         MainShell.homeKey.currentState?.refresh();
 
-        Navigator.pop(context);
+        Navigator.pop(context); // Close creation screen
       } else if (mounted) {
+        final productProvider = context.read<ProductProvider>();
         SnackBarUtils.showSnackBar(
           context,
-          context.read<ProductProvider>().error ?? 'Failed to add product',
+          productProvider.error ?? 'Failed to add product',
           isError: true,
+          technicalDetails: productProvider.technicalDetails,
         );
       }
     }
@@ -134,24 +141,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.textMedium),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Add New Product',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
-          ),
-        ),
-        centerTitle: true,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(color: Colors.grey.shade100, height: 1),
+        title: const Text('Add New Product'),
+        leading: AppBackButton(
+          onTap: () => Navigator.pop(context),
+          margin: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
         ),
       ),
       body: SafeArea(
@@ -167,10 +160,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     children: [
                       // Image upload area
                       _buildImageSection(),
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24),
                       // Product Name
                       _buildLabel('PRODUCT NAME (REQUIRED)', isRequired: true),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6),
                       TextFormField(
                         controller: _nameController,
                         decoration: const InputDecoration(
@@ -178,31 +171,31 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         ),
                         validator: (v) => ValidationUtils.validateRequired(v, 'Product name'),
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
                       // Category
                       _buildLabel('CATEGORY'),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6),
                       _buildCategoryDropdown(),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
                       // Prices
                       Row(
                         children: [
                           Expanded(
                             child: _buildPriceField(
-                              'SELLING PRICE',
+                              'SELLING PRICE', // Markup valuation
                               _sellingPriceController,
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          SizedBox(width: 16),
                           Expanded(
                             child: _buildPriceField(
-                              'PURCHASE (COST)',
+                              'PURCHASE (COST)', // Primary expense tracker
                               _purchasePriceController,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
                       // Stock section
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -219,9 +212,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     _buildLabel('INITIAL STOCK'),
-                                    const Text(
+                                    Text(
                                       'Current units available',
-                                      style: TextStyle(
+                                      style: GoogleFonts.poppins(
                                         fontSize: 10,
                                         color: AppColors.textLight,
                                       ),
@@ -230,19 +223,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   ),
                                 Row(
                                   children: [
-                                    _buildUnitSelector(),
-                                    const SizedBox(width: 12),
-                                    _buildStockStepper(),
+                                    _buildUnitSelector(), // Inventory measurement logic
+                                    SizedBox(width: 12),
+                                    _buildStockStepper(), // Manual tally control
                                   ],
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 _buildLabel('MINIMUM STOCK LEVEL'),
-                                const SizedBox(height: 6),
+                                SizedBox(height: 6),
                                 TextFormField(
                                   controller: _minStockController,
                                   keyboardType: TextInputType.number,
@@ -251,29 +244,29 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     filled: true,
                                     fillColor: AppColors.surface,
                                     border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(16),
                                       borderSide: BorderSide(
                                         color: Colors.grey.shade200,
                                       ),
                                     ),
                                     enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(16),
                                       borderSide: BorderSide(
                                         color: Colors.grey.shade200,
                                       ),
                                     ),
                                   ),
-                                  validator: ValidationUtils.validateStock,
+                                  validator: ValidationUtils.validateStock, // Numeric sanity check
                                 ),
                               ],
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20),
                       // Description
                       _buildLabel('DESCRIPTION'),
-                      const SizedBox(height: 6),
+                      SizedBox(height: 6),
                       TextFormField(
                         controller: _descriptionController,
                         maxLines: 3,
@@ -282,8 +275,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               'Add details about product size, weight, or benefits...',
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      // Notification Toggle
+                      SizedBox(height: 12),
+                      // Notification Toggle: Logic for async push alerts
                       Container(
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.05),
@@ -292,17 +285,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         child: SwitchListTile(
                           value: _notifyOutOfStock,
                           onChanged: (v) => setState(() => _notifyOutOfStock = v),
-                          title: const Text(
+                          title: Text(
                             'Notify when out of stock',
-                            style: TextStyle(
+                            style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textDark,
                             ),
                           ),
-                          subtitle: const Text(
+                          subtitle: Text(
                             'Receive an alert when this product hits 0 units.',
-                            style: TextStyle(fontSize: 11, color: AppColors.textLight),
+                            style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textLight),
                           ),
                           activeThumbColor: AppColors.primary,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -334,7 +327,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _saving ? null : _saveProduct,
                       icon: _saving
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
@@ -342,24 +335,24 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Icon(Icons.check_circle_outline),
+                          : Icon(Icons.check_circle_outline),
                       label: Text(_saving ? 'Saving...' : 'Save Product'),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(20),
                         ),
                         elevation: 4,
                         shadowColor: AppColors.primary.withValues(alpha: 0.3),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
+                    onPressed: () => Navigator.pop(context), // Discard current draft
+                    child: Text(
                       'Cancel',
-                      style: TextStyle(
+                      style: GoogleFonts.poppins(
                         fontSize: 14,
                         color: AppColors.textMedium,
                         fontWeight: FontWeight.w500,
@@ -375,6 +368,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
+  // File system picker for branding and catalog visuals
   Widget _buildImageSection() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -382,6 +376,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         Container(
           width: 120,
           height: 120,
+          clipBehavior: Clip.antiAlias, // Ensures internal content (image) follows the container's shape
           decoration: BoxDecoration(
             color: const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(12),
@@ -391,47 +386,41 @@ class _AddProductScreenState extends State<AddProductScreen> {
               strokeAlign: BorderSide.strokeAlignCenter,
             ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (_imageFile != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: kIsWeb
-                      ? Image.network(
-                          _imageFile!.path,
-                          width: 120,
-                          height: 120,
-                          fit: BoxFit.cover,
-                        )
-                      : Image.file(
-                          File(_imageFile!.path),
-                          width: 120,
-                          height: 120,
-                          fit: BoxFit.cover,
-                        ),
-                )
-              else
-                Icon(
-                  Icons.add_a_photo,
-                  size: 36,
-                  color: AppColors.textLight.withValues(alpha: 0.6),
-                ),
-            ],
+          child: Center(
+            child: _imageFile != null
+                ? (kIsWeb
+                    ? Image.network(
+                        _imageFile!.path,
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                      )
+                    : Image.file(
+                        File(_imageFile!.path),
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                      ))
+                : Icon(
+                    Icons.add_a_photo,
+                    size: 36,
+                    color: AppColors.textLight.withValues(alpha: 0.6),
+                  ),
           ),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: 16),
         Expanded(
           child: Column(
             children: [
+              // Hardware interface for immediate image capture
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () => _pickImage(ImageSource.camera),
-                  icon: const Icon(Icons.camera_alt, size: 18),
-                  label: const Text(
+                  icon: Icon(Icons.camera_alt, size: 18),
+                  label: Text(
                     'Take Photo',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primary,
@@ -439,20 +428,21 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     side: BorderSide.none,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
+              // Browsing existing media on the device
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   onPressed: () => _pickImage(ImageSource.gallery),
-                  icon: const Icon(Icons.image, size: 18),
-                  label: const Text(
+                  icon: Icon(Icons.image, size: 18),
+                  label: Text(
                     'Gallery',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.textMedium,
@@ -460,15 +450,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     side: BorderSide.none,
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               Text(
                 'Recommended: Square PNG or JPG up to 5MB',
-                style: TextStyle(
+                style: GoogleFonts.poppins(
                   fontSize: 10,
                   color: AppColors.textLight,
                   fontStyle: FontStyle.italic,
@@ -481,10 +471,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
+  // Thematically consistent labels
   Widget _buildLabel(String text, {bool isRequired = false}) {
     return Text(
       text,
-      style: TextStyle(
+      style: GoogleFonts.poppins(
         fontSize: 11,
         fontWeight: FontWeight.w700,
         color: isRequired ? AppColors.primary : AppColors.textMedium,
@@ -493,11 +484,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
+  // Pre-configured category list selection
   Widget _buildCategoryDropdown() {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -505,12 +497,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
         child: DropdownButton<String>(
           value: _selectedCategory,
           isExpanded: true,
-          icon: const Icon(Icons.expand_more, color: AppColors.textLight),
+          icon: Icon(Icons.expand_more, color: AppColors.textLight),
           items: _categories
               .map(
                 (c) => DropdownMenuItem(
                   value: c,
-                  child: Text(c, style: const TextStyle(fontSize: 14)),
+                  child: Text(c, style: GoogleFonts.poppins(fontSize: 14)),
                 ),
               )
               .toList(),
@@ -520,30 +512,32 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
+  // Reusable currency input component
   Widget _buildPriceField(String label, TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildLabel(label),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         TextFormField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
             prefixText: 'Rs.  ',
-            prefixStyle: const TextStyle(
+            prefixStyle: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: AppColors.textMedium,
             ),
             hintText: '0.00',
           ),
-          validator: ValidationUtils.validatePrice,
+          validator: ValidationUtils.validatePrice, // Logic for non-negative floating numbers
         ),
       ],
     );
   }
 
+  // Selection modal for unit classification (items vs volume)
   Widget _buildUnitSelector() {
     return GestureDetector(
       onTap: _showUnitSelectionDialog,
@@ -551,7 +545,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.grey.shade200),
         ),
         child: Row(
@@ -559,27 +553,28 @@ class _AddProductScreenState extends State<AddProductScreen> {
           children: [
             Text(
               _selectedUnit,
-              style: const TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: AppColors.primary,
               ),
             ),
-            const SizedBox(width: 4),
-            const Icon(Icons.arrow_drop_down, color: AppColors.primary, size: 20),
+            SizedBox(width: 4),
+            Icon(Icons.arrow_drop_down, color: AppColors.primary, size: 20),
           ],
         ),
       ),
     );
   }
 
+  // Modal UI for unit selection
   void _showUnitSelectionDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(
+        title: Text(
           'Select Unit',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18),
         ),
         contentPadding: const EdgeInsets.fromLTRB(8, 20, 8, 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -591,30 +586,30 @@ class _AddProductScreenState extends State<AddProductScreen> {
               final isSelected = _selectedUnit == entry.key;
               return ListTile(
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 selected: isSelected,
                 selectedTileColor: AppColors.primary.withValues(alpha: 0.05),
                 title: Text(
                   entry.key,
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                     color: isSelected ? AppColors.primary : AppColors.textDark,
                   ),
                 ),
                 subtitle: Text(
                   'e.g. ${entry.value}',
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: isSelected ? AppColors.primary.withValues(alpha: 0.7) : AppColors.textLight,
                   ),
                 ),
                 trailing: isSelected
-                    ? const Icon(Icons.check_circle, color: AppColors.primary)
+                    ? Icon(Icons.check_circle, color: AppColors.primary)
                     : null,
                 onTap: () {
-                  setState(() => _selectedUnit = entry.key);
-                  Navigator.pop(context);
+                  setState(() => _selectedUnit = entry.key); // State update
+                  Navigator.pop(context); // Close selection
                 },
               );
             }).toList(),
@@ -623,7 +618,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textMedium)),
+            child: Text('Cancel', style: GoogleFonts.poppins(color: AppColors.textMedium)),
           ),
         ],
       ),
@@ -635,7 +630,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
@@ -658,7 +653,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
             child: Text(
               '$_initialStock',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textDark,
@@ -678,3 +673,4 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 }
+

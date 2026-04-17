@@ -1,18 +1,23 @@
 const express = require('express');
 
-function createFeedbackRoutes(feedbackController) {
+function createFeedbackRoutes(feedbackController, authMiddleware) {
     const router = express.Router();
 
+    // --- Public Routes ---
+    // POST /api/public/feedback -> submit()
+    // This allows unauthenticated users to contact admin for account issues.
+    router.post('/public/feedback', (req, res) => feedbackController.submit(req, res));
+
+
+    // --- Private Routes (Protected) ---
     // POST /api/feedback -> submit()
-    router.post('/feedback', (req, res) => feedbackController.submit(req, res));
+    router.post('/feedback', authMiddleware, (req, res) => feedbackController.submit(req, res));
 
     // GET /api/admin/feedback -> getAll()
-    // In server.js, we should probably protect this with an admin check if applicable, 
-    // but for now it's under the general authMiddleware in server.js.
-    router.get('/admin/feedback', (req, res) => feedbackController.getAll(req, res));
+    router.get('/admin/feedback', authMiddleware, (req, res) => feedbackController.getAll(req, res));
 
     // DELETE /api/admin/feedback/:id -> delete()
-    router.delete('/admin/feedback/:id', (req, res) => feedbackController.delete(req, res));
+    router.delete('/admin/feedback/:id', authMiddleware, (req, res) => feedbackController.delete(req, res));
 
     return router;
 }

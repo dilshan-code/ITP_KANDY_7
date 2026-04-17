@@ -1,4 +1,4 @@
-import 'package:frontend/features/suppliers/domain/entities/supplier.dart';
+﻿import 'package:frontend/features/suppliers/domain/entities/supplier.dart';
 
 abstract class SupplierRepository {
   Future<List<Supplier>> getAllSuppliers({int? limit, String? lastId});
@@ -8,3 +8,4 @@ abstract class SupplierRepository {
   Future<bool> deleteSupplier(String id);
   Future<Map<String, dynamic>> getSupplierSummary();
 }
+

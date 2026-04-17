@@ -1,6 +1,6 @@
 # ClickBuy - Data Flow Diagram (DFD) Reference
 
-This document provides a Data Flow Diagram (DFD) for the ClickBuy Grocery Shop Manager system for your reference.
+This document provides a Data Flow Diagram (DFD) for the ClickBuy Grocery Shop Manager system, reflecting the final architectural refinements for university submission.
 
 ## Level 0: Context Diagram
 The Context Diagram shows the system as a single process and its interactions with external entities.
@@ -12,11 +12,15 @@ graph TD
     DB[(MongoDB Atlas)]
     CDN[Cloudinary Media]
     Auth[Firebase Phone Auth]
+    FS[Local File System]
 
     Manager -- "Login Credentials / OTP" --> System
     Manager -- "Product & Sale Entries" --> System
+    Manager -- "Trigger Backup" --> System
+    
     System -- "Auth Status / Token" --> Manager
     System -- "Reports & Notifications" --> Manager
+    System -- "Backup ZIP Archive" --> Manager
 
     System -- "CRUD Operations" --> DB
     DB -- "Data Stream" --> System
@@ -46,6 +50,7 @@ graph TD
         P5[Supplier & Purchase Mgmt]
         P6[Notifications & Analytics]
         P7[Media Management]
+        P8[Backup & Discovery]
     end
 
     CDN[Cloudinary Media]
@@ -81,15 +86,22 @@ graph TD
     P3 -- "Credit Sale Entry" --> P4
 
     %% Supplier & Purchase Flow
-    Manager -- "Purchase Invoices" --> P5
+    Manager -- "Purchase Invoices / Payments" --> P5
     P5 -- "Purchase Records" --> DB
     P5 -- "Add to Stock" --> P2
-    DB -- "Supplier Lists" --> P5
+    P5 -- "Update Outstanding Balance" --> DB
+    DB -- "Actual Debt Status" --> P5
 
     %% Notifications & Analytics
     DB -- "Aggregated Metrics" --> P6
     P6 -- "Low Stock & Business Alerts" --> Manager
     P6 -- "Performance Reports" --> Manager
+
+    %% Backup & Discovery
+    Manager -- "IP Auto-Discovery / Backup Req" --> P8
+    P8 -- "Collection Snapshot" --> DB
+    P8 -- "Generate Archive" --> P8
+    P8 -- "Download ZIP" --> Manager
 ```
 
 ## Key Data Entities
@@ -97,5 +109,9 @@ graph TD
 - **Sales**: Records of completed transactions and individual invoice items.
 - **Customers**: Profiles for credit-eligible customers and their current balance.
 - **Credit Transactions**: History of debts and repayments.
-- **Suppliers**: Contact info and purchase history.
+- **Suppliers**: Contact info and actual outstanding debt (Total Payable).
+- **Purchases**: Historical restock records with payment tracking (Remaining Balance).
 - **Notifications**: Log of system-generated alerts.
+
+---
+*Technical Specification - ClickBuy Group Project.*

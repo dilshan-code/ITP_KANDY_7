@@ -19,13 +19,6 @@ jest.mock('../src/config/firebaseAdmin', () => ({
 }));
 
 // Mock mongoose to prevent startSession timeout
-const mockSession = {
-    startTransaction: jest.fn(),
-    commitTransaction: jest.fn(),
-    abortTransaction: jest.fn(),
-    endSession: jest.fn(),
-};
-
 jest.mock('mongoose', () => ({
     startSession: jest.fn().mockResolvedValue({
         startTransaction: jest.fn(),
@@ -50,19 +43,23 @@ describe('CreatePurchase Use Case', () => {
         };
         mockProductRepository = {
             getById: jest.fn().mockImplementation((id, oid) => Promise.resolve({ id, name: 'Test Product', stockQuantity: 10, ownerId: oid })),
-            update: jest.fn().mockImplementation((id, data, oid) => Promise.resolve({ id, ...data, ownerId: oid }))
+            update: jest.fn().mockImplementation((id, data, oid) => Promise.resolve({ id, ...data, ownerId: oid })),
+            bulkUpdateStock: jest.fn().mockResolvedValue(true)
         };
         mockSupplierRepository = {
             getById: jest.fn().mockImplementation((id, oid) => Promise.resolve({ id, name: 'Test Supplier', totalPayable: 1000, ownerId: oid })),
-            update: jest.fn().mockImplementation((id, data, oid) => Promise.resolve({ id, ...data, ownerId: oid }))
+            update: jest.fn().mockImplementation((id, data, oid) => Promise.resolve({ id, ...data, ownerId: oid })),
+            incrementPayable: jest.fn().mockImplementation((id, owId, amount) => Promise.resolve({ id, ownerId: owId, totalPayable: 1000 + amount }))
         };
         createPurchase = new CreatePurchase(mockPurchaseRepository, mockProductRepository, mockSupplierRepository);
     });
 
-    test('should create a purchase and update product stock', async () => {
+    test('should create a purchase and update product stock via bulkUpdateStock', async () => {
         const purchaseData = {
             supplierId: 's1',
             supplierName: 'Test Supplier',
+            totalAmount: 1000,
+            amountPaid: 500,
             items: [
                 { productId: 'prod1', quantity: 5, costPrice: 100 }
             ],
@@ -71,15 +68,31 @@ describe('CreatePurchase Use Case', () => {
 
         const result = await createPurchase.execute(purchaseData, ownerId);
 
-        expect(mockPurchaseRepository.create).toHaveBeenCalledWith({ ...purchaseData, ownerId }, expect.anything());
-        expect(mockProductRepository.getById).toHaveBeenCalledWith('prod1', ownerId, expect.anything());
-        expect(mockProductRepository.update).toHaveBeenCalledWith('prod1', expect.objectContaining({ stockQuantity: 15 }), ownerId, expect.anything());
+        expect(mockPurchaseRepository.create).toHaveBeenCalledWith(expect.objectContaining({ 
+            remaining: 500,
+            ownerId 
+        }), expect.anything());
+        
+        // Verify bulk update was called
+        expect(mockProductRepository.bulkUpdateStock).toHaveBeenCalledWith(
+            expect.arrayContaining([
+                expect.objectContaining({ productId: 'prod1', amount: 5 })
+            ]),
+            ownerId,
+            expect.anything()
+        );
+
+        // Verify atomic increment for supplier: (id, ownerId, amount, session)
+        expect(mockSupplierRepository.incrementPayable).toHaveBeenCalledWith('s1', ownerId, 500, expect.anything());
+        
         expect(result.notes).toBe('Test purchase');
     });
 
-    test('should handle multiple items and update stock for each', async () => {
+    test('should handle multiple items and update stock via bulkUpdateStock', async () => {
         const purchaseData = {
           supplierId: 's1',
+          totalAmount: 1000,
+          amountPaid: 1000,
           items: [
               { productId: 'prod1', quantity: 5 },
               { productId: 'prod2', quantity: 3 }
@@ -88,7 +101,13 @@ describe('CreatePurchase Use Case', () => {
 
         await createPurchase.execute(purchaseData, ownerId);
 
-        expect(mockProductRepository.update).toHaveBeenCalledWith('prod1', expect.objectContaining({ stockQuantity: 15 }), ownerId, expect.anything());
-        expect(mockProductRepository.update).toHaveBeenCalledWith('prod2', expect.objectContaining({ stockQuantity: 13 }), ownerId, expect.anything());
+        expect(mockProductRepository.bulkUpdateStock).toHaveBeenCalledWith(
+            expect.arrayContaining([
+                expect.objectContaining({ productId: 'prod1', amount: 5 }),
+                expect.objectContaining({ productId: 'prod2', amount: 3 })
+            ]),
+            ownerId,
+            expect.anything()
+        );
     });
 });

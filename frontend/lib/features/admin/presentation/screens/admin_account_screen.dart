@@ -1,8 +1,19 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:frontend/features/auth/presentation/providers/auth_provider.dart';
-import 'package:frontend/features/auth/presentation/screens/login_screen.dart';
-import 'package:frontend/features/admin/presentation/screens/admin_profile_screen.dart';
+﻿// ------------------------------------------------------------------------------
+// File: admin_account_screen.dart
+// Purpose: Administrative profile and system-wide settings navigation hub.
+// Rationale: Acts as the secondary control interface where administrators 
+//   manage their personal security (PII), invoke disaster recovery (Backup), 
+//   and review legal/privacy guidelines. Implements a high-contrast theme 
+//   distinct from the standard store-owner interface.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // UI: Material framework
+import 'package:provider/provider.dart'; // State: Reactive dependency consumption
+import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // State: Identity source of truth
+import 'package:frontend/features/auth/presentation/screens/login_screen.dart'; // Navigation: Session exit destination
+import 'package:frontend/features/admin/presentation/screens/admin_profile_screen.dart'; // Navigation: Admin identity settings
+import 'package:frontend/features/admin/presentation/screens/database_backup_screen.dart'; // Navigation: System recovery
+import 'package:frontend/features/account/presentation/screens/privacy_policy_screen.dart'; // Navigation: Data governance
+import 'package:frontend/shared/widgets/screen_header.dart'; // UI: Consistent screen branding
 
 class AdminAccountScreen extends StatelessWidget {
   const AdminAccountScreen({super.key});
@@ -15,26 +26,26 @@ class AdminAccountScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        title: const Text(
-          'Admin Settings',
-          style: TextStyle(
-            color: Color(0xFF1E293B),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.only(bottom: 24),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildProfileSection(authProvider),
-              const SizedBox(height: 32),
-              _buildSettingsList(context, authProvider),
+              const ScreenHeader(
+                title: 'Admin Settings',
+                subtitle: 'System & network control',
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    _buildProfileSection(authProvider),
+                    const SizedBox(height: 32),
+                    _buildSettingsList(context, authProvider),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -125,8 +136,24 @@ class AdminAccountScreen extends StatelessWidget {
           _buildSettingsItem(
             icon: Icons.backup_outlined,
             title: 'Database Backup',
-            subtitle: 'Last backup: 2 hours ago',
-            onTap: () {},
+            subtitle: 'Secure ZIP archive',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DatabaseBackupScreen()),
+              );
+            },
+          ),
+          _buildSettingsItem(
+            icon: Icons.privacy_tip_outlined,
+            title: 'Privacy Policy',
+            subtitle: 'Data protection guidelines',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+              );
+            },
           ),
           const Divider(color: Color(0xFFF1F5F9), height: 1),
           _buildSettingsItem(
@@ -180,3 +207,4 @@ class AdminAccountScreen extends StatelessWidget {
     );
   }
 }
+

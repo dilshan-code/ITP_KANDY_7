@@ -4,6 +4,131 @@ A professional record of technical challenges encountered and resolved during th
 
 ---
 
+## 📅 April 17, 2026
+> *Focus: Reporting Standardization, Administrative Stability, and UX Polish*
+
+### `[FIXED]` Web Image Cropper Layout Overflow
+- **Issue**: The image cropping dialog on Web displayed a "Bottom Overflowed" error, making the 'Cancel' and 'Crop' buttons unclickable.
+- **Fix**: Replaced fixed dialog dimensions with a **responsive sizing strategy** using `MediaQuery`. The height is now dynamically calculated as 80% of the browser's viewport height.
+- **Context**: Moving from fixed pixels to responsive percentages ensures the cropping interface remains stable across varying screen resolutions and browser zoom levels without requiring manual height adjustments.
+
+### `[FIXED]` PDF Unicode & Alignment (Standardization)
+- **Issue**: Exported PDF reports triggered "Helvetica-Bold has no Unicode support" warnings, and headers/footers were inconsistent across Inventory and Analytics modules.
+- **Fix**: Integrated Google Fonts (Roboto) via the `printing` package for full Unicode support. Standardized all reporting layouts using a unified helper architecture (`_buildBusinessHeader`, `_buildFooter`).
+- **Context**: Professional documents must support a full character set and maintain consistent branding. This refactor ensures all exports meet high-fidelity business standards.
+
+### `[FIXED]` Feedback Filtering Unresponsiveness
+- **Issue**: Category filter buttons (e.g., 'Improvement', 'Guest Support') on the Admin Feedback screen were unresponsive due to a provider-state mismatch.
+- **Fix**: Synchronized the filtering logic in `ManageFeedbackScreen` with the `FeedbackProvider` and verified that label mappings strictly match backend entity categories.
+- **Context**: Administrative tools must be reliable. Ensuring filters work correctly allows the platform manager to prioritize tasks effectively.
+
+### `[RESOLVED]` Navigation Icon Aesthetic Consistency
+- **Issue**: Bottom navigation and Home screen Quick Actions used consumer-focused shopping cart icons, which felt inconsistent with the app's business-management focus.
+- **Fix**: Replaced generic icons with clean, industry-standard variants: `receipt_long_outlined` for Sales, `add_box_rounded` for Products, and `note_add_rounded` for Purchase Records.
+- **Context**: Micro-aesthetics matter. Moving to document-centric iconography reinforces the application's role as a professional management tool.
+
+### `[FIXED]` PDF Generation Engine Syntax Corruption
+- **Issue**: A critical code duplication error in `owner_pdf_utils.dart` broke the PDF reporting engine, causing multiple syntax errors and preventing builds.
+- **Fix**: Conducted a systematic code cleanup to remove redundant blocks and restore proper structural nesting.
+- **Context**: Reliability in reporting is non-negotiable. This fix ensures the "Business-First" engine operations are stable and error-free.
+
+### `[FIXED]` Missing Provider Type Dependencies
+- **Issue**: Export logic in `CreditListScreen` and `RecordPurchaseScreen` failed due to missing `AuthProvider` imports, preventing the injection of shop identity into PDF reports.
+- **Fix**: Standardized module imports for `AuthProvider` across all presentation screens requiring identity-aware services.
+- **Context**: Architectural consistency ensures that features like dynamic branding remain functional across disparate app modules.
+
+### `[INTERNAL]` Documentation Data Integrity Restoration
+- **Issue**: Legacy markdown logs (`bugs_and_fixes.md`, `system_improvements.md`) contained "line number artifacts," reducing documentation readability.
+- **Fix**: Executed a data-cleansing pass to remove all non-content artifacts and restore professional formatting.
+- **Context**: Documentation is a development asset. Maintaining its integrity is vital for long-term project onboarding and audits.
+
+---
+
+## 📅 April 16, 2026
+> *Focus: Administrative Stability and Performance Benchmarking*
+
+### `[FIXED]` Admin Seeding Duplication
+- **Issue**: System administrator seeding failed if the admin updated their email, as the system attempted to create a "new" admin with the default email on setiap restart.
+- **Fix**: Re-engineered the `ensureAdminUser` logic to use a persistent `admin_master_001` ID for tracking, ensuring the same logical account is updated regardless of email changes.
+- **Context**: Robustness in system initialization is vital for long-term administration.
+
+### `[RESOLVED]` UI Animation "Jitter" on Success Screen
+- **Issue**: Heavy particle/confetti animations on the 'Payment Success' screen caused frame drops on low-end Android devices.
+- **Fix**: Deprecated and removed the `fireworks` animation widget and its associated controller in favor of a cleaner, static "Premium" success state.
+- **Context**: Performance is a feature. Pruning non-essential assets improves the app's responsiveness and stability across all hardware tiers.
+
+---
+
+## 📅 April 15, 2026
+> *Focus: Financial Accuracy and Accounting Integrity*
+
+### `[FIXED]` Supplier Accounting Logic (Actual Debt)
+- **Issue**: Supplier `totalPayable` was incorrectly inflated by the full transaction amount, even if a purchase was paid in full. "Settle Payment" did not reduce the balance.
+- **Fix**: Refactored all purchase use cases (`Create`, `Update`, `Delete`, `Settle`) to synchronize only the `remaining` (unpaid) balance with the supplier's debt.
+- **Context**: Financial accuracy is non-negotiable. Synchronizing the balance with actual outstanding debt ensures the "Total Payable" card is 100% reliable for the shop owner.
+
+---
+
+## 📅 April 14, 2026
+> *Focus: Admin UX and Feedback Integrity*
+
+### `[RESOLVED]` Admin Dashboard Styling
+- **Issue**: Admin dashboard cards lacked visual distinction, making it difficult to scan key metrics quickly.
+- **Fix**: Added dynamic color fills and subtle gradients to primary dashboard cards (e.g., Total Revenue, User Count).
+- **Context**: Visual hierarchy is essential for administrative tools. Color-coding metrics helps users process information faster.
+
+### `[FIXED]` Feedback Field Mappings
+- **Issue**: Support requests submitted via the public flow were missing critical "Shop Name" and "Contact Number" details in the admin view.
+- **Fix**: Updated the `FeedbackController` and `SubmitFeedback` use case to explicitly map these verification fields.
+- **Context**: Without proper identification, the administrator cannot provide valid support to shop owners who are locked out of their accounts.
+
+### `[RESOLVED]` Admin UX "Static" Feel
+- **Issue**: The admin screens felt disconnected from the modern, animated aesthetic of the authentication flow.
+- **Fix**: Implemented micro-interactions and staggered entry animations using `animate_do` and `shimmer`. Added physical feedback to buttons with `TactileScale`.
+- **Context**: Consistent UX quality across all modules (Admin vs. Shop Owner) builds overall platform trust and reduces cognitive friction.
+
+---
+
+## 📅 April 13, 2026
+> *Focus: Backend Resilience and Unauthenticated Access*
+
+### `[FIXED]` Support Submission Reference Error
+- **Issue**: Backend crashed with `TypeError: Cannot read property 'ownerId' of null` when processing feedback from unauthenticated users.
+- **Fix**: Implemented null-safe user context handling in `feedbackUseCases.js` to support requests that originate outside of an active session.
+- **Context**: the support flow is specifically for users who *cannot* log in; therefore, the system must handle the absence of a JWT ownerId gracefully.
+
+---
+
+## 📅 April 12, 2026
+> *Focus: Viewport Orchestration and Validation*
+
+### `[FIXED]` Auth Viewport Height Clipping
+- **Issue**: Authentication screens (Splash, Login, Register) occasionally occupied only 50% of the screen height on specific Android emulators.
+- **Fix**: Refactored `AuthBackground` to use `MediaQuery.of(context).size.height` with a `ConstrainedBox` to ensure the background always fills the full viewport.
+- **Context**: Ensuring consistent layout across varying screen ratios is a fundamental requirement for a premium mobile experience.
+
+### `[RESOLVED]` Purchase Record Validation
+- **Issue**: 'New Purchase Record' form allowed zero or negative quantities and costs, leading to corrupt inventory data.
+- **Fix**: Added strict numeric validation regex and required-field checks to the purchase form's `TextFormField` validation logic.
+- **Context**: Predictive validation prevents "garbage in, garbage out" at the point of entry.
+
+### `[FIXED]` Analytics Connectivity
+- **Issue**: Business reports occasionally failed to load due to `MongooseTimeout` errors during heavy database scans.
+- **Fix**: Optimized the `GetBusinessReport` query logic and implemented a retry mechanism for database connectivity in the backend.
+- **Context**: Stability in financial reporting is critical for business trust.
+
+---
+
+## 📅 April 11, 2026
+> *Focus: UI Modernization and Contrast*
+
+### `[RESOLVED]` Theme Contrast & Legibility
+- **Issue**: New "Frosted Mint" gradients occasionally made white text unreadable on specific background regions.
+- **Fix**: Adjusted the secondary color palette and added subtle text shadows to interactive elements to ensure WCAG-compliant contrast ratios.
+- **Context**: Aesthetic upgrades must never come at the cost of accessibility and legibility.
+
+---
+
 ## 📅 April 5, 2026
 > *Focus: Workspace Integrity & Sync Synchronization*
 
@@ -59,18 +184,16 @@ A professional record of technical challenges encountered and resolved during th
 
 ---
 
-14: 
-15: ### `[RESOLVED]` Transaction Race Condition
-16: - **Issue**: Concurrent sales occasionally failed during the Firestore-to-MongoDB transition.
-17: - **Fix**: Implemented robust Mongoose Sessions to handle atomic transactions across Products, Sales, and Customer collections.
-18: - **Context**: Atomic data updates are non-negotiable in POS systems. Sessions prevent partial data writes during system failures.
-19: 
-20: ### `[FIXED]` Schema Validation Runtime Errors
-21: - **Issue**: `ValidationError: _id is required` occurred in complex purchase workflows.
-22: - **Fix**: Standardized object ID handling across repositories and ensured all legacy Firestore IDs were correctly mapped to MongoDB `ObjectId`.
-23: - **Context**: Handling identity across different database paradigms requires careful casting to avoid runtime crashes.
-24: 
-25: ---
+### `[RESOLVED]` Transaction Race Condition
+- **Issue**: Concurrent sales occasionally failed during the Firestore-to-MongoDB transition.
+- **Fix**: Implemented robust Mongoose Sessions to handle atomic transactions across Products, Sales, and Customer collections.
+- **Context**: Atomic data updates are non-negotiable in POS systems. Sessions prevent partial data writes during system failures.
+
+### `[FIXED]` Schema Validation Runtime Errors
+- **Issue**: `ValidationError: _id is required` occurred in complex purchase workflows.
+- **Fix**: Standardized object ID handling across repositories and ensured all legacy Firestore IDs were correctly mapped to MongoDB `ObjectId`.
+- **Context**: Handling identity across different database paradigms requires careful casting to avoid runtime crashes.
+
 
 ## 📅 March 25, 2026
 > *Focus: Data Consistency and Multi-tenant Integrity*
@@ -228,4 +351,11 @@ A professional record of technical challenges encountered and resolved during th
 - **Context**: Technical debt cleanup. We moved to a simpler price-only model to streamline the user interface.
 
 ---
-*Last Review: 2026-03-27 • Total Issues Logged: 24*
+### `[FIXED]` Coordinated Data Wipeout (GDPR Compliance)
+- **Issue**: Deleting an owner account left orphan records (products, sales, etc.) in the database, compromising data privacy.
+- **Fix**: Implemented the `DeleteOwner` use case with `Promise.all` parallelism to simultaneously nuke all associated data in Products, Customers, Sales, Suppliers, and Transactions.
+- **Context**: Total data erasure is a fundamental privacy requirement. This coordinated "Total Wipeout" ensures a clean slate when an account is removed.
+
+---
+
+*Last Review: 2026-04-17 • Total Issues Logged: 26*

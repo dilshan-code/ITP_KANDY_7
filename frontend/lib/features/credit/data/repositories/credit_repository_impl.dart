@@ -1,8 +1,13 @@
-import 'package:frontend/core/network/api_client.dart';
-import 'package:frontend/features/credit/domain/entities/customer.dart';
-import 'package:frontend/features/credit/domain/entities/credit_transaction.dart';
-
-// CreditRepositoryImpl handles all data tasks related to customers and their credit history.
+﻿// ------------------------------------------------------------------------------
+// File: credit_repository_impl.dart
+// Purpose: Concrete implementation of credit data operations via REST API.
+// Rationale: Translates domain-level CRUD operations for customers and credit
+//   transactions into HTTP calls via ApiClient, with JSON deserialization
+//   back into domain entities.
+// ------------------------------------------------------------------------------
+import 'package:frontend/core/network/api_client.dart'; // Network: HTTP request dispatch
+import 'package:frontend/features/credit/domain/entities/customer.dart'; // Domain: Customer model
+import 'package:frontend/features/credit/domain/entities/credit_transaction.dart'; // Domain: Ledger entry model
 class CreditRepositoryImpl {
   // Customer methods
   // Lists all customers in the system by fetching them from the backend.
@@ -76,3 +81,4 @@ class CreditRepositoryImpl {
     return response['data'] as Map<String, dynamic>;
   }
 }
+

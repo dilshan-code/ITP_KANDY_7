@@ -1,7 +1,17 @@
-import 'package:flutter/material.dart';
-import 'package:frontend/core/theme/app_colors.dart';
-import 'package:intl/intl.dart';
-import 'package:frontend/features/sales/presentation/utils/invoice_pdf_utils.dart';
+// ------------------------------------------------------------------------------
+// File: invoice_dialog.dart
+// Purpose: Interactive Receipt Visualization and Post-sale Orchestration.
+// Rationale: Provides a non-modal overlay for comprehensive transaction review, 
+//   facilitating line-item audits, branded document generation, and native 
+//   document sharing without interrupting the primary navigation stack.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // Core: Flutter UI reactive system
+import 'package:google_fonts/google_fonts.dart'; // Typography: Brand font sets
+import 'package:frontend/core/theme/app_colors.dart'; // Styling: Design system tokens
+import 'package:intl/intl.dart'; // Formatting: Date localization
+import 'package:frontend/features/sales/presentation/utils/invoice_pdf_utils.dart'; // Export: PDF generator
+import 'package:provider/provider.dart'; // State: Accessing providers
+import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // Auth: User context
 
 class InvoiceDialog extends StatelessWidget {
   final Map<String, dynamic> saleDetails;
@@ -26,16 +36,16 @@ class InvoiceDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header
+            // Header: Visual branding and transaction identification
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'INVOICE',
-                      style: TextStyle(
+                      style: GoogleFonts.poppins(
                         fontSize: 24,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 2,
@@ -43,8 +53,8 @@ class InvoiceDialog extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '#${saleDetails['id']?.toString().toUpperCase() ?? 'N/A'}',
-                      style: const TextStyle(
+                      '#${(saleDetails['id'] ?? saleDetails['_id'])?.toString().toUpperCase() ?? 'UNKNOWN'}', // Unique trace ID
+                      style: GoogleFonts.poppins(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textMedium,
@@ -62,8 +72,8 @@ class InvoiceDialog extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    paymentMethod.toUpperCase(),
-                    style: const TextStyle(
+                    paymentMethod.toUpperCase(), // Settlement classification
+                    style: GoogleFonts.poppins(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w800,
                       fontSize: 12,
@@ -72,27 +82,27 @@ class InvoiceDialog extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
 
-            // Details
+            // Details: Metadata for the specific transaction instance
             _buildDetailRow(
               'Date',
               DateFormat('MMM dd, yyyy - hh:mm a').format(date),
             ),
-            const SizedBox(height: 8),
-            _buildDetailRow('Customer', customerName),
+            SizedBox(height: 8),
+            _buildDetailRow('Customer', customerName), // Associated account name
             const Divider(height: 32),
 
-            // Items List
-            const Text(
+            // Items List: Break-down of products or service charges
+            Text(
               'ITEMS',
-              style: TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textLight,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 200),
               child: items.isEmpty
@@ -101,13 +111,13 @@ class InvoiceDialog extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Balance Settlement',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                          Text(
+                            'Balance Settlement', // Fallback for direct credit payments
+                            style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500),
                           ),
                           Text(
                             'Rs ${totalAmount.toStringAsFixed(0)}',
-                            style: const TextStyle(
+                            style: GoogleFonts.poppins(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
                             ),
@@ -129,13 +139,13 @@ class InvoiceDialog extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                  '${item['name']} (x$qty ${item['unit'] ?? ''})',
-                                  style: const TextStyle(fontSize: 14),
+                                  '${item['name']} (x$qty ${item['unit'] ?? ''})', // Line item description
+                                  style: GoogleFonts.poppins(fontSize: 14),
                                 ),
                               ),
                               Text(
-                                'Rs ${(price * qty).toStringAsFixed(0)}',
-                                style: const TextStyle(
+                                'Rs ${(price * qty).toStringAsFixed(0)}', // Calculated subtotal
+                                style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
                                 ),
@@ -148,17 +158,17 @@ class InvoiceDialog extends StatelessWidget {
             ),
             const Divider(height: 32),
 
-            // Total
+            // Total: Final net value of the entire invoice
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'TOTAL',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  'Rs ${double.parse(totalAmount.toString()).toStringAsFixed(0)}',
-                  style: const TextStyle(
+                  'Rs ${double.parse(totalAmount.toString()).toStringAsFixed(0)}', // Unified total settlement
+                  style: GoogleFonts.poppins(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
                     color: AppColors.primary,
@@ -166,19 +176,24 @@ class InvoiceDialog extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 32),
+            SizedBox(height: 32),
 
-            // Actions
+            // Actions: Post-view operations for record keeping
             Row(
               children: [
+                // Digital document generation
                 Expanded(
                   flex: 3,
                   child: ElevatedButton.icon(
-                    onPressed: () => InvoicePdfUtils.generateAndDownloadInvoice(
-                      saleDetails: saleDetails,
-                    ),
-                    icon: const Icon(Icons.download_outlined, size: 18),
-                    label: const Text('PDF', style: TextStyle(fontSize: 13)),
+                    onPressed: () {
+                      final owner = context.read<AuthProvider>().currentOwner;
+                      InvoicePdfUtils.generateAndDownloadInvoice(
+                        saleDetails: saleDetails,
+                        owner: owner,
+                      );
+                    },
+                    icon: Icon(Icons.download_outlined, size: 18),
+                    label: Text('PDF', style: GoogleFonts.poppins(fontSize: 13)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: AppColors.primary,
@@ -189,31 +204,37 @@ class InvoiceDialog extends StatelessWidget {
                         width: 1.5,
                       ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
+                // External system sharing
                 Expanded(
                   flex: 2,
                   child: ElevatedButton(
-                    onPressed: () => InvoicePdfUtils.shareInvoice(
-                      saleDetails: saleDetails,
-                    ),
+                    onPressed: () {
+                      final owner = context.read<AuthProvider>().currentOwner;
+                      InvoicePdfUtils.shareInvoice(
+                        saleDetails: saleDetails,
+                        owner: owner,
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                       foregroundColor: AppColors.primary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                     ),
-                    child: const Icon(Icons.share_rounded, size: 20),
+                    child: Icon(Icons.share_rounded, size: 20),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
+                // Exit flow
                 Expanded(
                   flex: 3,
                   child: ElevatedButton(
@@ -221,12 +242,12 @@ class InvoiceDialog extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Close',
-                      style: TextStyle(
+                      style: GoogleFonts.poppins(
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
                       ),
@@ -241,19 +262,21 @@ class InvoiceDialog extends StatelessWidget {
     );
   }
 
+  // Row builder for key-value styling
   Widget _buildDetailRow(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(color: AppColors.textMedium, fontSize: 13),
+          style: GoogleFonts.poppins(color: AppColors.textMedium, fontSize: 13),
         ),
         Text(
           value,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 13),
         ),
       ],
     );
   }
 }
+

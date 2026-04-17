@@ -1,8 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:frontend/features/suppliers/domain/entities/purchase.dart';
-import 'package:frontend/features/suppliers/data/repositories/purchase_repository_impl.dart';
-
-// PurchaseProvider handles the local state for all stock restocks from suppliers.
+﻿// ------------------------------------------------------------------------------
+// File: purchase_provider.dart
+// Purpose: Procurement Lifecycle and Inventory Inflow Governance.
+// Rationale: Centralizes the management of supplier purchase records, 
+//   facilitating restock history audits, supplier-scoped transaction queries, 
+//   and debt settlement finalization. Supports optimistic UI updates.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // State: ChangeNotifier foundation
+import 'package:frontend/features/suppliers/domain/entities/purchase.dart'; // Domain: Purchase model
+import 'package:frontend/features/suppliers/data/repositories/purchase_repository_impl.dart'; // Data: Server communication
 class PurchaseProvider extends ChangeNotifier {
   final PurchaseRepositoryImpl _repository = PurchaseRepositoryImpl();
 
@@ -19,6 +24,10 @@ class PurchaseProvider extends ChangeNotifier {
   bool get hasMore => _hasMore;
   String? get error => _error;
 
+  /*
+   * Logic: Global Purchase Feed.
+   * Rationale: Loads a paginated list of all procurement entries in the system.
+   */
   Future<void> fetchPurchases({bool refresh = true}) async {
     if (refresh) {
       _isLoading = true;
@@ -57,6 +66,10 @@ class PurchaseProvider extends ChangeNotifier {
     }
   }
 
+  /*
+   * Logic: Supplier-Scoped Ledger.
+   * Rationale: Loads procurement history specific to a single supplier profile.
+   */
   Future<void> fetchPurchasesBySupplier(String supplierId, {bool refresh = true}) async {
     if (refresh) {
       _isLoading = true;
@@ -96,6 +109,10 @@ class PurchaseProvider extends ChangeNotifier {
     }
   }
 
+  /*
+   * Logic: Purchase finalization.
+   * Rationale: Records a new procurement event and triggers stock inflow logic.
+   */
   Future<bool> addPurchase(Map<String, dynamic> data) async {
     try {
       await _repository.createPurchase(data);
@@ -131,4 +148,28 @@ class PurchaseProvider extends ChangeNotifier {
       return false;
     }
   }
+
+  /*
+   * Logic: Debt Reconciliation.
+   * Rationale: Finalizes financial settlement for an outstanding purchase record.
+   */
+  Future<Purchase?> settlePurchase(String id) async {
+    try {
+      final updatedPurchase = await _repository.settlePurchase(id);
+      if (updatedPurchase != null) {
+        // Update local state without fetching all
+        final index = _purchases.indexWhere((p) => p.id == id);
+        if (index != -1) {
+          _purchases[index] = updatedPurchase;
+          notifyListeners();
+        }
+      }
+      return updatedPurchase;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
 }
+

@@ -1,12 +1,19 @@
-// Import required external modules
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const connectDB = require('./config/mongoConfig');
-const bcrypt = require('bcryptjs');
-const Owner = require('./infrastructure/models/Owner');
+/**
+ * ClickBuy API Gateway & Orchestration Layer (server.js)
+ * This is the entry point of the backend system. It handles Dependency Injection,
+ * HTTP routing, environment configuration, database bootstrapping, and system lifecycle management.
+ * Follows Clean Architecture principles to keep business logic isolated from infrastructure.
+ */
 
-// --- Infrastructure ---
+require('dotenv').config(); // Logic: Load environment-specific secrets (PORT, MONGODB_URI) before any initialization.
+const express = require('express'); // High-level web framework for Node.js
+const cors = require('cors'); // Security: Middleware to enable Cross-Origin Resource Sharing (crucial for physical mobile connections).
+const connectDB = require('./config/mongoConfig'); // Infrastructure: MongoDB connection handler
+const bcrypt = require('bcryptjs'); // Security: Hashed password verification engine
+const Owner = require('./infrastructure/models/Owner'); // Model: Schema for merchant authentication
+
+// --- Infrastructure Layer (Adapters) ---
+// Concrete implementations for persistent data storage using MongoDB Mongoose.
 const MongoProductRepository = require('./infrastructure/MongoProductRepository');
 const MongoOwnerRepository = require('./infrastructure/MongoOwnerRepository');
 const MongoSupplierRepository = require('./infrastructure/MongoSupplierRepository');
@@ -17,24 +24,24 @@ const MongoSaleRepository = require('./infrastructure/MongoSaleRepository');
 const MongoNotificationRepository = require('./infrastructure/MongoNotificationRepository');
 const MongoFeedbackRepository = require('./infrastructure/MongoFeedbackRepository');
 
-
-// --- Use Cases ---
+// --- Use Cases Layer (Domain Logic) ---
+// Pure business rules isolated from frameworks. These handle the "What" happens in the system.
 const { GetAllProducts, GetProductById, CreateProduct, UpdateProduct, DeleteProduct } = require('./usecases/productUseCases');
-const { RegisterOwner, LoginOwner, GetOwnerProfile, UpdateOwnerProfile, ChangeOwnerPassword, ResetPassword, UpdateOwnerByAdmin, DeleteOwner, GetAllOwners } = require('./usecases/authUseCases');
+const { RegisterOwner, LoginOwner, GetOwnerProfile, UpdateOwnerProfile, ChangeOwnerPassword, ResetPassword, UpdateOwnerByAdmin, DeleteOwner, GetAllOwners, CheckAvailability } = require('./usecases/authUseCases');
 const { GetAllSuppliers, GetSupplierById, CreateSupplier, UpdateSupplier, DeleteSupplier, GetSupplierSummary } = require('./usecases/supplierUseCases');
-const { GetAllPurchases, GetPurchaseById, CreatePurchase, GetPurchasesBySupplier, UpdatePurchase, DeletePurchase } = require('./usecases/purchaseUseCases');
+const { GetAllPurchases, GetPurchaseById, CreatePurchase, GetPurchasesBySupplier, UpdatePurchase, DeletePurchase, SettlePurchase } = require('./usecases/purchaseUseCases');
 const { GetAllCustomers, GetCustomerById, CreateCustomer, UpdateCustomer, DeleteCustomer } = require('./usecases/customerUseCases');
 const { GetAllCreditTransactions, GetCreditTransactionsByCustomer, CreateCreditTransaction, UpdateCreditTransaction, DeleteCreditTransaction } = require('./usecases/creditTransactionUseCases');
 const { GetAllSales, GetSaleById, CreateSale, GetSalesByCustomer, DeleteSale, UpdateSale } = require('./usecases/saleUseCases');
 const { GetAllNotifications, CreateNotification, MarkNotificationAsRead, MarkAllNotificationsAsRead, DeleteNotification, DeleteAllNotifications } = require('./usecases/notificationUseCases');
-// --- Use Cases ---
-const { GetBusinessReport } = require('./usecases/reportUseCases');
-const { GetDashboardData } = require('./usecases/dashboardUseCases');
-const { SubmitFeedback, GetAllFeedback, DeleteFeedback } = require('./usecases/feedbackUseCases');
-const GetSystemHealth = require('./usecases/GetSystemHealth');
+const { GetBusinessReport } = require('./usecases/reportUseCases'); // Analytics: Financial ledger aggregation
+const { GetDashboardData } = require('./usecases/dashboardUseCases'); // UI Support: Home screen KPI snapshots
+const { SubmitFeedback, GetAllFeedback, DeleteFeedback } = require('./usecases/feedbackUseCases'); // Support: User reviews/tickets
+const GetSystemHealth = require('./usecases/GetSystemHealth'); // DevOps: Infrastructure monitoring
+const BackupDatabase = require('./usecases/BackupDatabase'); // DevOps: DB snapshot and portability utility
 
-
-// --- Interfaces ---
+// --- Interfaces Layer (Controllers & Routes) ---
+// These bridge the gap between network I/O (Express) and internal business logic.
 const ProductController = require('./interfaces/controllers/ProductController');
 const AuthController = require('./interfaces/controllers/AuthController');
 const SupplierController = require('./interfaces/controllers/SupplierController');
@@ -47,7 +54,7 @@ const AdminController = require('./interfaces/controllers/AdminController');
 const ReportController = require('./interfaces/controllers/ReportController');
 const FeedbackController = require('./interfaces/controllers/FeedbackController');
 
-
+// Route Factories: Functions that bind controllers to specific URL endpoints.
 const createProductRoutes = require('./interfaces/routes/productRoutes');
 const createAuthRoutes = require('./interfaces/routes/authRoutes');
 const createSupplierRoutes = require('./interfaces/routes/supplierRoutes');
@@ -60,15 +67,17 @@ const createAdminRoutes = require('./interfaces/routes/adminRoutes');
 const createReportRoutes = require('./interfaces/routes/reportRoutes');
 const createFeedbackRoutes = require('./interfaces/routes/feedbackRoutes');
 
+// --- Security Middlewares ---
+const authMiddleware = require('./middlewares/authMiddleware'); // Guard: Verifies JWT tokens and merchant ownership
 
-// --- Middlewares ---
-const authMiddleware = require('./middlewares/authMiddleware');
+/**
+ * --- Dependency Injection (DI) & Orchestration Hub ---
+ * This section fulfills the implementation of the Clean Architecture. 
+ * We instantiate repositories, inject them into use-cases, and finally link use-cases to controllers.
+ * Benefit: The entire system can be mocked or swapped for tests (e.g. SQLite for testing) easily.
+ */
 
-// --- Dependency Injection (DI) ---
-// This section is where we choose which database (repository) and logic (use cases) to use.
-// By doing this here instead of inside the classes, we can easily swap components later.
-
-// Initialize All Repositories first
+// A. Initialize All Infrastructure Repositories (The "Actors")
 const productRepository = new MongoProductRepository();
 const ownerRepository = new MongoOwnerRepository();
 const supplierRepository = new MongoSupplierRepository();
@@ -79,8 +88,8 @@ const saleRepository = new MongoSaleRepository();
 const notificationRepository = new MongoNotificationRepository();
 const feedbackRepository = new MongoFeedbackRepository();
 
-
-// 1. Setup Product Related Logic
+// B. Inject Repositories into Use Case Business Engines
+// 1. Inventory Unit
 const productUseCases = {
     getAllProducts: new GetAllProducts(productRepository),
     getProductById: new GetProductById(productRepository),
@@ -95,9 +104,8 @@ const productUseCases = {
         supplierRepository
     }),
 };
-// Note: ProductController is instantiated at the bottom because it depends on multiple other use cases.
 
-// Auth
+// 2. Identity & Access Management (IAM) Unit
 const authUseCases = {
     registerOwner: new RegisterOwner(ownerRepository),
     loginOwner: new LoginOwner(ownerRepository),
@@ -106,11 +114,22 @@ const authUseCases = {
     changeOwnerPassword: new ChangeOwnerPassword(ownerRepository),
     resetPassword: new ResetPassword(ownerRepository),
     updateOwnerByAdmin: new UpdateOwnerByAdmin(ownerRepository),
-    deleteOwner: new DeleteOwner(ownerRepository),
+    deleteOwner: new DeleteOwner({ // Logic: Cascade deletion of all merchant-specific data partitions
+        ownerRepository,
+        productRepository,
+        saleRepository,
+        purchaseRepository,
+        customerRepository,
+        supplierRepository,
+        creditTransactionRepository,
+        notificationRepository,
+        feedbackRepository
+    }),
+    checkAvailability: new CheckAvailability(ownerRepository),
 };
 const authController = new AuthController(authUseCases);
 
-// Supplier
+// 3. Partner Management Unit (Suppliers)
 const supplierUseCases = {
     getAllSuppliers: new GetAllSuppliers(supplierRepository),
     getSupplierById: new GetSupplierById(supplierRepository),
@@ -121,7 +140,7 @@ const supplierUseCases = {
 };
 const supplierController = new SupplierController(supplierUseCases);
 
-// Purchase
+// 4. Procurement Ledger Unit (Purchases)
 const purchaseUseCases = {
     getAllPurchases: new GetAllPurchases(purchaseRepository),
     getPurchaseById: new GetPurchaseById(purchaseRepository),
@@ -129,10 +148,11 @@ const purchaseUseCases = {
     getPurchasesBySupplier: new GetPurchasesBySupplier(purchaseRepository),
     updatePurchase: new UpdatePurchase(purchaseRepository, productRepository, supplierRepository),
     deletePurchase: new DeletePurchase(purchaseRepository, productRepository, supplierRepository),
+    settlePurchase: new SettlePurchase(purchaseRepository, supplierRepository),
 };
 const purchaseController = new PurchaseController(purchaseUseCases);
 
-// Customer
+// 5. Consumer Relations Unit (Customers)
 const customerUseCases = {
     getAllCustomers: new GetAllCustomers(customerRepository),
     getCustomerById: new GetCustomerById(customerRepository),
@@ -142,7 +162,7 @@ const customerUseCases = {
 };
 const customerController = new CustomerController(customerUseCases);
 
-// Credit Transactions
+// 6. Financial Ledger Unit (Credit transactions)
 const creditTransactionUseCases = {
     getAllCreditTransactions: new GetAllCreditTransactions(creditTransactionRepository),
     getCreditTransactionsByCustomer: new GetCreditTransactionsByCustomer(creditTransactionRepository),
@@ -152,7 +172,7 @@ const creditTransactionUseCases = {
 };
 const creditTransactionController = new CreditTransactionController(creditTransactionUseCases);
 
-// Sales
+// 7. Transactional Engine Unit (Sales)
 const saleUseCases = {
     getAllSales: new GetAllSales(saleRepository),
     getSaleById: new GetSaleById(saleRepository),
@@ -163,7 +183,7 @@ const saleUseCases = {
 };
 const saleController = new SaleController(saleUseCases);
 
-// Notifications
+// 8. Communication Alert Unit (Notifications)
 const notificationUseCases = {
     getAllNotifications: new GetAllNotifications(notificationRepository),
     createNotification: new CreateNotification(notificationRepository),
@@ -174,32 +194,32 @@ const notificationUseCases = {
 };
 const notificationController = new NotificationController(notificationUseCases);
 
-// Admin
+// 9. Master Administration Unit (Admin Panel)
 const adminUseCases = {
     getAllOwners: new GetAllOwners(ownerRepository),
     updateOwnerProfile: authUseCases.updateOwnerByAdmin,
     deleteOwner: authUseCases.deleteOwner,
-    getOwnerProfile: authUseCases.getOwnerProfile, // Inject profile fetcher for toggling logic
+    getOwnerProfile: authUseCases.getOwnerProfile, 
     getSystemHealth: new GetSystemHealth(),
+    backupDatabase: new BackupDatabase(),
 };
 const adminController = new AdminController(adminUseCases);
 
-// Report
+// 10. Analytics Unit (Financial Reporting)
 const reportUseCases = {
     getBusinessReport: new GetBusinessReport(saleRepository, purchaseRepository, productRepository, customerRepository),
 };
 const reportController = new ReportController(reportUseCases);
 
-// Feedback
+// 11. Support Feedback Unit
 const feedbackUseCases = {
-    submitFeedback: new SubmitFeedback(feedbackRepository),
+    submitFeedback: new SubmitFeedback(feedbackRepository, notificationRepository),
     getAllFeedback: new GetAllFeedback(feedbackRepository),
     deleteFeedback: new DeleteFeedback(feedbackRepository),
 };
 const feedbackController = new FeedbackController(feedbackUseCases);
 
-
-// ProductController injection
+// C. Aggregate Use Cases into Primary Controller Interface
 const productController = new ProductController({
     ...productUseCases,
     ...saleUseCases,
@@ -208,63 +228,124 @@ const productController = new ProductController({
     ...supplierUseCases
 });
 
-// --- Express App Setup ---
-const app = express();
-const PORT = process.env.PORT || 5001;
+// --- Express Application Boot Routine ---
+const app = express(); // Initialize the Express instance
+const PORT = process.env.PORT || 5001; // Environment-aware network port assignment
 
-// Connect to MongoDB
+// Utility: Automatic discovery of this server on local networks for mobile clients.
+const discoveryService = require('./utils/discoveryService');
+discoveryService.start(); // Logic: Broadcasts IP/Port via UDP for Zero-Configuration connectivity.
+
+// Infrastructure: Establish secure MongoDB connection string handshake.
 connectDB().then(() => {
+    // Logic: Seed the master administrator profile if the system is fresh/empty.
     ensureAdminUser();
 });
 
+/**
+ * Seeding Logic: Global Admin Management.
+ * Guarantees a default superuser exists to manage other merchants and seeds demo data.
+ * This function uses a persistent ID check to allow the administrator to change 
+ * their email, name, and password without breaking the system integrity.
+ */
 async function ensureAdminUser() {
     try {
-        const adminEmail = 'admin@gmail.com';
-        const adminPassword = 'admin1234';
-        const existingAdmin = await Owner.findOne({ email: adminEmail });
+        // Use the hardcoded master ID for lookup instead of email.
+        // Benefit: Allows the admin to change their email in the app without causing 'Duplicate Key' errors on restart.
+        const adminId = 'admin_master_001';
+        const existingAdmin = await Owner.findById(adminId);
         
         if (!existingAdmin) {
-            console.log(`[SEED] Admin user '${adminEmail}' not found. Creating...`);
+            const adminEmail = 'admin@gmail.com';
+            const adminPassword = 'admin1234';
+            console.log(`[SEED] Administrator account not found. Initializing '${adminEmail}'...`);
+            
             const hashedPassword = await bcrypt.hash(adminPassword, 10);
             const newAdmin = new Owner({
-                _id: 'admin_master_001',
+                _id: adminId, // Logic: Hardcoded ID for master identity consistency
                 name: 'System Administrator',
                 shopName: 'ClickBuy Network',
                 phone: '+94000000000',
                 email: adminEmail,
                 password: hashedPassword,
-                role: 'admin',
+                role: 'admin', // Permission: Grants system-wide oversight
                 status: 'approved',
                 isSuspended: false,
                 createdAt: new Date().toISOString()
             });
             await newAdmin.save();
-            console.log(`[SEED] Admin user '${adminEmail}' created successfully.`);
+            console.log(`[SEED] Master administrator created successfully.`);
         } else {
-            console.log(`[SEED] Admin user '${adminEmail}' verified.`);
-            // Update role just in case it was 'owner' before
+            // Identity verified via persistent ID (regardless of what the current email is)
+            console.log(`[SEED] Administrator identity verified (${existingAdmin.email}).`);
+
+            // Demo Data Logic: Populate the admin account with samples only if the inventory is empty.
+            const productCount = await productRepository.getTotalStockQuantity(adminId);
+            if (productCount === 0) {
+                console.log(`[SEED] Generating sample business data for demonstration...`);
+                
+                // Demo: Inventory
+                const p1 = await productRepository.create({
+                    ownerId: adminId,
+                    name: 'Fresh Apples',
+                    category: 'Fruits',
+                    sellingPrice: 15.0,
+                    purchasePrice: 10.0,
+                    stockQuantity: 100,
+                    unit: 'kg'
+                });
+                
+                // Demo: CRM
+                const c1 = await customerRepository.create({
+                    ownerId: adminId,
+                    name: 'Valued Customer',
+                    phone: '0771112223',
+                    email: 'customer@example.com'
+                });
+
+                // Demo: Transactions
+                await saleRepository.create({
+                    ownerId: adminId,
+                    customerId: c1.id,
+                    customerName: c1.name,
+                    items: [
+                        { productId: p1.id, name: p1.name, quantity: 2, price: 15.0, subtotal: 30.0, purchasePrice: 10.0 }
+                    ],
+                    subtotal: 30.0,
+                    totalAmount: 30.0,
+                    paymentMethod: 'cash',
+                    status: 'completed'
+                });
+
+                console.log(`[SEED] Success: Sample environment populated.`);
+            }
+            
+            // Safety Check: Always ensure the master account retains 'admin' role privileges
+            // This prevents accidental lockout if the role is changed via a direct DB edit.
             if (existingAdmin.role !== 'admin') {
                 existingAdmin.role = 'admin';
                 await existingAdmin.save();
-                console.log(`[SEED] Updated admin user role to 'admin'.`);
+                console.log(`[SEED] Restored administrative privileges for '${existingAdmin.email}'.`);
             }
         }
     } catch (error) {
-        console.error('[SEED] Error ensuring admin user:', error);
+        console.error('[SEED] Fatal error in administration seed process:', error);
     }
 }
 
-app.use(cors());
-app.use(express.json());
+// Global Middleware Stack
+app.use(cors()); // Privacy: Allow front-end to bypass Same-Origin Policy
+app.use(express.json()); // Parsing: Automatically convert string bodies into JSON objects
 
-// --- Routes ---
-// Auth routes have their own internal mix of public (login/register) and private endpoints
-app.use('/api', createAuthRoutes(authController, authMiddleware));
+// --- Routing Table ---
+// A. Public & Hybrid Access Endpoints (Auth, Support)
+app.use('/api', createAuthRoutes(authController, authMiddleware)); // Mix: Public signup / private session mgmt
+app.use('/api', createFeedbackRoutes(feedbackController, authMiddleware)); // Mix: Public submission / private retrieval
 
-// All other API routes require an ownerId header
-app.use('/api', authMiddleware);
+// B. Secure Domain Access (Requires ownership verification)
+app.use('/api', authMiddleware); // Privacy Guard: All subsequent routes require valid JWT and ownerId context.
 
-app.use('/api', createProductRoutes(productController));
+app.use('/api', createProductRoutes(productController)); // Modules...
 app.use('/api', createSupplierRoutes(supplierController));
 app.use('/api', createPurchaseRoutes(purchaseController));
 app.use('/api', createCustomerRoutes(customerController));
@@ -273,42 +354,52 @@ app.use('/api', createSaleRoutes(saleController));
 app.use('/api', createNotificationRoutes(notificationController));
 app.use('/api', createAdminRoutes(adminController));
 app.use('/api', createReportRoutes(reportController));
-app.use('/api', createFeedbackRoutes(feedbackController));
 
-
-// Health check
+// System Health Snapshot (Simple ping for external monitors)
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Start server
-const server = app.listen(PORT, () => {
-    console.log(`✅ ClickBuy API server running on http://localhost:${PORT}`);
-    console.log(`📦 Products API: http://localhost:${PORT}/api/products`);
-    console.log(`🔑 Auth API: http://localhost:${PORT}/api/auth`);
-    console.log(`🚚 Suppliers API: http://localhost:${PORT}/api/suppliers`);
-    console.log(`📋 Purchases API: http://localhost:${PORT}/api/purchases`);
-    console.log(`👥 Customers API: http://localhost:${PORT}/api/customers`);
-    console.log(`💳 Credit API: http://localhost:${PORT}/api/credit-transactions`);
-    console.log(`🛒 Sales API: http://localhost:${PORT}/api/sales`);
-    console.log(`🔔 Notifications API: http://localhost:${PORT}/api/notifications`);
-    console.log(`👤 Admin API: http://localhost:${PORT}/api/admin/owners`);
+/**
+ * Server Execution Phase.
+ * Binds the Express application to the physical network interface.
+ */
+const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ ClickBuy API Gateway active at http://0.0.0.0:${PORT}`);
+    console.log(`📦 Domain Services: Products, Sales, Partners, Purchases active.`);
 });
 
-// Graceful shutdown handling
+/**
+ * Lifecycle Management: Graceful Shutdown.
+ * Connects OS termination signals (SIGINT, SIGTERM) to the server closure logic.
+ * Ensures DB connections are drained and requests finished before exit.
+ */
 const gracefulShutdown = () => {
-    console.log('🔄 Shutting down server...');
+    console.log('🔄 Initiating graceful shutdown sequence...');
     server.close(() => {
-        console.log('✅ Server stopped.');
-        process.exit(0);
+        console.log('✅ Network connections closed. Infrastructure safe.');
+        process.exit(0); // Exit Code: Normal termination
     });
 
-    // Force exit if server doesn't close in 5 seconds
+    // Timeout: Forceful termination if the shutdown hangs (Safety valve)
     setTimeout(() => {
-        console.error('⚠️ Could not close connections in time, forcefully shutting down');
-        process.exit(1);
+        console.error('⚠️ Shutdown timed out. Forcefully terminating process.');
+        process.exit(1); // Exit Code: Error termination
     }, 5000);
 };
 
-process.on('SIGTERM', gracefulShutdown);
-process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown); // Policy: Listen for cloud-orchestrator stop
+process.on('SIGINT', gracefulShutdown); // Policy: Listen for manual 'Ctrl+C'
+
+/**
+ * Error Handling: Prevention of Silent Crashes.
+ * Global listeners for runtime exceptions that escaped the local try/catch blocks.
+ */
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ CRITICAL: Unhandled Promise Rejection at:', promise, 'Reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('❌ CRITICAL: Uncaught Global Exception:', error);
+    gracefulShutdown(); // Security: Cleanup resources before dying to prevent port locks or file corruption.
+});

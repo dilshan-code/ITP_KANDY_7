@@ -1,7 +1,17 @@
-import 'package:flutter/material.dart';
-import 'package:frontend/core/network/api_client.dart';
-import 'package:frontend/core/theme/app_colors.dart';
-import 'package:frontend/features/sales/presentation/screens/invoice_history_screen.dart';
+// ------------------------------------------------------------------------------
+// File: recent_transactions_screen.dart
+// Purpose: Unified Financial Activity Feed.
+// Rationale: Provides a consolidated, real-time timeline of all fiscal events — 
+//   including B2C sales, credit transactions, and B2B procurement — with 
+//   categorical color-coding for rapid owner oversight and navigational 
+//   drill-through.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // Core: Flutter UI reactive system
+import 'package:google_fonts/google_fonts.dart'; // Typography: Brand font sets
+import 'package:frontend/core/network/api_client.dart'; // Infrastructure: HTTP engine
+import 'package:frontend/core/theme/app_colors.dart'; // Styling: Design system tokens
+import 'package:frontend/features/sales/presentation/screens/invoice_history_screen.dart'; // Navigation: Invoice detail
+import 'package:frontend/shared/widgets/app_back_button.dart'; // Standardized navigation trigger
 
 class RecentTransactionsScreen extends StatefulWidget {
   const RecentTransactionsScreen({super.key});
@@ -25,20 +35,21 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
   Future<void> _fetchTransactions() async {
     try {
       setState(() {
-        _isLoading = true;
+        _isLoading = true; // Trigger visual loading state
         _error = null;
       });
+      // Direct API fetch for broad transaction activity
       final result = await ApiClient.get('/transactions');
       if (mounted) {
         setState(() {
-          _transactions = result['data'];
+          _transactions = result['data']; // Population of the unified history list
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          _error = e.toString(); // Error capture for UI feedback
           _isLoading = false;
         });
       }
@@ -50,38 +61,28 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text(
-          'Recent Transactions',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
-          ),
-        ),
-        backgroundColor: AppColors.surface,
+        title: const Text('Recent Transactions'), // Page header
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            color: AppColors.textDark,
-            size: 20,
-          ),
-          onPressed: () => Navigator.pop(context),
+        leading: AppBackButton(
+          onTap: () => Navigator.pop(context),
+          margin: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
         ),
       ),
       body: SafeArea(
         child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
+            ? Center(
+                child: CircularProgressIndicator(color: AppColors.primary), // Loading spinner
               )
             : _error != null
-            ? _buildErrorView()
+            ? _buildErrorView() // Failure state handler
             : _transactions == null || _transactions!.isEmpty
-            ? _buildEmptyView()
-            : _buildTransactionList(),
+            ? _buildEmptyView() // Zero-state handler
+            : _buildTransactionList(), // Primary data view
       ),
     );
   }
 
+  // Visual feedback for failed networking or data parsing
   Widget _buildErrorView() {
     return Center(
       child: Padding(
@@ -89,16 +90,16 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-            const SizedBox(height: 16),
+            Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            SizedBox(height: 16),
             Text(
               'Failed to load transactions\n$_error',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textMedium),
+              style: GoogleFonts.poppins(color: AppColors.textMedium),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             ElevatedButton(
-              onPressed: _fetchTransactions,
+              onPressed: _fetchTransactions, // Manual reload trigger
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
@@ -106,7 +107,7 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('Retry'),
+              child: Text('Retry'),
             ),
           ],
         ),
@@ -114,8 +115,9 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
     );
   }
 
+  // Placeholder for when no transaction records exist in the database
   Widget _buildEmptyView() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -123,7 +125,7 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
           SizedBox(height: 16),
           Text(
             'No transactions yet',
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: AppColors.textMedium,
@@ -132,40 +134,42 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
           SizedBox(height: 8),
           Text(
             'Your sales and purchases will appear here.',
-            style: TextStyle(fontSize: 14, color: AppColors.textLight),
+            style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textLight),
           ),
         ],
       ),
     );
   }
 
+  // High-performance scrollable list of unified activities
   Widget _buildTransactionList() {
     return RefreshIndicator(
-      onRefresh: _fetchTransactions,
+      onRefresh: _fetchTransactions, // Standard pull-to-refresh
       color: AppColors.primary,
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         itemCount: _transactions!.length,
         itemBuilder: (context, index) {
           final txn = _transactions![index];
-          final isOrder = txn['type'] == 'order';
-          final isCredit = txn['type'] == 'credit';
+          final isOrder = txn['type'] == 'order'; // Direct consumer sale
+          final isCredit = txn['type'] == 'credit'; // Unsettled consumer debt
 
           Color iconColor;
           Color bgColor;
           IconData iconData;
 
+          // Categorical Visual Styling: Helps users scan for specific activity types
           if (isOrder) {
-            iconColor = AppColors.primary;
+            iconColor = AppColors.primary; // Green-tint for revenue
             bgColor = const Color(0xFFD1FAE5);
             iconData = Icons.shopping_cart_outlined;
           } else if (isCredit) {
-            iconColor = const Color(0xFFF59E0B);
+            iconColor = const Color(0xFFF59E0B); // Amber for pending debt
             bgColor = const Color(0xFFFEF3C7);
             iconData = Icons.history;
           } else {
-            // Purchase
-            iconColor = AppColors.error;
+            // Purchase (Supplier outgoings)
+            iconColor = AppColors.error; // Red-tint for expense
             bgColor = const Color(0xFFFEE2E2);
             iconData = Icons.local_shipping_outlined;
           }
@@ -177,7 +181,7 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
+                  color: AppColors.textDark.withValues(alpha: 0.04),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -185,6 +189,7 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
             ),
             child: ListTile(
               onTap: () {
+                // Detail navigation flow: Orders and Credits link to the digital invoice vault
                 if (isOrder || isCredit) {
                   Navigator.push(
                     context,
@@ -206,8 +211,8 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
                 child: Icon(iconData, color: iconColor, size: 20),
               ),
               title: Text(
-                txn['title'] ?? '',
-                style: const TextStyle(
+                txn['title'] ?? '', // Transaction source/target
+                style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w700,
                   fontSize: 15,
                   color: AppColors.textDark,
@@ -216,40 +221,42 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
-                    txn['subtitle'] ?? '',
-                    style: const TextStyle(
+                    txn['subtitle'] ?? '', // Supplementary context
+                    style: GoogleFonts.poppins(
                       color: AppColors.textMedium,
                       fontSize: 13,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(
+                      // Temporal metadata (Creation time)
+                      Icon(
                         Icons.access_time,
                         size: 12,
                         color: AppColors.textLight,
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       Text(
                         txn['time'] ?? '',
-                        style: const TextStyle(
+                        style: GoogleFonts.poppins(
                           color: AppColors.textLight,
                           fontSize: 12,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      const Icon(
+                      SizedBox(width: 12),
+                      // Calendar metadata (Creation date)
+                      Icon(
                         Icons.calendar_today,
                         size: 12,
                         color: AppColors.textLight,
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       Text(
                         txn['date'] ?? '',
-                        style: const TextStyle(
+                        style: GoogleFonts.poppins(
                           color: AppColors.textLight,
                           fontSize: 12,
                         ),
@@ -259,8 +266,9 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
                 ],
               ),
               trailing: Text(
+                // Value indicators: Revenue (+) vs Expense (-)
                 '${txn['amount'] >= 0 ? '+' : '-'}Rs. ${txn['amount'].abs().toStringAsFixed(2)}',
-                style: TextStyle(
+                style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w800,
                   fontSize: 16,
                   color: txn['amount'] >= 0
@@ -275,3 +283,4 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
     );
   }
 }
+

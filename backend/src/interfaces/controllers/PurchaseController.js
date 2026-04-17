@@ -1,12 +1,13 @@
 // PurchaseController tracks when the shop owner buys new stock from suppliers.
 class PurchaseController {
-    constructor({ getAllPurchases, getPurchaseById, createPurchase, getPurchasesBySupplier, updatePurchase, deletePurchase }) {
+    constructor({ getAllPurchases, getPurchaseById, createPurchase, getPurchasesBySupplier, updatePurchase, deletePurchase, settlePurchase }) {
         this.getAllPurchases = getAllPurchases;
         this.getPurchaseById = getPurchaseById;
         this.createPurchase = createPurchase;
         this.getPurchasesBySupplier = getPurchasesBySupplier;
         this.updatePurchase = updatePurchase;
         this.deletePurchase = deletePurchase;
+        this.settlePurchase = settlePurchase;
     }
 
     // Shows every purchase made by the shop.
@@ -69,6 +70,17 @@ class PurchaseController {
             const success = await this.deletePurchase.execute(req.params.id, req.ownerId);
             if (!success) return res.status(404).json({ success: false, error: 'Purchase not found' });
             res.json({ success: true, message: 'Purchase deleted successfully' });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    }
+
+    // Marks a purchase as fully paid.
+    async settle(req, res) {
+        try {
+            const purchase = await this.settlePurchase.execute(req.params.id, req.ownerId);
+            if (!purchase) return res.status(404).json({ success: false, error: 'Purchase not found' });
+            res.json({ success: true, data: purchase });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }

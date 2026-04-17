@@ -2,6 +2,7 @@
 // This ID is used to filter all database operations, ensuring data isolation between different shop owners.
 const authMiddleware = (req, res, next) => {
     const ownerId = req.headers['x-owner-id'];
+    const ownerName = req.headers['x-owner-name'];
     
     const timezoneOffset = req.headers['x-timezone-offset'];
     
@@ -14,6 +15,7 @@ const authMiddleware = (req, res, next) => {
     }
 
     req.ownerId = ownerId;
+    req.ownerName = ownerName; // Added this line
     req.timezoneOffset = timezoneOffset ? parseInt(timezoneOffset) : 0;
     next();
 };

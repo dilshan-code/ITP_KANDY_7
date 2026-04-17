@@ -1,8 +1,18 @@
-import 'package:flutter/material.dart';
-import 'package:frontend/core/theme/app_colors.dart';
-import 'package:provider/provider.dart';
-import 'package:frontend/features/account/presentation/providers/feedback_provider.dart';
-import 'package:frontend/core/utils/snackbar_utils.dart';
+// ------------------------------------------------------------------------------
+// File: help_support_screen.dart
+// Purpose: Multi-Channel Help Desk for shop owners.
+// Rationale: Provides a three-tier support structure:
+//   1. Self-Service (Interactive FAQ)
+//   2. Direct Communication (Hyper-linked Contact Cards)
+//   3. Proactive Feedback (Structured issue reporting)
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // Core: Flutter UI reactive system
+import 'package:google_fonts/google_fonts.dart'; // Typography: Brand font sets
+import 'package:frontend/core/theme/app_colors.dart'; // Styling: Design system tokens
+import 'package:provider/provider.dart'; // State: Dependency injection system
+import 'package:frontend/features/account/presentation/providers/feedback_provider.dart'; // State: Support ticket manager
+import 'package:frontend/core/utils/snackbar_utils.dart'; // Feedback: Status notification component
+import 'package:frontend/shared/widgets/app_back_button.dart'; // Standardized navigation trigger
 
 
 class HelpSupportScreen extends StatefulWidget {
@@ -13,13 +23,14 @@ class HelpSupportScreen extends StatefulWidget {
 }
 
 class _HelpSupportScreenState extends State<HelpSupportScreen> {
-  final TextEditingController _feedbackController = TextEditingController();
-  String _selectedCategory = 'Feedback';
-  final List<String> _categories = ['Feedback', 'Error', 'Improvement'];
+  // --- Form State: Support Ticket Encapsulation ---
+  final TextEditingController _feedbackController = TextEditingController(); // Input: Message body
+  String _selectedCategory = 'Feedback'; // State: Ticket classification
+  final List<String> _categories = ['Feedback', 'Error', 'Improvement']; // Enum: Support taxonomy
 
   @override
   void dispose() {
-    _feedbackController.dispose();
+    _feedbackController.dispose(); // Cleanup: Preventing controller memory leak
     super.dispose();
   }
 
@@ -29,17 +40,19 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar(
-        title: const Text('Help & Support', style: TextStyle(fontWeight: FontWeight.w700)),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textDark,
-        elevation: 0,
+        title: const Text('Help & Support'),
+        leading: AppBackButton(
+          onTap: () => Navigator.pop(context),
+          margin: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Image/Icon
+              // --- Section 1: Visual Welcome Header ---
+              // Rationale: Sets a professional and helpful tone for the interaction.
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
@@ -52,6 +65,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                 ),
                 child: Column(
                   children: [
+                    // Icon logic: Secondary accent focus for the support persona.
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
@@ -65,19 +79,19 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'How can we help you?',
-                      style: TextStyle(
+                      style: GoogleFonts.poppins(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textDark,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Search for topics or contact our support team',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: GoogleFonts.poppins(
                         fontSize: 14,
                         color: AppColors.textLight,
                       ),
@@ -88,15 +102,16 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
 
               const SizedBox(height: 24),
 
-              // Contact Options
+              // --- Section 2: Direct Escalation Channels ---
+              // Rationale: Low-friction links to live human support.
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Contact Us',
-                      style: TextStyle(
+                      style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textDark,
@@ -105,24 +120,26 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
+                        // Logic: WhatsApp link for instant messaging support.
                         Expanded(
                           child: _buildContactCard(
                             icon: Icons.chat_outlined,
                             title: 'WhatsApp',
                             color: const Color(0xFF25D366),
                             onTap: () {
-                              // Link to WhatsApp
+                              // Workflow: External deep-link to support handle.
                             },
                           ),
                         ),
                         const SizedBox(width: 16),
+                        // Logic: Email channel for formal/detailed queries.
                         Expanded(
                           child: _buildContactCard(
                             icon: Icons.email_outlined,
                             title: 'Email',
                             color: const Color(0xFFEA4335),
                             onTap: () {
-                              // Link to Email
+                              // Workflow: Launch system mail composer.
                             },
                           ),
                         ),
@@ -134,21 +151,23 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
 
               const SizedBox(height: 32),
 
-              // FAQ Section
+              // --- Section 3: Semantic Knowledge Base (FAQ) ---
+              // Rationale: Deflects common support queries through context-rich snippets.
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Frequent Questions',
-                      style: TextStyle(
+                      style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textDark,
                       ),
                     ),
                     const SizedBox(height: 16),
+                    // logic: Expansion tiles for space-efficient information delivery.
                     _buildFAQItem(
                       'How to add a new product?',
                       'Go to the Products tab and click on the "+" button in the top right corner.',
@@ -171,24 +190,25 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
 
               const SizedBox(height: 32),
 
-              // Feedback Section
+              // --- Section 4: Proactive Issue Submission ---
+              // Rationale: Captures structured reports directly into the admin triage system.
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Share your thoughts',
-                      style: TextStyle(
+                      style: GoogleFonts.poppins(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textDark,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Have an idea or found a bug? Let us know!',
-                      style: TextStyle(
+                      style: GoogleFonts.poppins(
                         fontSize: 14,
                         color: AppColors.textLight,
                       ),
@@ -201,7 +221,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
+                            color: AppColors.textDark.withValues(alpha: 0.04),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -210,9 +230,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          // Category Selector: Classifies the intent (Bug vs Feature vs General).
+                          Text(
                             'Category',
-                            style: TextStyle(
+                            style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textDark,
@@ -226,13 +247,14 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                               return ChoiceChip(
                                 label: Text(category),
                                 selected: isSelected,
+                                // logic: Reactive category binding.
                                 onSelected: (selected) {
                                   if (selected) {
                                     setState(() => _selectedCategory = category);
                                   }
                                 },
                                 selectedColor: AppColors.primary.withValues(alpha: 0.1),
-                                labelStyle: TextStyle(
+                                labelStyle: GoogleFonts.poppins(
                                   color: isSelected ? AppColors.primary : AppColors.textMedium,
                                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
                                 ),
@@ -246,9 +268,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                             }).toList(),
                           ),
                           const SizedBox(height: 20),
-                          const Text(
+                          // Message Body: The core descriptive content of the ticket.
+                          Text(
                             'Message',
-                            style: TextStyle(
+                            style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textDark,
@@ -260,7 +283,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                             maxLines: 4,
                             decoration: InputDecoration(
                               hintText: 'Describe your feedback or improvement idea...',
-                              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                              hintStyle: GoogleFonts.poppins(color: Colors.grey[400], fontSize: 14),
                               filled: true,
                               fillColor: const Color(0xFFF8F9FB),
                               border: OutlineInputBorder(
@@ -277,6 +300,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                             child: Consumer<FeedbackProvider>(
                               builder: (context, feedbackProvider, _) {
                                 return ElevatedButton(
+                                  // logic: Preventing concurrent submissions during network IO.
                                   onPressed: feedbackProvider.isLoading
                                       ? null
                                       : () async {
@@ -289,12 +313,14 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                                             return;
                                           }
                                           
+                                          // logic: Network operation via FeedbackProvider state manager.
                                           final success = await feedbackProvider.submitFeedback(
                                             _selectedCategory,
                                             _feedbackController.text.trim(),
                                           );
 
                                           if (success && context.mounted) {
+                                            // Step: Successful submission workflow.
                                             _feedbackController.clear();
                                             SnackBarUtils.showSnackBar(
                                               context,
@@ -302,6 +328,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                                             );
                                             FocusScope.of(context).unfocus();
                                           } else if (context.mounted) {
+                                            // Step: Failure workflow with error propagation.
                                             SnackBarUtils.showSnackBar(
                                               context,
                                               feedbackProvider.error ?? 'Failed to submit',
@@ -327,9 +354,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                                             strokeWidth: 2,
                                           ),
                                         )
-                                      : const Text(
+                                      : Text(
                                           'Submit Feedback',
-                                          style: TextStyle(fontWeight: FontWeight.w700),
+                                          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
                                         ),
                                 );
                               },
@@ -350,6 +377,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     );
   }
 
+  /*
+   * UI Component Builder: Themed Contact escalation widget.
+   */
   Widget _buildContactCard({
     required IconData icon,
     required String title,
@@ -365,7 +395,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: AppColors.textDark.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -377,7 +407,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
             const SizedBox(height: 8),
             Text(
               title,
-              style: const TextStyle(
+              style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w600,
                 color: AppColors.textDark,
               ),
@@ -388,6 +418,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     );
   }
 
+  /*
+   * UI Component Builder: FAQ Question + Answer aggregate.
+   */
   Widget _buildFAQItem(String question, String answer) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -407,7 +440,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
         collapsedShape: const Border(),
         title: Text(
           question,
-          style: const TextStyle(
+          style: GoogleFonts.poppins(
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: AppColors.textDark,
@@ -418,7 +451,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
         children: [
           Text(
             answer,
-            style: const TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: 13,
               color: AppColors.textMedium,
               height: 1.5,
@@ -429,3 +462,4 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     );
   }
 }
+

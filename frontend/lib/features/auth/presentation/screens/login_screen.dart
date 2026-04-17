@@ -1,15 +1,29 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:frontend/core/theme/app_colors.dart';
-import 'package:frontend/core/utils/snackbar_utils.dart';
-import 'package:frontend/shared/main_shell.dart';
-import 'package:frontend/features/auth/presentation/providers/auth_provider.dart';
-import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart';
-import 'package:frontend/features/auth/presentation/screens/register_screen.dart';
-import 'package:frontend/features/auth/presentation/screens/reset_password_screen.dart';
-import 'package:frontend/features/admin/presentation/screens/admin_shell.dart';
-import 'package:frontend/core/utils/phone_utils.dart';
-import 'package:frontend/core/utils/validation_utils.dart';
+﻿// ------------------------------------------------------------------------------
+// File: login_screen.dart
+// Purpose: Primary entry gate for authenticated system access.
+// Rationale: Implements a high-security authentication interface with proactive 
+//   network discovery and role-based redirect logic. Orchestrates 
+//   environmental configuration and identity challenges.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // Core: Flutter UI reactive system
+import 'package:google_fonts/google_fonts.dart'; // Typography: Modern brand fonts
+import 'package:provider/provider.dart'; // State: Dependency injection system
+import 'package:frontend/core/theme/app_colors.dart'; // Styling: Design system tokens
+import 'package:frontend/core/utils/snackbar_utils.dart'; // Feedback: Toast/Snack message system
+import 'package:frontend/shared/main_shell.dart'; // Navigation: POS dashboard route
+import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // State: Identity manager
+import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart'; // State: Alert manager
+import 'package:frontend/features/auth/presentation/screens/register_screen.dart'; // Navigation: Registration route
+import 'package:frontend/features/auth/presentation/screens/reset_password_screen.dart'; // Navigation: Forgot password route
+import 'package:frontend/features/admin/presentation/screens/admin_shell.dart'; // Navigation: Admin panel route
+import 'package:frontend/core/utils/phone_utils.dart'; // Utility: String normalization for phone numbers
+import 'package:frontend/core/utils/validation_utils.dart'; // Utility: Regex form validators
+import 'package:frontend/features/auth/presentation/screens/public_support_screen.dart'; // Navigation: Help desk route
+import 'package:frontend/features/auth/presentation/widgets/auth_background.dart'; // Shared UI: Multi-layered background
+import 'package:frontend/shared/widgets/backend_settings_dialog.dart'; // Shared UI: Network configuration overlay
+import 'package:frontend/core/network/backend_discovery.dart'; // Logic: UDP server reachability tests
+import 'package:frontend/core/network/api_client.dart'; // Infrastructure: Base server IP access
+import 'package:flutter/foundation.dart' show kIsWeb; // Utility: Web vs Mobile branching
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,37 +33,64 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
-
-  @override
-  void initState() {
-    super.initState();
-  }
+  // --- Form Orchestration ---
+  final _formKey = GlobalKey<FormState>(); // Key: Links form state to validation logic
+  final _emailController = TextEditingController(); // Input: Primary identifier (Email or Phone)
+  final _passwordController = TextEditingController(); // Input: Secure credential
+  bool _obscurePassword = true; // State: Local visibility toggle for security
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _emailController.dispose(); // Cleanup: Memory safety
     _passwordController.dispose();
     super.dispose();
   }
 
+  /*
+   * Logic: Integrated Authentication Flow.
+   * Rationale: Executes a proactive 'Network Check' before transmitting credentials 
+   * to minimize timeout wait times. Also handles role-based navigation and 
+   * diagnostic error reporting.
+   */
   void _login() async {
+    // Stage A: Input Validation.
     if (!_formKey.currentState!.validate()) return;
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final identifier = normalizePhoneNumber(_emailController.text.trim());
+    // Stage B: Network Resilience (Mobile-only).
+    if (!kIsWeb) {
+      // Step: Perform a low-latency "Ping" to the configured backend IP.
+      final reachable = await BackendDiscovery.testConnection(ApiClient.serverIp);
+      if (!reachable) {
+        if (!mounted) return;
+        // Optimization: Proactively show common connectivity fix if the server is dark.
+        SnackBarUtils.showSnackBar(
+          context,
+          'Cannot reach the server. Please check your connection settings.',
+          isError: true,
+        );
+        showDialog(
+          context: context,
+          builder: (_) => const BackendSettingsDialog(),
+        );
+        return;
+      }
+    }
+
+    if (!mounted) return;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false); // State: Access identity commander
+    final identifier = normalizePhoneNumber(_emailController.text.trim()); // Sanitize: Strip spaces/hyphens
+    
+    // Stage C: Backend Handshake.
     final success = await authProvider.login(
       identifier,
       _passwordController.text.trim(),
     );
     if (!mounted) return;
 
+    // Stage D: Result Handling.
     if (success) {
-      // Trigger login notification
       if (mounted) {
+        // Trace: Log successful session start for auditing.
         context.read<NotificationProvider>().createNotification(
           type: 'success',
           title: 'Login Successful',
@@ -62,177 +103,106 @@ class _LoginScreenState extends State<LoginScreen> {
         'Welcome back, ${authProvider.currentOwner?.shopName ?? authProvider.currentOwner?.name ?? 'Partner'}!',
       );
       
-      // Role-based navigation
+      // Stage E: High-level Routing.
+      // Strategy: Isolation of concerns between 'System Admins' and 'Shop Owners'.
       if (authProvider.currentOwner?.role == 'admin') {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const AdminShell()),
+          MaterialPageRoute(builder: (_) => const AdminShell()), // Route: System-wide control
         );
       } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const MainShell()),
+          MaterialPageRoute(builder: (_) => const MainShell()), // Route: Daily retail operations
         );
       }
     } else {
+      // Stage F: Advanced Diagnostics.
+      // Rationale: Pass technicalDetails (e.g. HTTP 401) to support troubleshooting without cluttering the UI.
       SnackBarUtils.showSnackBar(
         context,
         authProvider.error ?? 'Login failed. Please check your credentials.',
         isError: true,
+        technicalDetails: authProvider.technicalDetails,
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-          children: [
-            // Green header
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 60, 24, 40),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [AppColors.primary, AppColors.primaryDark],
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(32),
-                  bottomRight: Radius.circular(32),
-                ),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.storefront,
-                      size: 40,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'ClickBuy',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Owner Portal',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white.withValues(alpha: 0.85),
-                    ),
-                  ),
-                ],
-              ),
+    return AuthBackground(
+      // --- Auxiliary Actions ---
+      trailing: IconButton(
+        onPressed: () => showDialog(
+          context: context,
+          builder: (_) => const BackendSettingsDialog(),
+        ),
+        icon: Icon(
+          Icons.settings_outlined, // Icon: Direct access to network config
+          color: AppColors.textMedium.withValues(alpha: 0.5),
+        ),
+        tooltip: 'Connection Settings',
+      ),
+      child: Column(
+        children: [
+          // Headline: Primary UI greeting.
+          Text(
+            'Welcome Back!',
+            style: GoogleFonts.poppins(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textDark,
             ),
-
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 24),
-                  const Center(
-                    child: Text(
-                      'Welcome Back!',
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Center(
-                    child: Text(
-                      'Sign in to manage your grocery store.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textMedium,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Email field
-                  const Text(
-                    'Email or Phone',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: AppColors.textDark,
-                    ),
-                  ),
+          ),
+          const SizedBox(height: 8),
+          // Sub-headline: Mission statement.
+          Text(
+            'Sign in to manage your grocery store.',
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: AppColors.textMedium,
+            ),
+          ),
+          const SizedBox(height: 20),
+          
+          // --- Credential Module ---
+          // Rationale: Encapsulated GlassCard for visual prominence and input focus.
+          GlassCard(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildLabel('Email or Phone'), // Label: Human identifier
                   const SizedBox(height: 8),
                   TextFormField(
                     key: const ValueKey('email_field'),
                     controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: InputDecoration(
-                      hintText: 'Enter your email or phone number',
-                      prefixIcon: Icon(
-                        Icons.mail_outline,
-                        color: AppColors.textLight,
-                      ),
+                    style: const TextStyle(color: AppColors.textDark),
+                    decoration: _buildInputDecoration(
+                      hintText: 'Enter your email or phone',
+                      icon: Icons.mail_outline,
                     ),
-                    validator: ValidationUtils.validateIdentifier,
+                    validator: ValidationUtils.validateIdentifier, // Logic: Email/Phone Regex
                   ),
                   const SizedBox(height: 20),
 
-                  // Password field
-                  const Text(
-                    'Password',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: AppColors.textDark,
-                    ),
-                  ),
+                  _buildLabel('Password'), // Label: Shielded identifier
                   const SizedBox(height: 8),
                   TextFormField(
                     key: const ValueKey('password_field'),
                     controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
+                    obscureText: _obscurePassword, // Logic: Toggleable obscuring
+                    style: const TextStyle(color: AppColors.textDark),
+                    decoration: _buildInputDecoration(
                       hintText: 'Enter your password',
-                      prefixIcon: Icon(
-                        Icons.lock_outline,
-                        color: AppColors.textLight,
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          color: AppColors.textLight,
-                        ),
-                        onPressed: () => setState(
-                          () => _obscurePassword = !_obscurePassword,
-                        ),
-                      ),
+                      icon: Icons.lock_outline,
+                      isPassword: true,
                     ),
-                    validator: ValidationUtils.validatePassword,
+                    validator: ValidationUtils.validatePassword, // Logic: Min length/Complexity check
                   ),
-                  const SizedBox(height: 12),
-
-                  // Forgot password
+                  
+                  // Recovery Action: Direct link to OTP-based password reset.
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
@@ -242,48 +212,34 @@ class _LoginScreenState extends State<LoginScreen> {
                           builder: (_) => const ResetPasswordScreen(),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Forgot Password?',
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
 
-                  // Error display
-                  Consumer<AuthProvider>(
-                    builder: (context, auth, _) {
-                      if (auth.error != null) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Text(
-                            auth.error!,
-                            style: const TextStyle(
-                              color: AppColors.error,
-                              fontSize: 13,
-                            ),
-                          ),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
+                  const SizedBox(height: 16),
 
-                  // Login button
+                  // --- Submit CTA ---
+                  // Logic: Reactive button that displays a spinner during network transmission.
                   Consumer<AuthProvider>(
                     builder: (context, auth, _) {
                       return SizedBox(
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
-                          onPressed: auth.isLoading ? null : _login,
+                          onPressed: auth.isLoading ? null : _login, // Block: Prevent double-submission
                           style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
+                            elevation: 0,
                           ),
                           child: auth.isLoading
                               ? const SizedBox(
@@ -294,110 +250,155 @@ class _LoginScreenState extends State<LoginScreen> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Row(
-                                  key: ValueKey('login_button'),
+                              : Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
                                       'Login',
-                                      style: TextStyle(
+                                      style: GoogleFonts.poppins(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
-                                    SizedBox(width: 8),
-                                    Icon(Icons.arrow_forward, size: 20),
+                                    const SizedBox(width: 8),
+                                    const Icon(Icons.arrow_forward, size: 20),
                                   ],
                                 ),
                         ),
                       );
                     },
                   ),
-                  const SizedBox(height: 24),
-
-                  // Or continue with divider
-                  Row(
-                    children: [
-                      Expanded(child: Divider(color: Colors.grey.shade300)),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          'Or continue with',
-                          style: TextStyle(
-                            color: AppColors.textLight,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                      Expanded(child: Divider(color: Colors.grey.shade300)),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Social buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildSocialButton(Icons.g_mobiledata, () {}),
-                      const SizedBox(width: 16),
-                      _buildSocialButton(Icons.fingerprint, () {}),
-                    ],
-                  ),
-                  const SizedBox(height: 28),
-
-                  // Register link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'Not an owner yet? ',
-                        style: TextStyle(color: AppColors.textMedium),
-                      ),
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RegisterScreen(),
-                          ),
-                        ),
-                        child: const Text(
-                          'Apply for Partnership',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  const SizedBox(height: 24),
                 ],
               ),
             ),
           ),
-        ],
+          
+          const SizedBox(height: 24),
+
+          // --- Alternative Options ---
+          // Registration Route.
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Not an owner yet? ',
+                style: GoogleFonts.poppins(
+                  color: AppColors.textMedium,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const RegisterScreen(),
+                  ),
+                ),
+                child: Text(
+                  'Apply for Partnership', 
+                  style: GoogleFonts.poppins(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
+          const SizedBox(height: 16),
+
+          // Support Link: Direct communication with system admins.
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Having trouble? ',
+                style: GoogleFonts.poppins(
+                  color: AppColors.textMedium,
+                  fontSize: 13,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const PublicSupportScreen(),
+                  ),
+                ),
+                child: Text(
+                  'Contact Admin',
+                  style: GoogleFonts.poppins(
+                    color: AppColors.textDark,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }
 
-  Widget _buildSocialButton(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.grey.shade200),
-          color: Colors.white,
-        ),
-        child: Icon(icon, size: 28, color: AppColors.textMedium),
+  /*
+   * UI Component: Section Label.
+   * Rationale: Standardizes heading styles for input groups.
+   */
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: GoogleFonts.poppins(
+        fontWeight: FontWeight.w600,
+        fontSize: 14,
+        color: AppColors.textDark.withValues(alpha: 0.9),
       ),
     );
   }
+
+  /*
+   * UI Component: Premium Input Decorator.
+   * Rationale: Centrally manages the aesthetic design of all authentication fields.
+   */
+  InputDecoration _buildInputDecoration({
+    required String hintText,
+    required IconData icon,
+    bool isPassword = false,
+  }) {
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: TextStyle(color: AppColors.textLight),
+      prefixIcon: Icon(icon, color: AppColors.textMedium.withValues(alpha: 0.6)),
+      filled: true,
+      fillColor: Colors.black.withValues(alpha: 0.03),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2), // Focus: Highlight in brand color
+      ),
+      // Action: Password visibility toggle button.
+      suffixIcon: isPassword
+          ? IconButton(
+              icon: Icon(
+                _obscurePassword
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                color: AppColors.textMedium.withValues(alpha: 0.6),
+              ),
+              onPressed: () => setState(
+                () => _obscurePassword = !_obscurePassword,
+              ),
+            )
+          : null,
+    );
+  }
 }
+
+

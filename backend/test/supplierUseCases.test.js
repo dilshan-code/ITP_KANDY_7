@@ -14,6 +14,8 @@ describe('Supplier Use Cases', () => {
             create: jest.fn().mockImplementation(data => Promise.resolve({ id: 'new-s1', ...data })),
             update: jest.fn().mockImplementation((id, data) => Promise.resolve({ id, ...data })),
             delete: jest.fn().mockResolvedValue(true),
+            findByPhone: jest.fn().mockResolvedValue(null),
+            findByEmail: jest.fn().mockResolvedValue(null),
         };
     });
 
@@ -88,6 +90,22 @@ describe('Supplier Use Cases', () => {
             const data = { name: 'Y', phone: '0771234567' };
             const result = await createSupplier.execute(data, ownerId);
             expect(result).toHaveProperty('id');
+        });
+
+        test('should throw if phone number already exists', async () => {
+            const data = { name: 'Duplicate', phone: '0771234567' };
+            mockSupplierRepository.findByPhone.mockResolvedValue({ id: 'existing-s', ...data });
+            
+            await expect(createSupplier.execute(data, ownerId))
+                .rejects.toThrow('A supplier with this phone number already exists in your records');
+        });
+
+        test('should throw if email already exists', async () => {
+            const data = { name: 'Duplicate', phone: '0779998887', email: 'duplicate@gmail.com' };
+            mockSupplierRepository.findByEmail.mockResolvedValue({ id: 'existing-s', ...data });
+            
+            await expect(createSupplier.execute(data, ownerId))
+                .rejects.toThrow('A supplier with this email already exists in your records');
         });
     });
 

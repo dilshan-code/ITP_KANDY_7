@@ -51,14 +51,16 @@ flowchart LR
         end
 
         %% Reporting & Output
-        subgraph Analytics ["Analytics & Exports"]
+        subgraph Analytics ["Analytics & Admin"]
             reports([View Financial Reports]):::usecase
             export([Export Data To PDF]):::highlight
+            backup([Generate Database Backup ZIP]):::highlight
         end
         
         %% Global Utilities
         subgraph Globals ["Global Utilities"]
             notifications([Manage Push Notifications]):::usecase
+            discovery([Auto-Discover Local Backend]):::highlight
         end
     end
 
@@ -76,6 +78,8 @@ flowchart LR
     Admin --> manageSuppliers
     Admin --> reports
     Admin --> notifications
+    Admin --> backup
+    Admin --> discovery
 
     %% Inclusions / Extensions (Internal Logic Flow)
     lowStock -.->|<< extends >>| inv
@@ -92,31 +96,33 @@ flowchart LR
 The diagram above translates into the following key actionable use cases designed specifically for the **ClickBuy** ecosystem:
 
 1. **Security & Identity (Auth)**
-   - **Login via Email/Phone**: Owners can authenticate uniquely using dual login capabilities (Email or Phone).
+   - **Login / Register**: Owners can authenticate uniquely using dual login capabilities (Email or Phone).
    - **Manage Profile**: Adjust basic credentials and store configurations.
 
 2. **Inventory Management**
-   - **Manage Catalog**: Full CRUD (Create, Read, Update, Delete) controls for store products and visual categories.
+   - **Manage Catalog**: Full CRUD controls for store products and visual categories.
    - **Low Stock Alerts**: Automated contextual notifications prompting owners to restock inventory before running out.
 
 3. **Sales System (Point of Sale)**
    - **Process Sales**: Dedicated cart management and checkout UI optimized for speed.
-   - **Manage Invoices**: An organized, chronological ledger to view, categorize, or securely delete historical purchase invoices.
+   - **Manage Invoices**: An organized ledger to view or securely delete historical purchase invoices.
 
 4. **Customer Credit Tracking (Debtors)**
    - **Manage Credit Customers**: Build a comprehensive directory for regular shoppers.
-   - **Record & Settle Debts**: Easily add standing credit records or mark pending balances as successfully paid off.
+   - **Record & Settle Debts**: Add credit records or mark pending balances as paid off.
 
 5. **Supplier Operations**
-   - **Manage Profiles**: Track supplier contact information, product links, and total payable balances (visually tied to the Green success theme).
-   - **Record Purchases**: Log deliveries dynamically, securely shielded by Loading-Gate patterns to prevent UI crashes.
+   - **Manage Profiles**: Track supplier contact information and total payable balances (Actual Debt).
+   - **Record Purchases**: Log deliveries dynamically, automatically syncing with product stock levels.
 
-6. **Analytics & Exports**
+6. **Analytics & Administration**
    - **Financial Reports**: Get overhead insights and accurate profit calculations in real-time.
-   - **Universal PDF Export**: One-tap professional PDF document generation for Credit Customers, Suppliers, and Receipts. 
+   - **Universal PDF Export**: One-tap professional PDF generation for Credit Customers, Suppliers, and Receipts. 
+   - **Database Backup**: Trigger a server-side routine to archive all MongoDB collections into a portable ZIP format.
 
 7. **Global Utilities**
-   - **Push Notifications**: Unified global bell icons across the dashboard ensure owners never miss systemic status updates.
+   - **Auto-Discovery**: Dynamically identify the backend server IP on the local network (UDP Protocol).
+   - **Push Notifications**: Unified status updates across the merchant dashboard.
 
 ---
-*Architectural Document - ClickBuy Beta Environment.*
+*Technical Specification - ClickBuy Group Project.*

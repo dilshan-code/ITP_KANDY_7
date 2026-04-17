@@ -1,9 +1,20 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:frontend/features/account/presentation/providers/feedback_provider.dart';
-import 'package:frontend/features/account/domain/entities/feedback.dart';
-import 'package:frontend/core/theme/app_colors.dart';
-import 'package:intl/intl.dart';
+// ------------------------------------------------------------------------------
+// File: manage_feedback_screen.dart
+// Purpose: Communication and quality control interface for User Feedback.
+// Rationale: Centralizes feedback items across categories (Error, Improvement,
+//   General). Implements hierarchical grouping by date and supports status-based
+//   filtering to prioritize system fixes and owner concerns.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // UI: Material framework
+import 'package:provider/provider.dart'; // State: State management consumption
+import 'package:google_fonts/google_fonts.dart'; // Styling: Typography tokens
+import 'package:frontend/features/account/presentation/providers/feedback_provider.dart'; // State: Feedback data stream
+import 'package:frontend/features/account/domain/entities/feedback.dart'; // Domain: Feedback entity model
+import 'package:frontend/core/theme/app_colors.dart'; // Styling: Design system colors
+import 'package:frontend/shared/widgets/shimmer_loading.dart'; // UI: Loading skeletons
+import 'package:frontend/shared/widgets/tactile_scale.dart'; // UI: Physics-based touch feedback
+import 'package:intl/intl.dart'; // Utils: Date/Time formatting
+import 'package:animate_do/animate_do.dart'; // UI: Transition effects
 
 class ManageFeedbackScreen extends StatefulWidget {
   const ManageFeedbackScreen({super.key});
@@ -13,7 +24,8 @@ class ManageFeedbackScreen extends StatefulWidget {
 }
 
 class _ManageFeedbackScreenState extends State<ManageFeedbackScreen> {
-  String _selectedFilter = 'All';
+  String _selectedFilter =
+      'All'; // Active Filter: (All, Feedback, Error, Improvement, Guest Support)
 
   @override
   void initState() {
@@ -35,6 +47,7 @@ class _ManageFeedbackScreenState extends State<ManageFeedbackScreen> {
   }
 
   Map<String, List<UserFeedback>> _groupFeedback(List<UserFeedback> feedbacks) {
+    // Hierarchical grouping: Organizes feedback by date categories (Today, Yesterday, etc.) for UI readability.
     final Map<String, List<UserFeedback>> grouped = {};
     for (var feedback in feedbacks) {
       final category = _getDateCategory(feedback.createdAt);
@@ -53,23 +66,22 @@ class _ManageFeedbackScreenState extends State<ManageFeedbackScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('User Feedback', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textDark,
+        title: const Text('User Feedback'),
         elevation: 0,
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
         child: Column(
           children: [
-            _buildFilterBar(),
+            _buildFilterBar(feedbackProvider),
             Expanded(
-              child: feedbackProvider.isLoading && feedbackProvider.feedbacks.isEmpty
-                  ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.primary))
+              child:
+                  feedbackProvider.isLoading &&
+                      feedbackProvider.feedbacks.isEmpty
+                  ? _buildFeedbackShimmer()
                   : feedbackProvider.feedbacks.isEmpty
-                      ? _buildEmptyState()
-                      : _buildFeedbackList(feedbackProvider),
+                  ? _buildEmptyState()
+                  : _buildFeedbackList(feedbackProvider),
             ),
           ],
         ),
@@ -99,11 +111,13 @@ class _ManageFeedbackScreenState extends State<ManageFeedbackScreen> {
     );
   }
 
-  Widget _buildFilterBar() {
-    final filters = ['All', 'Error', 'Improvement', 'General'];
+  Widget _buildFilterBar(FeedbackProvider provider) {
+    // Strategy: Fixed taxonomy for simplified admin triage.
+    final filters = ['All', 'Feedback', 'Error', 'Improvement', 'Guest Support'];
+
     return Container(
       height: 60,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: filters.length,
@@ -112,32 +126,35 @@ class _ManageFeedbackScreenState extends State<ManageFeedbackScreen> {
           final isSelected = _selectedFilter == filter;
           return Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(
-                filter,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : AppColors.textMedium,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  fontSize: 13,
-                ),
-              ),
-              selected: isSelected,
-              onSelected: (selected) {
-                if (selected) {
-                  setState(() => _selectedFilter = filter);
-                }
+            child: TactileScale(
+              onTap: () {
+                setState(() => _selectedFilter = filter);
               },
-              selectedColor: AppColors.primary,
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(
-                  color: isSelected ? AppColors.primary : Colors.grey[200]!,
+              child: ChoiceChip(
+                label: Text(
+                  filter,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppColors.textMedium,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 13,
+                  ),
                 ),
+                selected: isSelected,
+                onSelected: (bool selected) {
+                  setState(() => _selectedFilter = filter);
+                },
+                selectedColor: AppColors.primary,
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: BorderSide(
+                    color: isSelected ? AppColors.primary : Colors.grey[200]!,
+                  ),
+                ),
+                showCheckmark: false,
+                elevation: 0,
+                pressElevation: 0,
               ),
-              showCheckmark: false,
-              elevation: 0,
-              pressElevation: 0,
             ),
           );
         },
@@ -145,12 +162,28 @@ class _ManageFeedbackScreenState extends State<ManageFeedbackScreen> {
     );
   }
 
+
   Widget _buildFeedbackList(FeedbackProvider provider) {
-    final filteredFeedbacks = _selectedFilter == 'All'
-        ? provider.feedbacks
-        : provider.feedbacks
-            .where((f) => f.category.toLowerCase() == _selectedFilter.toLowerCase())
-            .toList();
+    // Strategy: Multi-dimensional filtering across categories and user types.
+    var filteredFeedbacks = provider.feedbacks;
+
+    final publicCategories = ['Account Recovery', 'Password Reset Issue', 'Login Trouble', 'Other'];
+
+    // Strategy: Mutually exclusive filtering between internal categories and public support channel.
+    if (_selectedFilter == 'Guest Support') {
+      filteredFeedbacks = filteredFeedbacks
+          .where((f) => f.ownerName == 'External User' || publicCategories.contains(f.category))
+          .toList();
+    } else if (_selectedFilter != 'All') {
+      filteredFeedbacks = filteredFeedbacks
+          .where(
+            (f) =>
+                f.category.toLowerCase() == _selectedFilter.toLowerCase() &&
+                f.ownerName != 'External User' &&
+                !publicCategories.contains(f.category),
+          )
+          .toList();
+    }
 
     if (filteredFeedbacks.isEmpty) {
       return _buildEmptyState(isFilter: true);
@@ -172,7 +205,10 @@ class _ManageFeedbackScreenState extends State<ManageFeedbackScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 4,
+                ),
                 child: Text(
                   dateKey,
                   style: TextStyle(
@@ -183,7 +219,13 @@ class _ManageFeedbackScreenState extends State<ManageFeedbackScreen> {
                   ),
                 ),
               ),
-              ...feedbacks.map((f) => _buildFeedbackCard(f, provider)),
+              ...feedbacks.indexed.map(
+                (entry) => FadeInUp(
+                  duration: const Duration(milliseconds: 400),
+                  delay: Duration(milliseconds: entry.$1 * 100),
+                  child: _buildFeedbackCard(entry.$2, provider),
+                ),
+              ),
               const SizedBox(height: 8),
             ],
           );
@@ -192,10 +234,25 @@ class _ManageFeedbackScreenState extends State<ManageFeedbackScreen> {
     );
   }
 
+  Widget _buildFeedbackShimmer() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(20),
+      itemCount: 5,
+      itemBuilder: (context, index) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: ShimmerLoading(
+          isLoading: true,
+          child: ShimmerSkeleton(height: 120, borderRadius: 16),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFeedbackCard(UserFeedback feedback, FeedbackProvider provider) {
     Color categoryColor;
     IconData categoryIcon;
 
+    // Category-based UI mapping: Dynamically choosing icons and colors based on feedback severity.
     switch (feedback.category.toLowerCase()) {
       case 'error':
         categoryColor = Colors.red;
@@ -236,21 +293,115 @@ class _ManageFeedbackScreenState extends State<ManageFeedbackScreen> {
             ),
             child: Icon(categoryIcon, color: categoryColor, size: 20),
           ),
-          title: Text(
-            feedback.ownerName,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-              color: AppColors.textDark,
-            ),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  // Data sanitization: Masking external user IDs with a readable label.
+                  (feedback.ownerName == 'External User' || (feedback.ownerName == 'Unknown User' && ['Account Recovery', 'Password Reset Issue', 'Login Trouble', 'Other'].contains(feedback.category)))
+                      ? 'Unregistered Owner'
+                      : feedback.ownerName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ),
+              if (feedback.isVerified)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      ElasticIn(
+                        child: const Icon(
+                          Icons.verified,
+                          color: Colors.green,
+                          size: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Verified',
+                        style: GoogleFonts.poppins(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
-          subtitle: Text(
-            feedback.category,
-            style: TextStyle(
-              color: categoryColor,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              /**
+               * Data Attribution: Channel Labeling.
+               * Visual cues to distinguish between 'Internal Reports' (authenticated)
+               * and 'Public Channels' (recovery stream).
+               */
+              Row(
+                children: [
+                  Text(
+                    feedback.category,
+                    style: TextStyle(
+                      color: categoryColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 3,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    (feedback.ownerName == 'External User' || ['Account Recovery', 'Password Reset Issue', 'Login Trouble', 'Other'].contains(feedback.category))
+                        ? 'Public Channel'
+                        : 'Internal Report',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 11),
+                  ),
+                ],
+              ),
+              if (feedback.claimedShopName != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    'Claimed Shop: ${feedback.claimedShopName}',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              if (feedback.contactInfo != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    'Contact: ${feedback.contactInfo}',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+            ],
           ),
           trailing: Text(
             DateFormat('h:mm a').format(feedback.createdAt),
@@ -276,8 +427,15 @@ class _ManageFeedbackScreenState extends State<ManageFeedbackScreen> {
               children: [
                 TextButton.icon(
                   onPressed: () => _confirmDelete(feedback, provider),
-                  icon: const Icon(Icons.delete_outline, color: Colors.grey, size: 18),
-                  label: const Text('Delete', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.redAccent,
+                    size: 18,
+                  ),
+                  label: const Text(
+                    'Delete',
+                    style: TextStyle(color: Colors.redAccent, fontSize: 13),
+                  ),
                 ),
               ],
             ),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/core/theme/app_colors.dart';
 import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart';
@@ -12,14 +12,17 @@ class NotificationIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Listens for changes in the notification state (e.g., new stock alerts)
     return Consumer<NotificationProvider>(
       builder: (context, notificationProvider, _) {
         return GestureDetector(
           onTap: () {
+            // Open full notifications list
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const NotificationScreen()),
             ).then((_) {
+              // Refresh counts when returning from the screen (in case any were read)
               if (context.mounted) notificationProvider.fetchNotifications();
             });
           },
@@ -33,13 +36,14 @@ class NotificationIcon extends StatelessWidget {
               ],
             ),
             child: Stack(
-              clipBehavior: Clip.none,
+              clipBehavior: Clip.none, // Allow the badge to sit outside the icon area
               children: [
                 Icon(
                   Icons.notifications_outlined,
                   color: color ?? AppColors.textMedium,
                   size: size,
                 ),
+                // Only show the red dot if there are actually unread alerts
                 if (notificationProvider.unreadCount > 0)
                   Positioned(
                     top: -2,
@@ -47,10 +51,10 @@ class NotificationIcon extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
-                        color: AppColors.error,
+                        color: AppColors.error, // High contrast red for urgency
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: AppColors.surface,
+                          color: AppColors.surface, // Matches background to create a "cutout" look
                           width: 1.5,
                         ),
                       ),
@@ -60,8 +64,9 @@ class NotificationIcon extends StatelessWidget {
                       ),
                       child: Center(
                         child: Text(
+                          // Format count to fit within the small circle
                           notificationProvider.unreadCount > 9
-                              ? '9+'
+                              ? '9+' // Cap at 9 to avoid overflow
                               : notificationProvider.unreadCount.toString(),
                           style: const TextStyle(
                             fontSize: 8,
@@ -80,3 +85,4 @@ class NotificationIcon extends StatelessWidget {
     );
   }
 }
+

@@ -1,10 +1,23 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:frontend/core/theme/app_colors.dart';
-import 'package:frontend/core/utils/snackbar_utils.dart';
-import 'package:frontend/features/auth/presentation/providers/auth_provider.dart';
-import 'package:frontend/core/utils/phone_utils.dart';
-import 'package:frontend/core/utils/validation_utils.dart';
+// ------------------------------------------------------------------------------
+// File: profile_settings_screen.dart
+// Purpose: Identity and Security Governance for shop owners.
+// Rationale: Manages three distinct mutation pipelines: 
+//   1. Visual Identity (Avatar)
+//   2. Business Metadata (Shop, Contact)
+//   3. Security Credentials (Credentials/Password rotation)
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // Core: Flutter UI reactive system
+import 'package:google_fonts/google_fonts.dart'; // Typography: Brand font sets
+import 'package:provider/provider.dart'; // State: Dependency injection system
+import 'package:frontend/core/theme/app_colors.dart'; // Styling: Design system tokens
+import 'package:frontend/core/utils/snackbar_utils.dart'; // Feedback: Status message system
+import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // State: Identity manager
+import 'package:frontend/core/utils/phone_utils.dart'; // Utility: Identifier normalization
+import 'package:frontend/core/utils/validation_utils.dart'; // Utility: Form regex engines
+import 'package:image_picker/image_picker.dart'; // Hardware: Camera/Gallery integration
+import 'package:frontend/core/utils/image_helper.dart'; // Logic: Unified pick-and-crop utility
+import 'package:frontend/shared/widgets/app_back_button.dart'; // Standardized navigation trigger
+
 
 class ProfileSettingsScreen extends StatefulWidget {
   const ProfileSettingsScreen({super.key});
@@ -14,20 +27,23 @@ class ProfileSettingsScreen extends StatefulWidget {
 }
 
 class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameController;
-  late TextEditingController _shopNameController;
-  late TextEditingController _phoneController;
-  late TextEditingController _emailController;
-
-  final _passwordFormKey = GlobalKey<FormState>();
-  final _oldPasswordController = TextEditingController();
-  final _newPasswordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  // --- Form Part A: Metadata Orchestration ---
+  final _formKey = GlobalKey<FormState>(); // Key: Personal info validation block
+  late TextEditingController _nameController; // Input: Human name
+  late TextEditingController _shopNameController; // Input: Business label
+  late TextEditingController _phoneController; // Input: SMS-capable identifier
+  late TextEditingController _emailController; // Input: Digital contact
+  
+  // --- Form Part B: Security Orchestration ---
+  final _passwordFormKey = GlobalKey<FormState>(); // Key: Credential validation block
+  final _oldPasswordController = TextEditingController(); // Input: Identity proof (current)
+  final _newPasswordController = TextEditingController(); // Input: Target credential
+  final _confirmPasswordController = TextEditingController(); // Input: Integrity check
 
   @override
   void initState() {
     super.initState();
+    // Step: Seed the controllers with the currently authenticated owner's cached state.
     final owner = context.read<AuthProvider>().currentOwner;
     _nameController = TextEditingController(text: owner?.name);
     _shopNameController = TextEditingController(text: owner?.shopName);
@@ -37,7 +53,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _nameController.dispose(); // Cleanup: Memory leaks prevention
     _shopNameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
@@ -47,20 +63,27 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     super.dispose();
   }
 
+  /*
+   * Logic: Metadata Synchronization.
+   * Rationale: Updates the core identity fields in the backend database.
+   * Strategy: Normalizes the phone number to E.164 format before transmission.
+   */
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Action: Push local form state to the multi-tenant backend.
     final success = await context.read<AuthProvider>().updateProfile({
-      'name': _nameController.text,
-      'shopName': _shopNameController.text,
+      'name': _nameController.text.trim(),
+      'shopName': _shopNameController.text.trim(),
       'phone': normalizePhoneNumber(_phoneController.text),
-      'email': _emailController.text,
+      'email': _emailController.text.trim(),
     });
 
     if (mounted) {
       if (success) {
         SnackBarUtils.showSnackBar(context, 'Profile updated successfully');
       } else {
+        // Step: Log failure with full architectural visibility from the provider.
         SnackBarUtils.showSnackBar(
           context,
           context.read<AuthProvider>().error ?? 'Failed to update profile',
@@ -70,9 +93,15 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     }
   }
 
+  /*
+   * Logic: Secure Credential Rotation.
+   * Rationale: Handles the sensitive password update handshake.
+   * Requires proof-of-knowledge of the current password for security verification.
+   */
   Future<void> _changePassword() async {
     if (!_passwordFormKey.currentState!.validate()) return;
 
+    // Action: Perform the auth-rotator handshake.
     final success = await context.read<AuthProvider>().changePassword(
       _oldPasswordController.text,
       _newPasswordController.text,
@@ -80,6 +109,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
     if (mounted) {
       if (success) {
+        // Step: Atomic reset of sensitive fields upon success.
         _oldPasswordController.clear();
         _newPasswordController.clear();
         _confirmPasswordController.clear();
@@ -94,25 +124,105 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     }
   }
 
+  /*
+   * Logic: Cloud Asset Persistence.
+   * Rationale: Integrated avatar management.
+   * Strategy: Triggers a cloud upload to Cloudinary before updating the DB link.
+   */
+  /*
+   * Logic: Cloud Asset Persistence with Precision Cropping.
+   * Rationale: Integrated avatar management with cropping.
+   */
+  Future<void> _pickImage() async {
+    // UI: Allow user to choose input source
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_rounded, color: AppColors.primary),
+              title: Text('Take Photo', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.image_rounded, color: AppColors.primary),
+              title: Text('Choose from Gallery', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+    if (!mounted) return;
+
+    try {
+      final croppedFile = await ImageHelper.pickAndCropImage(
+        context: context,
+        source: source,
+        isProfile: true,
+      );
+
+      if (croppedFile != null && mounted) {
+        final success = await context.read<AuthProvider>().updateProfilePicture(croppedFile);
+        if (mounted) {
+          if (success) {
+            SnackBarUtils.showSnackBar(context, 'Profile picture updated');
+          } else {
+            SnackBarUtils.showSnackBar(
+              context,
+              context.read<AuthProvider>().error ?? 'Failed to upload image',
+              isError: true,
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        SnackBarUtils.showSnackBar(context, 'Error processing image: $e', isError: true);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: const Color(0xFFF8FAFC), // Aesthetics: Soft neutral backdrop
       appBar: AppBar(
-        title: const Text(
-          'Profile Settings',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+        title: const Text('Profile Settings'),
+        leading: AppBackButton(
+          onTap: () => Navigator.pop(context),
+          margin: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textDark,
-        elevation: 0,
-        centerTitle: true,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             children: [
               const SizedBox(height: 12),
+              // --- Module: Visual Identity ---
+              _buildAvatar(),
+              const SizedBox(height: 24),
+              
+              // --- Module: Metadata Governance ---
               _buildSection(
                 title: 'PERSONAL INFORMATION',
                 child: Form(
@@ -158,6 +268,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      // Meta CTA: Persist all textual changes.
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -168,14 +279,14 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                           child: ElevatedButton(
                             onPressed: context.watch<AuthProvider>().isLoading
                                 ? null
-                                : _updateProfile,
+                                : _updateProfile, // Block: Guard against concurrent states
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               elevation: 0,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(16),
                               ),
                             ),
                             child: context.watch<AuthProvider>().isLoading
@@ -187,9 +298,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Text(
+                                : Text(
                                     'Save Profile Details',
-                                    style: TextStyle(fontWeight: FontWeight.w600),
+                                    style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                                   ),
                           ),
                         ),
@@ -199,6 +310,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
+              // --- Module: Security Governance ---
               _buildSection(
                 title: 'SECURITY',
                 child: Form(
@@ -242,6 +355,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      // Security CTA: Atomic password rotation attempt.
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -257,12 +371,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               side: const BorderSide(color: AppColors.primary),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(16),
                               ),
                             ),
-                            child: const Text(
+                            child: Text(
                               'Update Password',
-                              style: TextStyle(
+                              style: GoogleFonts.poppins(
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.primary,
                               ),
@@ -282,6 +396,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     );
   }
 
+  /*
+   * UI Component Builder: Themed Settings Section.
+   */
   Widget _buildSection({required String title, required Widget child}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,7 +407,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
           child: Text(
             title,
-            style: const TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AppColors.textMedium,
@@ -299,7 +416,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           ),
         ),
         Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
+          margin: const EdgeInsets.symmetric(horizontal: 24),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -311,6 +428,9 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     );
   }
 
+  /*
+   * UI Component Builder: Field Label + Input Layout.
+   */
   Widget _buildSettingsItem({
     required IconData icon,
     required String label,
@@ -327,7 +447,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               const SizedBox(width: 8),
               Text(
                 label,
-                style: const TextStyle(
+                style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textDark,
@@ -342,13 +462,87 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     );
   }
 
+  /*
+   * UI Module: Interactive Avatar Stack.
+   * Rationale: Provides direct visual manipulation of the profile picture.
+   */
+  Widget _buildAvatar() {
+    final owner = context.watch<AuthProvider>().currentOwner;
+    final isLoading = context.watch<AuthProvider>().isLoading;
+
+    return Center(
+      child: Stack(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.2), width: 4),
+            ),
+            child: CircleAvatar(
+              radius: 60,
+              backgroundColor: AppColors.cardBlueBg,
+              backgroundImage: (owner?.profilePic != null && owner!.profilePic!.isNotEmpty)
+                  ? NetworkImage(owner.profilePic!)
+                  : null,
+              child: (owner?.profilePic == null || owner!.profilePic!.isEmpty)
+                  ? const Icon(Icons.person, size: 60, color: AppColors.primary)
+                  : null,
+            ),
+          ),
+          // Action Widget: Floating trigger for the camera/gallery picker.
+          Positioned(
+            bottom: 4,
+            right: 4,
+            child: GestureDetector(
+              onTap: isLoading ? null : _pickImage,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.camera_alt_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /*
+   * UI Utility: Clean decoration for in-section input fields.
+   */
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(fontSize: 13, color: AppColors.textLight),
+      hintStyle: GoogleFonts.poppins(fontSize: 13, color: AppColors.textLight),
       border: InputBorder.none,
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(vertical: 8),
     );
   }
 }
+

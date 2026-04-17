@@ -1,82 +1,132 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose'); // Database driver for handling atomic transactions across multiple collections
 
+/**
+ * Business Logic: Retrieves the full history of stock procurement (purchases).
+ */
 class GetAllPurchases {
-    constructor(purchaseRepository) { this.purchaseRepository = purchaseRepository; }
-    async execute(ownerId, limit, lastId) { return this.purchaseRepository.getAll(ownerId, limit, lastId); }
+    constructor(purchaseRepository) { 
+        this.purchaseRepository = purchaseRepository; // Dependency Injection: Data layer interface
+    }
+    
+    /**
+     * Fetches all purchase records for a specific store, with optional cursor-based pagination.
+     */
+    async execute(ownerId, limit, lastId) { 
+        return this.purchaseRepository.getAll(ownerId, limit, lastId); 
+    }
 }
 
+/**
+ * Business Logic: Retrieves technical details and item breakdowns for a specific purchase.
+ */
 class GetPurchaseById {
-    constructor(purchaseRepository) { this.purchaseRepository = purchaseRepository; }
-    async execute(id, ownerId) { return this.purchaseRepository.getById(id, ownerId); }
+    constructor(purchaseRepository) { 
+        this.purchaseRepository = purchaseRepository; 
+    }
+    
+    /**
+     * Fetches a single purchase record, scoped to the owner for security.
+     */
+    async execute(id, ownerId) { 
+        return this.purchaseRepository.getById(id, ownerId); 
+    }
 }
 
+/**
+ * Business Logic: Processes a new stock arrival from a supplier.
+ * This is an atomic operation: it saves the purchase, adds items to inventory, 
+ * updates the average cost price of products, and tracks any debt created with the supplier.
+ */
 class CreatePurchase {
     constructor(purchaseRepository, productRepository, supplierRepository) {
+        // Injects all relevant repositories to maintain cross-collection consistency
         this.purchaseRepository = purchaseRepository;
         this.productRepository = productRepository;
         this.supplierRepository = supplierRepository;
     }
 
     async execute(purchaseData, ownerId) {
+        // --- Integrity Guard ---
         if (!purchaseData || !ownerId) throw new Error('Purchase data and Owner ID are required');
 
+        // Logic: Standardize calculation of the remaining debt.
+        // This ensures the supplier ledger remains accurate even if the frontend omits the field.
+        const total = parseFloat(purchaseData.totalAmount) || 0;
+        const paid = parseFloat(purchaseData.amountPaid) || 0;
+        purchaseData.remaining = Math.max(0, total - paid);
+
+        // --- Transaction Management ---
+        // We use a MongoDB Session to ensure that if stock update fails, the purchase record isn't saved.
         const session = await mongoose.startSession();
         try {
-            session.startTransaction();
-            
-            // 1. Fetch products to update stock
-            const productDocs = [];
-            if (purchaseData.items && purchaseData.items.length > 0) {
-                for (const item of purchaseData.items) {
-                    if (item.productId) {
-                        const product = await this.productRepository.getById(item.productId, ownerId, session);
-                        if (product) productDocs.push({ item, product });
+            return await session.withTransaction(async () => {
+                // 1. Fetch Products
+                const productDocs = [];
+                if (purchaseData.items && purchaseData.items.length > 0) {
+                    for (const item of purchaseData.items) {
+                        if (item.productId) {
+                            const product = await this.productRepository.getById(item.productId, ownerId, session);
+                            if (product) productDocs.push({ item, product });
+                        }
                     }
                 }
-            }
 
-            // 2. Fetch supplier
-            const supplierDoc = purchaseData.supplierId 
-                ? await this.supplierRepository.getById(purchaseData.supplierId, ownerId, session)
-                : null;
+                // 2. Fetch Supplier
+                const supplierDoc = purchaseData.supplierId 
+                    ? await this.supplierRepository.getById(purchaseData.supplierId, ownerId, session)
+                    : null;
 
-            // 3. Create purchase record
-            const purchase = await this.purchaseRepository.create({ ...purchaseData, ownerId }, session);
+                // 3. Create Purchase Record
+                const purchase = await this.purchaseRepository.create({ ...purchaseData, ownerId }, session);
 
-            // 4. Update stock for each product
-            for (const { item, product } of productDocs) {
-                const quantity = parseInt(item.quantity) || 0;
-                const newStock = (product.stockQuantity || 0) + quantity;
-                const newPurchasePrice = parseFloat(item.unitPrice) || product.purchasePrice || 0;
-                await this.productRepository.update(product.id, { 
-                    stockQuantity: newStock,
-                    purchasePrice: newPurchasePrice,
-                    isLowStock: newStock <= (product.minimumStockLevel || 0)
-                }, ownerId, session);
-            }
+                // 4. Update Inventory & Costing
+                const stockUpdates = productDocs.map(({ item, product }) => ({
+                    productId: item.productId,
+                    amount: (parseInt(item.quantity) || 0)
+                }));
 
-            // 5. Update supplier balance
-            if (supplierDoc && purchaseData.totalAmount > 0) {
-                const newBalance = (supplierDoc.totalPayable || 0) + (parseFloat(purchaseData.totalAmount) || 0);
-                await this.supplierRepository.update(supplierDoc.id, { totalPayable: newBalance }, ownerId, session);
-            }
+                if (stockUpdates.length > 0) {
+                    await this.productRepository.bulkUpdateStock(stockUpdates, ownerId, session);
+                    
+                    for (const { item, product } of productDocs) {
+                        const newPurchasePrice = parseFloat(item.unitPrice) || product.purchasePrice || 0;
+                        const quantity = parseInt(item.quantity) || 0;
+                        const newStockSnapshot = (product.stockQuantity || 0) + quantity;
 
-            await session.commitTransaction();
-            return purchase;
-        } catch (error) {
-            await session.abortTransaction();
-            throw error;
+                        await this.productRepository.update(product.id, { 
+                            purchasePrice: newPurchasePrice,
+                            isLowStock: newStockSnapshot <= (product.minimumStockLevel || 0)
+                        }, ownerId, session);
+                    }
+                }
+
+                // 5. Manage Supplier Debt
+                if (supplierDoc && purchase.remaining > 0) {
+                    await this.supplierRepository.incrementPayable(supplierDoc.id, ownerId, parseFloat(purchase.remaining) || 0, session);
+                }
+
+                return purchase;
+            });
         } finally {
             session.endSession();
         }
     }
 }
 
+/**
+ * Business Logic: Retrieves procurement history filtered by a specific vendor.
+ */
 class GetPurchasesBySupplier {
     constructor(purchaseRepository) { this.purchaseRepository = purchaseRepository; }
-    async execute(supplierId, ownerId, limit, lastId) { return this.purchaseRepository.getBySupplier(supplierId, ownerId, limit, lastId); }
+    async execute(supplierId, ownerId, limit, lastId) { 
+        return this.purchaseRepository.getBySupplier(supplierId, ownerId, limit, lastId); 
+    }
 }
 
+/**
+ * Business Logic: Handles modifications to a purchase record (e.g., fixing a quantity error).
+ * Strategy: Revert the impact of the old record first, then apply the impact of the new data.
+ */
 class UpdatePurchase {
     constructor(purchaseRepository, productRepository, supplierRepository) {
         this.purchaseRepository = purchaseRepository;
@@ -89,77 +139,60 @@ class UpdatePurchase {
 
         const session = await mongoose.startSession();
         try {
-            session.startTransaction();
-            
-            const oldPurchase = await this.purchaseRepository.getById(id, ownerId, session);
-            if (!oldPurchase) throw new Error('Purchase not found');
+            return await session.withTransaction(async () => {
+                const oldPurchase = await this.purchaseRepository.getById(id, ownerId, session);
+                if (!oldPurchase) throw new Error('Purchase not found');
 
-            // 1. REVERT OLD STOCK
-            if (oldPurchase.items && oldPurchase.items.length > 0) {
-                for (const item of oldPurchase.items) {
-                    if (item.productId) {
-                        const product = await this.productRepository.getById(item.productId, ownerId, session);
-                        if (product) {
-                            const quantity = parseInt(item.quantity) || 0;
-                            const revertedStock = Math.max(0, (product.stockQuantity || 0) - quantity);
-                            await this.productRepository.update(product.id, { 
-                                stockQuantity: revertedStock,
-                                isLowStock: revertedStock <= (product.minimumStockLevel || 0)
-                            }, ownerId, session);
+                // --- STEP 1: REVERT OLD IMPACT ---
+                if (oldPurchase.items && oldPurchase.items.length > 0) {
+                    const revertStockUpdates = oldPurchase.items
+                        .filter(item => item.productId)
+                        .map(item => ({ productId: item.productId, amount: -(parseInt(item.quantity) || 0) }));
+                    
+                    if (revertStockUpdates.length > 0) {
+                        await this.productRepository.bulkUpdateStock(revertStockUpdates, ownerId, session);
+                    }
+                }
+
+                if (oldPurchase.supplierId && (oldPurchase.remaining || 0) > 0) {
+                    await this.supplierRepository.incrementPayable(oldPurchase.supplierId, ownerId, -(parseFloat(oldPurchase.remaining) || 0), session);
+                }
+
+                // --- STEP 2: APPLY NEW IMPACT ---
+                if (purchaseData.items && purchaseData.items.length > 0) {
+                    const newStockUpdates = purchaseData.items
+                        .filter(item => item.productId)
+                        .map(item => ({ productId: item.productId, amount: parseInt(item.quantity) || 0 }));
+                    
+                    if (newStockUpdates.length > 0) {
+                        await this.productRepository.bulkUpdateStock(newStockUpdates, ownerId, session);
+                        for (const item of purchaseData.items) {
+                            if (item.productId) {
+                                const newPrice = parseFloat(item.unitPrice || item.price) || 0;
+                                if (newPrice > 0) {
+                                    await this.productRepository.update(item.productId, { purchasePrice: newPrice }, ownerId, session);
+                                }
+                            }
                         }
                     }
                 }
-            }
 
-            // 2. REVERT OLD SUPPLIER BALANCE
-            if (oldPurchase.supplierId && oldPurchase.totalAmount > 0) {
-                const supplier = await this.supplierRepository.getById(oldPurchase.supplierId, ownerId, session);
-                if (supplier) {
-                    const revertedBalance = Math.max(0, (supplier.totalPayable || 0) - (oldPurchase.totalAmount || 0));
-                    await this.supplierRepository.update(supplier.id, { totalPayable: revertedBalance }, ownerId, session);
+                const updatedPurchase = await this.purchaseRepository.update(id, purchaseData, ownerId, session);
+                if (updatedPurchase.supplierId && (updatedPurchase.remaining || 0) > 0) {
+                    await this.supplierRepository.incrementPayable(updatedPurchase.supplierId, ownerId, parseFloat(updatedPurchase.remaining) || 0, session);
                 }
-            }
 
-            // 3. APPLY NEW STOCK
-            if (purchaseData.items && purchaseData.items.length > 0) {
-                for (const item of purchaseData.items) {
-                    if (item.productId) {
-                        const product = await this.productRepository.getById(item.productId, ownerId, session);
-                        if (product) {
-                            const quantity = parseInt(item.quantity) || 0;
-                            const newStock = (product.stockQuantity || 0) + quantity;
-                            const newPurchasePrice = parseFloat(item.unitPrice || item.price) || product.purchasePrice || 0;
-                            await this.productRepository.update(product.id, { 
-                                stockQuantity: newStock,
-                                purchasePrice: newPurchasePrice,
-                                isLowStock: newStock <= (product.minimumStockLevel || 0)
-                            }, ownerId, session);
-                        }
-                    }
-                }
-            }
-
-            // 4. APPLY NEW SUPPLIER BALANCE
-            if (purchaseData.supplierId && purchaseData.totalAmount > 0) {
-                const supplier = await this.supplierRepository.getById(purchaseData.supplierId, ownerId, session);
-                if (supplier) {
-                    const newBalance = (supplier.totalPayable || 0) + (parseFloat(purchaseData.totalAmount) || 0);
-                    await this.supplierRepository.update(supplier.id, { totalPayable: newBalance }, ownerId, session);
-                }
-            }
-
-            const updatedPurchase = await this.purchaseRepository.update(id, purchaseData, ownerId, session);
-            await session.commitTransaction();
-            return updatedPurchase;
-        } catch (error) {
-            await session.abortTransaction();
-            throw error;
+                return updatedPurchase;
+            });
         } finally {
             session.endSession();
         }
     }
 }
 
+/**
+ * Business Logic: Permanently voids a purchase and reverts all secondary impacts.
+ */
 class DeletePurchase {
     constructor(purchaseRepository, productRepository, supplierRepository) {
         this.purchaseRepository = purchaseRepository;
@@ -172,49 +205,78 @@ class DeletePurchase {
 
         const session = await mongoose.startSession();
         try {
-            session.startTransaction();
-            
-            const purchase = await this.purchaseRepository.getById(id, ownerId, session);
-            if (!purchase) return false;
+            return await session.withTransaction(async () => {
+                const purchase = await this.purchaseRepository.getById(id, ownerId, session);
+                if (!purchase) return false;
 
-            const productDocs = [];
-            if (purchase.items && purchase.items.length > 0) {
-                for (const item of purchase.items) {
-                    if (item.productId) {
-                        const product = await this.productRepository.getById(item.productId, ownerId, session);
-                        if (product) productDocs.push({ item, product });
+                // 1. Revert Inventory
+                if (purchase.items && purchase.items.length > 0) {
+                    const revertUpdates = purchase.items
+                        .filter(item => item.productId)
+                        .map(item => ({ productId: item.productId, amount: -(parseInt(item.quantity) || 0) }));
+                    
+                    if (revertUpdates.length > 0) {
+                        await this.productRepository.bulkUpdateStock(revertUpdates, ownerId, session);
                     }
                 }
-            }
 
-            const supplierDoc = purchase.supplierId 
-                ? await this.supplierRepository.getById(purchase.supplierId, ownerId, session)
-                : null;
+                // 2. Revert Supplier Balance
+                if (purchase.supplierId && (purchase.remaining || 0) > 0) {
+                    await this.supplierRepository.incrementPayable(purchase.supplierId, ownerId, -(parseFloat(purchase.remaining) || 0), session);
+                }
 
-            for (const { item, product } of productDocs) {
-                const quantity = parseInt(item.quantity) || 0;
-                const newStock = Math.max(0, (product.stockQuantity || 0) - quantity);
-                await this.productRepository.update(product.id, { 
-                    stockQuantity: newStock,
-                    isLowStock: newStock <= (product.minimumStockLevel || 0)
-                }, ownerId, session);
-            }
-
-            if (supplierDoc && purchase.totalAmount > 0) {
-                const newBalance = Math.max(0, (supplierDoc.totalPayable || 0) - purchase.totalAmount);
-                await this.supplierRepository.update(supplierDoc.id, { totalPayable: newBalance }, ownerId, session);
-            }
-
-            await this.purchaseRepository.delete(id, ownerId, session);
-            await session.commitTransaction();
-            return true;
-        } catch (error) {
-            await session.abortTransaction();
-            throw error;
+                await this.purchaseRepository.delete(id, ownerId, session);
+                return true;
+            });
         } finally {
             session.endSession();
         }
     }
 }
 
-module.exports = { GetAllPurchases, GetPurchaseById, CreatePurchase, GetPurchasesBySupplier, UpdatePurchase, DeletePurchase };
+/**
+ * Business Logic: Efficiently settles the outstanding debt of a specific purchase.
+ * Transitioning status from 'partial' or 'unpaid' to 'paid'.
+ */
+class SettlePurchase {
+    constructor(purchaseRepository, supplierRepository) {
+        this.purchaseRepository = purchaseRepository;
+        this.supplierRepository = supplierRepository;
+    }
+
+    async execute(id, ownerId) {
+        if (!id || !ownerId) throw new Error('Purchase ID and Owner ID are required');
+        
+        const session = await mongoose.startSession();
+        try {
+            return await session.withTransaction(async () => {
+                const purchase = await this.purchaseRepository.getById(id, ownerId, session);
+                if (!purchase) throw new Error('Purchase not found');
+
+                if (purchase.status === 'paid' && (purchase.remaining || 0) <= 0) {
+                    return purchase;
+                }
+
+                const settlementAmount = parseFloat(purchase.remaining) || 0;
+                const updateData = {
+                    amountPaid: purchase.totalAmount,
+                    remaining: 0,
+                    status: 'paid',
+                    updatedAt: new Date().toISOString()
+                };
+                const updatedPurchase = await this.purchaseRepository.update(id, updateData, ownerId, session);
+
+                if (purchase.supplierId && settlementAmount > 0) {
+                    await this.supplierRepository.incrementPayable(purchase.supplierId, ownerId, -settlementAmount, session);
+                }
+
+                return updatedPurchase;
+            });
+        } finally {
+            session.endSession();
+        }
+    }
+}
+
+// Module Export: Exposes the procurement logic suite.
+module.exports = { GetAllPurchases, GetPurchaseById, CreatePurchase, GetPurchasesBySupplier, UpdatePurchase, DeletePurchase, SettlePurchase };

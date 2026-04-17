@@ -50,7 +50,8 @@ serviceAccountKey.json
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
-pubspec.lock
+.metadata
+# pubspec.lock (Removed from ignore to ensure version consistency)
 .flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
@@ -99,7 +100,7 @@ key.properties
 **/web/favicon.png
 
 # ==================== Misc ====================
-*.log
+**/*.log
 *.class
 *.pyc
 .atom/
@@ -112,3 +113,22 @@ migrate_working_dir/
 TROUBLESHOOTING.md
 tmp/
 walkthrough.md
+task.md
+implementation_plan.md
+
+# Diagnostic & Audit Reports
+*.txt
+*.csv
+*.txt.bak
+!README.md
+!system_improvements.md
+!bugs_and_fixes.md
+
+# Local Scratch Folders
+scratch/
+**/scratch/
+
+# Assignment Reference Materials
+IT2150_Assignment_5.pdf
+assignment_text.txt
+Final_Project_Report/ClickBuy_Final_Report.md

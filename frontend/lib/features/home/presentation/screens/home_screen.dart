@@ -1,25 +1,30 @@
-import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:frontend/core/theme/app_colors.dart';
-import 'package:frontend/core/network/api_client.dart';
-import 'package:frontend/features/products/presentation/screens/add_product_screen.dart';
-import 'package:frontend/features/products/presentation/providers/product_provider.dart';
-import 'package:frontend/features/auth/presentation/providers/auth_provider.dart';
-import 'package:frontend/features/credit/presentation/screens/credit_list_screen.dart';
-import 'package:frontend/features/suppliers/presentation/screens/add_supplier_screen.dart';
-import 'package:frontend/features/sales/presentation/screens/recent_transactions_screen.dart';
-import 'package:frontend/features/sales/presentation/screens/invoice_history_screen.dart';
-import 'package:frontend/shared/widgets/notification_icon.dart';
-import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart';
-import 'package:frontend/features/credit/presentation/providers/credit_provider.dart';
-import 'package:frontend/features/suppliers/presentation/providers/supplier_provider.dart';
-import 'package:frontend/features/home/presentation/utils/dashboard_pdf_utils.dart';
-import 'package:frontend/features/suppliers/presentation/screens/record_purchase_screen.dart';
-
-// The HomeScreen is the central command center for the shop owner.
-// It displays a high-level summary of the business, including real-time sales,
-// inventory alerts, and quick access buttons for common tasks.
+// ------------------------------------------------------------------------------
+// File: home_screen.dart
+// Purpose: Executive Business Intelligence Dashboard.
+// Rationale: Serves as the primary operational command center, aggregating 
+//   real-time KPIs from Sales, Inventory, Credit, and Procurement domains. 
+//   Implements high-frequency background polling to ensure data freshneess 
+//   and provides a unified entry point for rapid system-wide transactions.
+// ------------------------------------------------------------------------------
+import 'dart:async'; // Async: Timer for periodic silent polling
+import 'package:flutter/material.dart'; // UI: Flutter Material widgets
+import 'package:provider/provider.dart'; // State: Provider read/watch
+import 'package:google_fonts/google_fonts.dart'; // UI: Poppins typography
+import 'package:frontend/core/theme/app_colors.dart'; // Theme: Brand colour tokens
+import 'package:frontend/core/network/api_client.dart'; // Network: Direct /dashboard API call
+import 'package:frontend/features/products/presentation/screens/add_product_screen.dart'; // Navigation: Quick-add product
+import 'package:frontend/features/products/presentation/providers/product_provider.dart'; // State: Product catalogue
+import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // State: Current owner identity
+import 'package:frontend/features/suppliers/presentation/screens/add_supplier_screen.dart'; // Navigation: Quick-add supplier
+import 'package:frontend/features/sales/presentation/screens/recent_transactions_screen.dart'; // Navigation: Transaction feed
+import 'package:frontend/features/sales/presentation/screens/invoice_history_screen.dart'; // Navigation: Invoice archive
+import 'package:frontend/shared/widgets/notification_icon.dart'; // UI: Notification bell with badge
+import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart'; // State: Notification data
+import 'package:frontend/features/credit/presentation/providers/credit_provider.dart'; // State: Credit broadcast sync
+import 'package:frontend/features/suppliers/presentation/providers/supplier_provider.dart'; // State: Supplier broadcast sync
+import 'package:frontend/features/suppliers/presentation/screens/record_purchase_screen.dart'; // Navigation: Quick-add purchase
+import 'package:frontend/shared/widgets/screen_header.dart'; // UI: Reusable page header
+import 'package:frontend/shared/main_shell.dart'; // Navigation: Tab switching
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -36,7 +41,7 @@ class HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadDashboard();
-    // Set up a periodic timer to refresh dashboard data every 30 seconds
+    // Silent polling: Automatically updating the dashboard every 30 seconds to provide real-time shop metrics.
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 30),
       (_) => _loadDashboard(isSilent: true),
@@ -54,23 +59,19 @@ class HomeScreenState extends State<HomeScreen> {
       setState(() => _loading = true);
     }
     try {
-      // Trigger API fetch for the dashboard statistics object
       final result = await ApiClient.get('/dashboard');
       
-      // Only refresh other providers if it's the initial load or a manual refresh
       if (mounted && !isSilent) {
-        // We call these in parallel but don't 'await' them here to avoid blocking the main UI update
+        // Broadcast synchronization: Fetching related entity data to ensure consistency across feature modules.
         context.read<NotificationProvider>().fetchNotifications();
         context.read<CreditProvider>().fetchCustomers();
         context.read<SupplierProvider>().fetchSuppliers();
       }
 
-      // mounted checks if the widget is still on-screen before updating UI
       if (mounted) {
-        // setState tells the Flutter framework to re-render this specific widget and its children
         setState(() {
-          _dashboardData = result['data']; // Store the data
-          _loading = false; // Turn off the loading spinner
+          _dashboardData = result['data'];
+          _loading = false;
         });
       }
     } catch (e) {
@@ -80,37 +81,22 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// Public method to trigger a refresh from parent widgets
   void refresh() {
     _loadDashboard();
   }
 
-  Future<void> _downloadDashboardPdf() async {
-    if (_dashboardData == null) return;
-    
-    final authProvider = context.read<AuthProvider>();
-    final shopName = authProvider.currentOwner?.shopName ?? 'GreenValley Mart';
-    
-    await DashboardPdfUtils.generateAndDownloadDashboardSummary(
-      shopName: shopName,
-      dashboardData: _dashboardData!,
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-    final ownerName =
-        (authProvider.currentOwner?.shopName != null &&
-            authProvider.currentOwner!.shopName.isNotEmpty)
-        ? authProvider.currentOwner!.shopName
-        : (authProvider.currentOwner?.name ?? 'GreenValley Mart');
+    final ownerName = authProvider.currentOwner?.name ?? 'ClickBuy Partner';
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: _loading
-            ? const Center(
+            ? Center(
                 child: CircularProgressIndicator(color: AppColors.primary),
               )
             : RefreshIndicator(
@@ -126,25 +112,25 @@ class HomeScreenState extends State<HomeScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.error_outline,
                                 size: 48,
                                 color: AppColors.error,
                               ),
-                              const SizedBox(height: 16),
-                              const Text(
+                              SizedBox(height: 16),
+                              Text(
                                 'Failed to load dashboard data.\nPlease check your connection.',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: AppColors.textMedium),
+                                style: GoogleFonts.poppins(color: AppColors.textMedium),
                               ),
-                              const SizedBox(height: 24),
+                              SizedBox(height: 24),
                               ElevatedButton(
                                 onPressed: _loadDashboard,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
                                 ),
-                                child: const Text('Retry'),
+                                child: Text('Retry'),
                               ),
                             ],
                           ),
@@ -152,65 +138,38 @@ class HomeScreenState extends State<HomeScreen> {
                       )
                     : SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildHeader(ownerName),
-                            const SizedBox(height: 24),
+                            SizedBox(height: 24),
                             _buildStatCards(),
-                            const SizedBox(height: 28),
+                            SizedBox(height: 28),
                             _buildQuickActions(),
-                            const SizedBox(height: 28),
+                            SizedBox(height: 28),
                             _buildRecentTransactions(),
                           ],
                         ),
                       ),
               ),
       ),
+      bottomNavigationBar: const SizedBox(height: 110), // Buffer to clear the floating navbar in MainShell
     );
   }
 
   Widget _buildHeader(String ownerName) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Consumer<AuthProvider>(
+      builder: (context, auth, _) => ScreenHeader(
+        title: 'Hi, $ownerName',
+        subtitle: 'CLICKBUY PARTNER',
+        padding: EdgeInsets.zero,
+        action: Row(
           children: [
-            Text(
-              'Hi, $ownerName',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textDark,
-              ),
-            ),
-            const SizedBox(height: 2),
-            const Text(
-              'CLICKBUY PARTNER',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ],
-        ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.primary),
-              onPressed: _downloadDashboardPdf,
-              tooltip: 'Download Summary',
-            ),
             const NotificationIcon(size: 24),
           ],
         ),
-      ],
+      ),
     );
   }
 
@@ -223,16 +182,16 @@ class HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: _StatCard(
                 icon: Icons.payments_rounded,
-                bgColor: const Color(0xFFE8F5E9), // Mint
+                bgColor: const Color(0xFFD1FAE5), // Mint
                 accentColor: AppColors.primary,
                 label: "TODAY'S SALES",
                 value: 'Rs. ${(data?["todaysSales"] ?? 0.00).toStringAsFixed(2)}',
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16),
             Expanded(
               child: _StatCard(
-                icon: Icons.inventory_2_rounded,
+                icon: Icons.shopping_basket_rounded,
                 bgColor: const Color(0xFFFFEBEE), // Rose
                 accentColor: AppColors.error,
                 label: "LOW STOCK",
@@ -242,23 +201,23 @@ class HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16),
         Row(
           children: [
             Expanded(
               child: _StatCard(
                 icon: Icons.account_balance_wallet_rounded,
-                bgColor: const Color(0xFFFFF8E1), // Cream
+                bgColor: const Color(0xFFFEF3C7), // Cream
                 accentColor: const Color(0xFFF59E0B),
                 label: "CUSTOMER CREDIT",
                 value: 'Rs. ${(data?["customerCredit"] ?? 0.00).toStringAsFixed(2)}',
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16),
             Expanded(
               child: _StatCard(
                 icon: Icons.local_shipping_rounded,
-                bgColor: const Color(0xFFE3F2FD), // Sky
+                bgColor: const Color(0xFFDBEAFE), // Sky
                 accentColor: const Color(0xFF3B82F6),
                 label: "TO SUPPLIERS",
                 value: 'Rs. ${(data?["toSuppliers"] ?? 0.00).toStringAsFixed(2)}',
@@ -276,9 +235,9 @@ class HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Quick Actions',
-              style: TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textDark,
@@ -286,13 +245,13 @@ class HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             _QuickActionButton(
-              icon: Icons.add_box_outlined,
-              label: 'Add Product',
+              icon: Icons.shopping_basket_rounded,
+              label: 'Add\nProduct',
               onTap: () {
                 Navigator.push(
                   context,
@@ -304,17 +263,15 @@ class HomeScreenState extends State<HomeScreen> {
               },
             ),
             _QuickActionButton(
-              icon: Icons.person_add_outlined,
+              icon: Icons.person_add_alt_1_rounded,
               label: 'Add\nCustomer',
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CreditListScreen()),
-                );
+                context.read<CreditProvider>().setShouldOpenAddCustomer(true);
+                MainShell.switchToTab(context, 3);
               },
             ),
             _QuickActionButton(
-              icon: Icons.local_shipping_outlined,
+              icon: Icons.local_shipping_rounded,
               label: 'Add\nSupplier',
               onTap: () {
                 Navigator.push(
@@ -324,7 +281,7 @@ class HomeScreenState extends State<HomeScreen> {
               },
             ),
             _QuickActionButton(
-              icon: Icons.receipt_long_outlined,
+              icon: Icons.note_add_rounded,
               label: 'Purchase\nRecord',
               onTap: () {
                 Navigator.push(
@@ -346,9 +303,9 @@ class HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Recent Transactions',
-              style: TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textDark,
@@ -363,25 +320,26 @@ class HomeScreenState extends State<HomeScreen> {
                   ),
                 );
               },
-              child: const Text(
+              child: Text(
                 'See all',
-                style: TextStyle(
+                style: GoogleFonts.poppins(
                   fontSize: 14,
                   color: AppColors.primary,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.divider, width: 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
+                color: AppColors.textDark.withValues(alpha: 0.04),
                 blurRadius: 20,
                 offset: const Offset(0, 4),
               ),
@@ -390,7 +348,7 @@ class HomeScreenState extends State<HomeScreen> {
           child: Column(
             children: [
               for (int i = 0; i < transactions.length; i++) ...[
-                if (i > 0) Divider(height: 1, color: Colors.grey.shade100),
+                if (i > 0) Divider(height: 1, color: AppColors.divider),
                 _buildTransactionItem(transactions[i]),
               ],
             ],
@@ -405,6 +363,7 @@ class HomeScreenState extends State<HomeScreen> {
     return InkWell(
       onTap: () {
         if (isOrder || txn['type'] == 'credit') {
+          // Contextual routing: Navigating directly to the invoice detail view within the history module.
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -418,37 +377,37 @@ class HomeScreenState extends State<HomeScreen> {
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: isOrder
-                    ? const Color(0xFFD1FAE5)
-                    : const Color(0xFFFEF3C7),
-                shape: BoxShape.circle,
+                    ? AppColors.cardGreenBg
+                    : AppColors.cardOrangeBg,
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
-                isOrder ? Icons.shopping_cart_outlined : Icons.history,
-                size: 18,
+                isOrder ? Icons.shopping_bag_rounded : Icons.history_rounded,
+                size: 20,
                 color: isOrder ? AppColors.primary : const Color(0xFFF59E0B),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     txn['title'] ?? '',
-                    style: const TextStyle(
+                    style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textDark,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 4),
                   Text(
                     txn['subtitle'] ?? '',
-                    style: const TextStyle(
+                    style: GoogleFonts.poppins(
                       fontSize: 12,
                       color: AppColors.textMedium,
                     ),
@@ -461,16 +420,16 @@ class HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   '${(txn['amount'] ?? 0) >= 0 ? '+' : '-'}Rs. ${(txn['amount']?.abs() ?? 0).toStringAsFixed(2)}',
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: isOrder ? AppColors.primary : AppColors.textDark,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 4),
                 Text(
                   txn['time'] ?? '',
-                  style: const TextStyle(
+                  style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: AppColors.textLight,
                   ),
@@ -504,36 +463,31 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 155,
-      padding: const EdgeInsets.all(16),
+      height: 160,
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: bgColor, // Use the brand category color for the background
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: accentColor.withValues(alpha: 0.1), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withValues(alpha: 0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 8),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 2,
-            offset: const Offset(0, 1),
+            color: accentColor.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Background Color Glow
           Positioned(
             right: -24,
             top: -24,
             child: Container(
-              width: 80,
-              height: 80,
+              width: 90,
+              height: 90,
               decoration: BoxDecoration(
-                color: bgColor.withValues(alpha: 0.4),
+                color: Colors.white.withValues(alpha: 0.3), // Subtle white circle for depth
                 shape: BoxShape.circle,
               ),
             ),
@@ -546,26 +500,40 @@ class _StatCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: bgColor,
-                      borderRadius: BorderRadius.circular(16), // Squircle-like
+                      color: Colors.white, // White icon container to pop against the colored card
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: accentColor.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Icon(icon, size: 24, color: accentColor),
                   ),
                   if (badge != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                        horizontal: 10,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
                         color: accentColor,
                         borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: accentColor.withValues(alpha: 0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Text(
                         badge!,
-                        style: const TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -574,27 +542,31 @@ class _StatCard extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       fontSize: 10,
                       color: AppColors.textMedium,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.8,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textDark,
-                      height: 1.1,
+                  SizedBox(height: 4),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value,
+                      style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textDark,
+                        height: 1.1,
+                      ),
                     ),
                   ),
                 ],
@@ -625,29 +597,31 @@ class _QuickActionButton extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.divider, width: 1),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 4,
+                  color: AppColors.textDark.withValues(alpha: 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: Icon(icon, color: AppColors.primary, size: 24),
+            child: Icon(icon, color: AppColors.primary, size: 28),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 10),
           Text(
             label,
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: 11,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
               color: AppColors.textMedium,
+              height: 1.2,
             ),
           ),
         ],
@@ -655,3 +629,4 @@ class _QuickActionButton extends StatelessWidget {
     );
   }
 }
+

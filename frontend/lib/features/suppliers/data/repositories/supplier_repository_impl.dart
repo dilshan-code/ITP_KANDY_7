@@ -1,8 +1,12 @@
-import 'package:frontend/core/network/api_client.dart';
-import 'package:frontend/features/suppliers/domain/entities/supplier.dart';
-import 'package:frontend/features/suppliers/domain/repositories/supplier_repository.dart';
-
-// SupplierRepositoryImpl manages the communication with the backend regarding product suppliers.
+﻿// ------------------------------------------------------------------------------
+// File: supplier_repository_impl.dart
+// Purpose: Concrete implementation of supplier data operations via REST API.
+// Rationale: Translates domain-level CRUD for supplier profiles and summary
+//   statistics into HTTP calls via ApiClient.
+// ------------------------------------------------------------------------------
+import 'package:frontend/core/network/api_client.dart'; // Network: HTTP request dispatch
+import 'package:frontend/features/suppliers/domain/entities/supplier.dart'; // Domain: Supplier model
+import 'package:frontend/features/suppliers/domain/repositories/supplier_repository.dart'; // Contract: Repository interface
 class SupplierRepositoryImpl implements SupplierRepository {
   // Retrieves every supplier from the server's database.
   @override
@@ -49,3 +53,4 @@ class SupplierRepositoryImpl implements SupplierRepository {
     return response['data'] as Map<String, dynamic>;
   }
 }
+

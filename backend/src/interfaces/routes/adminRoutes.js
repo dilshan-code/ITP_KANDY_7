@@ -7,6 +7,7 @@ function createAdminRoutes(adminController) {
     router.put('/admin/owners/:id', (req, res) => adminController.updateOwner(req, res));
     router.patch('/admin/owners/:id/suspend', (req, res) => adminController.suspendOwner(req, res));
     router.delete('/admin/owners/:id', (req, res) => adminController.deleteOwnerRecord(req, res));
+    router.get('/admin/backup', (req, res) => adminController.downloadBackup(req, res));
     return router;
 }
 

@@ -1,4 +1,10 @@
-// The CreditTransaction entity represents a single log entry for a customer's credit or payment history.
+﻿// ------------------------------------------------------------------------------
+// File: credit_transaction.dart
+// Purpose: Domain entity for a single financial event on a customer's ledger.
+// Rationale: Provides a strongly-typed model for credit/debit entries
+//   (payments, purchases, adjustments). Used by CreditProvider to build
+//   the unified chronological ledger in CreditDetailScreen.
+// ------------------------------------------------------------------------------
 class CreditTransaction {
   final String id;
   final String customerId;
@@ -39,3 +45,4 @@ class CreditTransaction {
     };
   }
 }
+

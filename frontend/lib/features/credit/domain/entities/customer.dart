@@ -1,5 +1,10 @@
-// The Customer entity represents a person or business who shops at the store.
-// It tracks their profile and any outstanding debt (credit).
+﻿// ------------------------------------------------------------------------------
+// File: customer.dart
+// Purpose: Domain entity representing a credit-tracked customer.
+// Rationale: Provides a strongly-typed model for customer profile data
+//   including outstanding debt balance, used across Credit module screens,
+//   providers, and PDF export utilities.
+// ------------------------------------------------------------------------------
 class Customer {
   final String id;
   final String name;
@@ -43,3 +48,4 @@ class Customer {
     return {'name': name, 'phone': phone, 'creditLimit': creditLimit};
   }
 }
+

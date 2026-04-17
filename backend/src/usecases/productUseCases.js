@@ -1,101 +1,140 @@
-const { isValidPrice, isValidStock } = require('../utils/validationUtils');
+const { isValidPrice, isValidStock } = require('../utils/validationUtils'); // Import shared data validation rules
 
-// Use cases define the core business logic and actions available for products.
+/**
+ * Business Logic: Defines the core operations and actions available for products. 
+ * We use an Object-Oriented Use Case pattern to keep logic decoupled from the web framework.
+ */
 
-// This class handles fetching the entire product catalog for a store.
+/**
+ * Logic: Handles fetching the entire product catalog for a specific store.
+ */
 class GetAllProducts {
     // We inject the product repository here to keep the business logic separated from the data layer.
     constructor(productRepository) {
-        // Store the repository reference for data operations.
+        // Store the repository reference for all data-specific operations.
         this.productRepository = productRepository;
     }
-    // Executes the search for all products belonging to a specific owner.
+
+    /**
+     * Executes the search for all products belonging to a specific owner.
+     * Supports pagination via limit and lastId (cursor-based pagination).
+     */
     async execute(ownerId, limit = null, lastId = null) {
-        // Delegate the data retrieval to the repository.
+        // Delegate the complex data retrieval and filtering to the repository.
         return this.productRepository.getAll(ownerId, limit, lastId);
     }
 }
 
+/**
+ * Logic: Retrieves the full details of a single product instance.
+ */
 class GetProductById {
     constructor(productRepository) {
-        this.productRepository = productRepository;
+        this.productRepository = productRepository; // Database interface
     }
-    // Retrieves a single product by its ID
+
+    /**
+     * Retrieves a single product by its ID, scoped to a specific owner for multi-tenant safety.
+     */
     async execute(id, ownerId) {
         return this.productRepository.getById(id, ownerId);
     }
 }
 
-// Handles the logic for adding a new product to the inventory.
+/**
+ * Logic: Handles the creation of a new product entry in the store's inventory.
+ */
 class CreateProduct {
-    // Inject the repository to handle database persistence.
     constructor(productRepository) {
         this.productRepository = productRepository;
     }
-    // Validates and saves the new product information.
+
+    /**
+     * Validates input data and persists the new product record.
+     */
     async execute(productData, ownerId) {
-        // 1. Mandatory Data Check: Ensure both data and basic identification are present.
+        // --- Input Validation Phase ---
+        // 1. Mandatory Data Check: Ensure both physical data and account identification exist.
         if (!productData || !ownerId) {
             throw new Error('Product data and Owner ID are required');
         }
         
-        // 2. Name Validation: Products must have a non-empty name for identification.
+        // 2. Identification Check: Products must have a name for searchability and shelf-labeling.
         if (!productData.name || productData.name.trim() === '') {
             throw new Error('Product name is required');
         }
         
-        // 3. Financial Validation: Selling price must be a positive number.
+        // 3. Financial Integrity Check: The price must be a valid numeric value greater than zero.
         if (!isValidPrice(productData.sellingPrice)) {
             throw new Error('Valid selling price is required');
         }
         
-        // 4. Inventory Validation: Minimum stock level must be a valid non-negative number.
+        // 4. Inventory Integrity Check: If set, the minimum stock threshold must be a non-negative number.
         if (productData.minimumStockLevel !== undefined && !isValidStock(productData.minimumStockLevel)) {
             throw new Error('Valid minimum stock level is required');
         }
+
+        // --- Persistence Phase ---
+        // Merge the ownerId into the final payload before sending it to the database.
         return this.productRepository.create({ ...productData, ownerId });
     }
 }
 
-// Manages updates for existing products, including price or stock changes.
+/**
+ * Logic: Manages modifications for existing products, such as price changes or stock refills.
+ * Also triggers automated system notifications for inventory management.
+ */
 class UpdateProduct {
     constructor(productRepository, notificationRepository) {
-        this.productRepository = productRepository;
-        this.notificationRepository = notificationRepository;
+        this.productRepository = productRepository; // Primary data interface
+        this.notificationRepository = notificationRepository; // Interface for user alerts
     }
-    // Processes the update request and triggers stock-related alerts if necessary.
+
+    /**
+     * Processes the update request and triggers stock-related alerts if levels hit thresholds.
+     */
     async execute(id, productData, ownerId) {
-        // 1. Identification Check: IDs are necessary for routing and ownership.
+        // --- Request Integrity Check ---
+        // Ensure we are targeting a specific resource and verifying ownership.
         if (!id || !ownerId) {
             throw new Error('Product ID and Owner ID are required');
         }
         
-        // 2. Conditional Name Validation: If name is updated, it cannot be blank.
+        // --- Conditional Validation Phase ---
+        // Only validate fields if they are present in the update payload (PATCH-style update).
+        
+        // 1. Name Check
         if (productData.name !== undefined && productData.name.trim() === '') {
             throw new Error('Product name cannot be empty');
         }
         
-        // 3. Conditional Financial Validation: Ensure new price remains valid.
+        // 2. Price Check
         if (productData.sellingPrice !== undefined && !isValidPrice(productData.sellingPrice)) {
             throw new Error('Valid selling price is required');
         }
         
-        // 4. Conditional Inventory Validation: Ensure new threshold remains valid.
+        // 3. Stock Threshold Check
         if (productData.minimumStockLevel !== undefined && !isValidStock(productData.minimumStockLevel)) {
             throw new Error('Valid minimum stock level is required');
         }
+
+        // --- Persistence Phase ---
         const updatedProduct = await this.productRepository.update(id, productData, ownerId);
         
-        // --- NEW: Trigger Notifications for Stock Levels ---
+        // --- Automation Phase: Trigger Stock Level Notifications ---
+        // Only run if the item was found and the user has enabled out-of-stock alerts for it.
         if (updatedProduct && updatedProduct.notifyOutOfStock) {
+            // Priority 1: Critical Depletion (Zero stock)
             if (updatedProduct.stockQuantity === 0) {
                 await this.notificationRepository.create({
                     ownerId,
                     type: 'warning',
-                    title: 'Product Out of Stock',
-                    message: `The product "${updatedProduct.name}" is now out of stock.`,
+                    title: 'Product Out of Stock', // Alert Header
+                    message: `The product "${updatedProduct.name}" is now out of stock.`, // Explanatory body
                 });
-            } else if (updatedProduct.isLowStock) {
+            } 
+            // Priority 2: Low Stock Warning (Stock fell below user-defined minimum threshold)
+            else if (updatedProduct.isLowStock) {
                 await this.notificationRepository.create({
                     ownerId,
                     type: 'info',
@@ -105,21 +144,27 @@ class UpdateProduct {
             }
         }
         
-        return updatedProduct;
+        return updatedProduct; // Provide the finalized record back to the controller
     }
 }
 
-// Handles the permanent removal of a product from the system.
+/**
+ * Logic: Handles the permanent removal of a product from the database.
+ */
 class DeleteProduct {
     constructor(productRepository) {
         this.productRepository = productRepository;
     }
-    // Deletes the product matching the provided ID and owner.
+
+    /**
+     * Deletes the product matching the provided ID, provided it belongs to the active owner.
+     */
     async execute(id, ownerId) {
         return this.productRepository.delete(id, ownerId);
     }
 }
 
+// Export the defined logic classes for use in our Dependency Injection container (server.js)
 module.exports = {
     GetAllProducts,
     GetProductById,

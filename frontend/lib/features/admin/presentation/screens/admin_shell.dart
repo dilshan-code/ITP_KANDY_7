@@ -1,11 +1,19 @@
-import 'dart:ui';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:frontend/features/admin/presentation/providers/admin_provider.dart';
-import 'package:frontend/features/admin/presentation/screens/admin_dashboard_screen.dart';
-import 'package:frontend/features/admin/presentation/screens/manage_feedback_screen.dart';
-import 'package:frontend/features/admin/presentation/screens/manage_owners_screen.dart';
-import 'package:frontend/features/admin/presentation/screens/admin_account_screen.dart';
+﻿// ------------------------------------------------------------------------------
+// File: admin_shell.dart
+// Purpose: Multi-section navigation container for the Administrative interface.
+// Rationale: Implements the root persistence hub for Admin-level screens.
+//   Orchestrates cross-module synchronization (Owners, Health, Feedback) and 
+//   maintains view state continuity via IndexedStack. Acts as the gateway for 
+//   platform-wide system governance.
+// ------------------------------------------------------------------------------
+import 'dart:ui'; // UI: Layout filters and image effects
+import 'package:flutter/material.dart'; // UI: Material toolkit
+import 'package:provider/provider.dart'; // State: Dependency injection system
+import 'package:frontend/features/admin/presentation/providers/admin_provider.dart'; // State: Admin data source
+import 'package:frontend/features/admin/presentation/screens/admin_dashboard_screen.dart'; // Navigation: Core stats
+import 'package:frontend/features/admin/presentation/screens/manage_feedback_screen.dart'; // Navigation: User sentiment
+import 'package:frontend/features/admin/presentation/screens/manage_owners_screen.dart'; // Navigation: Store management
+import 'package:frontend/features/admin/presentation/screens/admin_account_screen.dart'; // Navigation: Identity hub
 
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key});
@@ -146,3 +154,4 @@ class _AdminShellState extends State<AdminShell> {
     );
   }
 }
+

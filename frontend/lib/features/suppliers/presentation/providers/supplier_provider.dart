@@ -1,8 +1,14 @@
-import 'package:flutter/material.dart';
-import 'package:frontend/features/suppliers/domain/entities/supplier.dart';
-import 'package:frontend/features/suppliers/data/repositories/supplier_repository_impl.dart';
-
-// SupplierProvider manages the list of business partners who supply products to the shop.
+﻿// ------------------------------------------------------------------------------
+// File: supplier_provider.dart
+// Purpose: Supplier Lifecycle and Procurement Financial Governance.
+// Rationale: Orchestrates the supplier ecosystem, tracking directory data, 
+//   active procurement relationships, and aggregate "Total Payable" balances. 
+//   Provides a centralized reactive state for supplier-side accounting.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // State: ChangeNotifier foundation
+import 'package:frontend/core/error/exceptions.dart'; // Diagnostics: Structured error propagation
+import 'package:frontend/features/suppliers/domain/entities/supplier.dart'; // Domain: Supplier model
+import 'package:frontend/features/suppliers/data/repositories/supplier_repository_impl.dart'; // Data: Server communication
 class SupplierProvider extends ChangeNotifier {
   final SupplierRepositoryImpl _repository = SupplierRepositoryImpl();
 
@@ -11,6 +17,7 @@ class SupplierProvider extends ChangeNotifier {
   bool _isFetchingMore = false;
   bool _hasMore = true;
   String? _error;
+  String? _technicalDetails;
   final int _pageSize = 20;
 
   double _totalPayable = 0;
@@ -21,6 +28,7 @@ class SupplierProvider extends ChangeNotifier {
   bool get isFetchingMore => _isFetchingMore;
   bool get hasMore => _hasMore;
   String? get error => _error;
+  String? get technicalDetails => _technicalDetails;
 
   double get totalPayable => _totalPayable;
   int get activeCount => _activeCount;
@@ -29,6 +37,10 @@ class SupplierProvider extends ChangeNotifier {
   // double get totalPayable =>
   //     _suppliers.fold(0, (sum, s) => sum + s.totalPayable);
 
+  /*
+   * Logic: Supplier Directory Fetch.
+   * Rationale: Synchronizes the local supplier list with the backend.
+   */
   Future<void> fetchSuppliers({bool refresh = true}) async {
     if (refresh) {
       _isLoading = true;
@@ -64,13 +76,21 @@ class SupplierProvider extends ChangeNotifier {
       _isFetchingMore = false;
       notifyListeners();
     } catch (e) {
-      _error = e.toString();
-      _isLoading = false;
+      if (e is AppException) {
+        _error = e.message;
+        _technicalDetails = e.details;
+      } else {
+        _error = e.toString();
+      }
       _isFetchingMore = false;
       notifyListeners();
     }
   }
 
+  /*
+   * Logic: Partnership Onboarding.
+   * Rationale: Registers a new supplier relationship in the system.
+   */
   Future<bool> addSupplier(Map<String, dynamic> data) async {
     try {
       await _repository.createSupplier(data);
@@ -83,6 +103,10 @@ class SupplierProvider extends ChangeNotifier {
     }
   }
 
+  /*
+   * Logic: Profile Update.
+   * Rationale: Modifies existing supplier metadata and contact info.
+   */
   Future<bool> updateSupplier(String id, Map<String, dynamic> data) async {
     try {
       await _repository.updateSupplier(id, data);
@@ -95,6 +119,10 @@ class SupplierProvider extends ChangeNotifier {
     }
   }
 
+  /*
+   * Logic: Record Deletion.
+   * Rationale: Removes a supplier profile from the active directory.
+   */
   Future<bool> removeSupplier(String id) async {
     try {
       await _repository.deleteSupplier(id);
@@ -107,3 +135,4 @@ class SupplierProvider extends ChangeNotifier {
     }
   }
 }
+

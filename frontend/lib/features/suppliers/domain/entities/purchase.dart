@@ -1,4 +1,10 @@
-// The Purchase entity represents a single time the shop owner bought stock from a supplier.
+﻿// ------------------------------------------------------------------------------
+// File: purchase.dart
+// Purpose: Domain entity representing a single inventory restock transaction.
+// Rationale: Models the full lifecycle of a supplier purchase including line
+//   items, tax, payment status, and residual debt. Used across Supplier
+//   module for purchase recording, settlement, and PDF receipt generation.
+// ------------------------------------------------------------------------------
 class Purchase {
   final String id;
   final String supplierId;
@@ -12,6 +18,7 @@ class Purchase {
   final double amountPaid;
   final double remaining;
   final String status;
+  final String paymentMethod;
   final String notes;
   final String createdAt;
 
@@ -28,6 +35,7 @@ class Purchase {
     this.amountPaid = 0, // How much of the total has already been paid
     this.remaining = 0, // The leftover debt to the supplier for this purchase
     this.status = 'pending',
+    this.paymentMethod = 'cash',
     this.notes = '',
     this.createdAt = '',
   });
@@ -46,6 +54,7 @@ class Purchase {
       amountPaid: (json['amountPaid'] ?? 0).toDouble(),
       remaining: (json['remaining'] ?? 0).toDouble(),
       status: json['status'] ?? 'pending',
+      paymentMethod: json['paymentMethod'] ?? 'cash',
       notes: json['notes'] ?? '',
       createdAt: json['createdAt'] ?? '',
     );
@@ -62,7 +71,10 @@ class Purchase {
       'tax': tax,
       'totalAmount': totalAmount,
       'amountPaid': amountPaid,
+      'status': status,
+      'paymentMethod': paymentMethod,
       'notes': notes,
     };
   }
 }
+

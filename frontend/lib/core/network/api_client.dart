@@ -1,135 +1,283 @@
-import 'dart:convert';
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+﻿// ------------------------------------------------------------------------------
+// File: api_client.dart
+// Purpose: Deterministic Network Gateway for Multi-Tenant Data.
+// Rationale: Orchestrates all HTTP communication between the Flutter app and 
+//   the Node.js backend. Implements dynamic infrastructure discovery, 
+//   identity injection (header-based isolation), and unified HTTP error 
+//   mapping to ensure cluster reliability.
+// ------------------------------------------------------------------------------
+import 'dart:convert'; // Library for JSON encoding/decoding and UTF-8 handling
+import 'dart:io'; // Library for core networking (SocketException, HttpClient)
+import 'dart:async'; // Library for asynchronous control (Futures, Timers, Timeouts)
+import 'package:http/http.dart' as http; // Primary external HTTP client for Dart
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint; // Utility flags and console logging
+import 'package:shared_preferences/shared_preferences.dart'; // Local persistence for server configuration
+import 'package:frontend/core/error/exceptions.dart'; // Custom domain exceptions for ClickBuy
 
-// ApiClient handles all network requests (HTTP) to our Node.js backend.
 class ApiClient {
-  // Determine the correct backend URL based on the platform running the app.
-  // Use 10.0.2.2 for Android emulator, localhost for web/desktop
-  static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:5001/api';
-    }
+  // --- Infrastructure Settings ---
+  static String _serverIp = '10.0.2.2'; // State: Active server address
+  static const String _storageKey = 'backend_server_ip'; // Registry: Key for local persistence
+  
+  // --- Multi-Tenant Context ---
+  static String? ownerId; // Scope: Current logged-in shop owner ID for data isolation
+  static String? ownerName; // Audit: Owner name for server-side logging and history
 
-    // For Android emulator, 10.0.2.2 maps to host's localhost
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:5001/api';
+  /*
+   * Logic: Infrastructure Configuration.
+   * Rationale: Loads the active server registry from local persistence to 
+   *   resume connectivity after application restarts.
+   */
+  static Future<void> init() async {
+    try {
+      final prefs = await SharedPreferences.getInstance(); // Access: Local disk storage
+      final savedIp = prefs.getString(_storageKey); // Retrieval: Get the last known IP
+      if (savedIp != null && savedIp.isNotEmpty) {
+        _serverIp = savedIp; // Update: Apply saved configuration to current session
+        debugPrint('📡 [ApiClient] Loaded saved IP: $_serverIp');
+      }
+    } catch (e) {
+      debugPrint('❌ [ApiClient] Failed to load saved IP: $e'); // Log: Fault in storage access
     }
-
-    // Fallback for Windows/desktop testing
-    return 'http://localhost:5001/api';
   }
 
-  // Store the ownerId globally in the app after login
-  static String? ownerId;
+  /*
+   * Logic: Manual Configuration Override.
+   * Rationale: Updates the active server IP and persists it for future 
+   *   sessions. Primarily utilized by the Backend Discovery engine.
+   */
+  static Future<void> setServerIp(String ip) async {
+    if (ip == _serverIp) return; // Optimization: Skip if the value hasn't changed
+    
+    _serverIp = ip; // State: Update active memory
+    try {
+      final prefs = await SharedPreferences.getInstance(); // Access: Local disk storage
+      await prefs.setString(_storageKey, ip); // Commit: Persist new IP to disk
+      debugPrint('✅ [ApiClient] Server IP updated to: $ip');
+    } catch (e) {
+      debugPrint('❌ [ApiClient] Failed to save IP: $e'); // Log: Persistence failure
+    }
+  }
 
-  // Helper to build headers with ownerId
+  /*
+   * Logic: Dynamic Endpoint Resolution.
+   * Rationale: Constructs the API root by detecting the current execution 
+   *   platform and utilizing the discovered network registry.
+   */
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:5001/api'; // Dev: Browser usually runs backend on localhost
+    } else {
+      return 'http://$_serverIp:5001/api'; // Production/Mobile: Use discovered Wi-Fi IP
+    }
+  }
+
+  static String get serverIp => _serverIp; // Query: Current active IP for UI displays
+
+  /*
+   * Logic: Contextual Header Injection.
+   * Rationale: Compiles secure multi-tenant identities and localization 
+   *   metadata for every outgoing infrastructure request.
+   */
   static Map<String, String> get _headers {
     final Map<String, String> headers = {
-      'Content-Type': 'application/json',
-      'x-timezone-offset': DateTime.now().timeZoneOffset.inMinutes.toString(),
+      'Content-Type': 'application/json', // Protocol: All communication is JSON
+      'x-timezone-offset': DateTime.now().timeZoneOffset.inMinutes.toString(), // Logic: Device timezone for reports
     };
     if (ownerId != null) {
-      headers['x-owner-id'] = ownerId!;
+      headers['x-owner-id'] = ownerId!; // Security: Isolate data queries to this owner
+    }
+    if (ownerName != null) {
+      headers['x-owner-name'] = ownerName!; // Audit: Track which owner performed the action
     }
     return headers;
   }
 
-  // Perform an HTTP GET request to fetch data from the backend
+  // --- HTTP Methods: REST Implementation ---
+
+  // Standard GET: Fetch collection or record
   static Future<Map<String, dynamic>> get(String path, {Map<String, String>? queryParameters}) async {
-    Uri uri = Uri.parse('$baseUrl$path');
-    if (queryParameters != null && queryParameters.isNotEmpty) {
-      uri = uri.replace(queryParameters: queryParameters);
-    }
-
-    final response = await http.get(
-      uri,
-      headers: _headers,
-    );
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    }
-    throw Exception(_handleError(response));
-  }
-
-  // Perform an HTTP POST request to send new data to the backend
-  static Future<Map<String, dynamic>> post(
-    String path,
-    Map<String, dynamic> body,
-  ) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl$path'),
-      headers: _headers,
-      body: jsonEncode(body),
-    );
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return jsonDecode(response.body);
-    }
-    throw Exception(_handleError(response));
-  }
-
-  // Perform an HTTP PUT request to update existing data
-  static Future<Map<String, dynamic>> put(
-    String path,
-    Map<String, dynamic> body,
-  ) async {
-    final response = await http.put(
-      Uri.parse('$baseUrl$path'),
-      headers: _headers,
-      body: jsonEncode(body),
-    );
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    }
-    throw Exception(_handleError(response));
-  }
-
-  // Perform an HTTP PATCH request to update part of the existing data
-  static Future<Map<String, dynamic>> patch(
-    String path, {
-    Map<String, dynamic>? body,
-  }) async {
-    final response = await http.patch(
-      Uri.parse('$baseUrl$path'),
-      headers: _headers,
-      body: body != null ? jsonEncode(body) : null,
-    );
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    }
-    throw Exception(_handleError(response));
-  }
-
-  // Perform an HTTP DELETE request to remove data
-  static Future<Map<String, dynamic>> delete(String path) async {
-    final response = await http.delete(
-      Uri.parse('$baseUrl$path'),
-      headers: _headers,
-    );
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    }
-    throw Exception(_handleError(response));
-  }
-
-  // Centralized error handling and quota detection
-  static String _handleError(http.Response response) {
-    String? errorMessage;
     try {
-      final errorData = jsonDecode(response.body);
-      if (errorData['error'] != null) {
-        errorMessage = errorData['error'];
+      Uri uri = Uri.parse('$baseUrl$path'); // Resolution: Full endpoint URL
+      if (queryParameters != null && queryParameters.isNotEmpty) {
+        uri = uri.replace(queryParameters: queryParameters); // Filter: Append URL queries (e.g. ?id=1)
       }
+
+      final response = await http.get(
+        uri, // Target: Fully qualified URL
+        headers: _headers, // Context: Multi-tenant headers
+      ).timeout(const Duration(seconds: 15)); // Constraint: Prevent infinite hangs
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body); // Success: Map data to dynamic JSON
+      }
+      throw handleError(response); // Failure: Status-based error mapping
+    } catch (e) {
+      throw _handleException(e); // Recovery: Unified network failure handling
+    }
+  }
+
+  // Standard POST: Create new record
+  static Future<Map<String, dynamic>> post(String path, Map<String, dynamic> body) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl$path'), // Target
+        headers: _headers, // Headers
+        body: jsonEncode(body), // Payload: Serialize map to JSON string
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body); // Success
+      }
+      throw handleError(response); // Failure
+    } catch (e) {
+      throw _handleException(e); // Exception
+    }
+  }
+
+  // Standard PUT: Full update
+  static Future<Map<String, dynamic>> put(String path, Map<String, dynamic> body) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl$path'),
+        headers: _headers,
+        body: jsonEncode(body),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      throw handleError(response);
+    } catch (e) {
+      throw _handleException(e);
+    }
+  }
+
+  // Standard PATCH: Partial update
+  static Future<Map<String, dynamic>> patch(String path, {Map<String, dynamic>? body}) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl$path'),
+        headers: _headers,
+        body: body != null ? jsonEncode(body) : null,
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      throw handleError(response);
+    } catch (e) {
+      throw _handleException(e);
+    }
+  }
+
+  // Standard DELETE: Resource removal
+  static Future<Map<String, dynamic>> delete(String path) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl$path'),
+        headers: _headers,
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      throw handleError(response);
+    } catch (e) {
+      throw _handleException(e);
+    }
+  }
+
+  /*
+   * Logic: HTTP Semantic Status Decoder.
+   * Rationale: Translates raw network results into high-fidelity domain 
+   *   exceptions with embedded technical diagnostics for troubleshooting.
+   */
+  static AppException handleError(http.Response response) {
+    String? serverMessage; // Hint: Actual reason from the backend
+    try {
+      final errorData = jsonDecode(response.body); // Parse: Extract backend error payload
+      serverMessage = errorData['error'] ?? errorData['message']; // Field mapping
     } catch (_) {}
 
-    final finalMessage = errorMessage ?? 'Request failed (${response.statusCode})';
+    final statusCode = response.statusCode; // Code: 400, 401, 404, etc.
+    final technicalDetails = 'Error Code: $statusCode${serverMessage != null ? '\nResponse: $serverMessage' : ''}'; // Diagnostic string
 
-    // Detect Firestore Quota Exhaustion (Code 8 / RESOURCE_EXHAUSTED)
-    if (finalMessage.toUpperCase().contains('RESOURCE_EXHAUSTED') ||
-        finalMessage.contains('QUOTA EXCEEDED')) {
-      return 'Cloud Database Quota Exhausted. Operation failed. Please try again tomorrow.';
+    // Special: Handle infrastructure/quota issues
+    if (serverMessage != null) {
+      final upperMsg = serverMessage.toUpperCase();
+      if (upperMsg.contains('RESOURCE_EXHAUSTED') || upperMsg.contains('QUOTA EXCEEDED')) {
+        return QuotaExceededException(serverMessage, technicalDetails);
+      }
     }
 
-    return finalMessage;
+    // Mapping: Standard HTTP Error Codes
+    switch (statusCode) {
+      case 400: // Bad Request
+        return ValidationException(serverMessage, technicalDetails);
+      case 401: // Unauthorized
+        return AuthException(serverMessage, technicalDetails);
+      case 403: // Forbidden
+        return ForbiddenException(serverMessage, technicalDetails);
+      case 404: // Not Found
+        return NotFoundException(serverMessage, technicalDetails);
+      case 500: // Internal Server Error
+      case 502: // Bad Gateway
+      case 503: // Service Unavailable
+        return ServerException(serverMessage, technicalDetails);
+      default: // Fallback
+        return AppException(
+          serverMessage ?? 'Request failed with status: $statusCode',
+          'HTTP_$statusCode',
+          technicalDetails,
+        );
+    }
+  }
+
+  /*
+   * Logic: Low-Level Fault Recovery.
+   * Rationale: Serves as a catch-all mapper for non-HTTP exceptions, 
+   *   such as host unreachability or connection timeouts.
+   */
+  static Exception _handleException(Object e) {
+    if (e is AppException) return e; // Pass-through: Already mapped exceptions
+    
+    final exceptionInfo = 'Exception: ${e.runtimeType}\nDetails: ${e.toString()}'; // Trace: Detailed debug info
+    
+    // Scenario: Device has no Wi-fi/Data or Airplane Mode is ON
+    if (e is SocketException) {
+      const code = 503; // Logic: Service Unavailable
+      final technicalInfo = 'Error Code: $code\n$exceptionInfo';
+      return NetworkException(null, technicalInfo);
+    }
+    
+    // Scenario: Server exists but is under too much load or ISP lag is high
+    if (e is TimeoutException) {
+      const code = 408; // Logic: Request Timeout
+      final technicalInfo = 'Error Code: $code\n$exceptionInfo';
+      return NetworkException(
+        'Request timed out. Please check your connection and try again.',
+        technicalInfo,
+      );
+    }
+
+    // Scenario: Connection refused (Server is actually OFF)
+    final errorStr = e.toString();
+    if (errorStr.contains('ClientException') || 
+        errorStr.contains('Failed to fetch') || 
+        errorStr.contains('Connection refused')) {
+      const code = 503; // Logic: Service Unavailable
+      final technicalInfo = 'Error Code: $code\n$exceptionInfo';
+      return NetworkException(
+        'Unable to connect to the server. Please ensure the backend is running and try again.',
+        technicalInfo,
+      );
+    }
+
+    // Scenario: Unexpected application crash during network call
+    const code = 500; // Logic: Internal Fallback
+    final technicalInfo = 'Error Code: $code\n$exceptionInfo';
+    return AppException('Something went wrong. Please try again later.', code.toString(), technicalInfo);
   }
 }
+

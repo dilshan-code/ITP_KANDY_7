@@ -1,11 +1,12 @@
 // AdminController handles administrative tasks, such as managing the shop owners.
 class AdminController {
-    constructor({ getAllOwners, updateOwnerProfile, deleteOwner, getOwnerProfile, getSystemHealth }) {
+    constructor({ getAllOwners, updateOwnerProfile, deleteOwner, getOwnerProfile, getSystemHealth, backupDatabase }) {
         this.getAllOwners = getAllOwners;
         this.updateOwnerProfile = updateOwnerProfile;
         this.deleteOwner = deleteOwner;
         this.getOwnerProfile = getOwnerProfile;
         this.getSystemHealth = getSystemHealth;
+        this.backupDatabase = backupDatabase;
     }
 
     // Fetches real-time system health and database statistics.
@@ -51,6 +52,14 @@ class AdminController {
                 return res.status(404).json({ success: false, error: 'Owner not found' });
             }
 
+            // Security: Prevent administrative operations on a System Administrator
+            if (existingOwner.role === 'admin') {
+                return res.status(403).json({ 
+                    success: false, 
+                    error: 'Administrative accounts cannot be suspended via owner management.' 
+                });
+            }
+
             // Determine the new toggle state. If they are currently suspended, we unsuspend them.
             const currentlySuspended = existingOwner.isSuspended || existingOwner.status === 'suspended';
             const willBeSuspended = !currentlySuspended;
@@ -68,6 +77,15 @@ class AdminController {
 
     async deleteOwnerRecord(req, res) {
         try {
+            // Security Check: Verify target is not an admin before deletion
+            const targetOwner = await this.getOwnerProfile.execute(req.params.id);
+            if (targetOwner && targetOwner.role === 'admin') {
+                return res.status(403).json({ 
+                    success: false, 
+                    error: 'Administrative accounts cannot be deleted.' 
+                });
+            }
+
             const deleted = await this.deleteOwner.execute(req.params.id);
             if (!deleted) {
                 return res.status(404).json({ success: false, error: 'Owner not found' });
@@ -75,6 +93,27 @@ class AdminController {
             res.json({ success: true, message: 'Owner deleted successfully' });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
+        }
+    }
+
+    // Generates and downloads a ZIP backup of the entire MongoDB database.
+    async downloadBackup(req, res) {
+        try {
+            const dateStr = new Date().toISOString().split('T')[0];
+            const fileName = `clickbuy_backup_${dateStr}.zip`;
+
+            // Set headers for file download
+            res.setHeader('Content-Type', 'application/zip');
+            res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
+
+            // Execute backup use case, piping output directly to response
+            await this.backupDatabase.execute(res);
+        } catch (error) {
+            console.error('[ADMIN] Backup failed:', error);
+            // If headers were already sent (e.g., streaming started), we can't send a normal JSON error.
+            if (!res.headersSent) {
+                res.status(500).json({ success: false, error: 'Database backup failed: ' + error.message });
+            }
         }
     }
 }

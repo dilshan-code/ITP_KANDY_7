@@ -1,6 +1,14 @@
-import 'package:flutter/material.dart';
-import 'package:frontend/core/theme/app_colors.dart';
-import 'package:intl/intl.dart';
+﻿// ------------------------------------------------------------------------------
+// File: payment_confirmation_dialog.dart
+// Purpose: Pre-transaction Audit and Intent Verification.
+// Rationale: Implements a high-friction validation gate before database 
+//   persistence, allowing for a comprehensive final review of items, pricing, 
+//   totals, and payment methods to eliminate accidental revenue capture.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // Core: Flutter UI reactive system
+import 'package:google_fonts/google_fonts.dart'; // Typography: Brand font sets
+import 'package:frontend/core/theme/app_colors.dart'; // Styling: Design system tokens
+import 'package:intl/intl.dart'; // Formatting: Date localization
 
 class PaymentConfirmationDialog extends StatelessWidget {
   final List<Map<String, dynamic>> items;
@@ -45,24 +53,24 @@ class PaymentConfirmationDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Confirm Transaction',
+            Text(
+              'Confirm Transaction', // Modal header
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textDark,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
-              'Please review the details below',
+              'Please review the details below', // Instructional subtext
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: AppColors.textMedium),
+              style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textMedium),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
-            // Transaction Details Box
+            // Transaction Details Box: Grouped logical metadata for the sale
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -72,44 +80,45 @@ class PaymentConfirmationDialog extends StatelessWidget {
               ),
               child: Column(
                 children: [
+                   // Unique record tracker
                   _buildInfoRow(
                     'Invoice ID',
                     invoiceId,
                     isBold: true,
                     color: AppColors.primary,
                   ),
-                  const SizedBox(height: 8),
-                  _buildInfoRow('Date', DateFormat('MMM dd, yyyy').format(now)),
-                  const SizedBox(height: 8),
-                  _buildInfoRow('Time', DateFormat('hh:mm a').format(now)),
-                  const SizedBox(height: 8),
-                  _buildInfoRow('Method', paymentMethod.toUpperCase()),
-                  const SizedBox(height: 8),
-                  _buildInfoRow('Customer', customerName),
+                  SizedBox(height: 8),
+                  _buildInfoRow('Date', DateFormat('MMM dd, yyyy').format(now)), // Auto-generated entry date
+                  SizedBox(height: 8),
+                  _buildInfoRow('Time', DateFormat('hh:mm a').format(now)), // Auto-generated timestamp
+                  SizedBox(height: 8),
+                  _buildInfoRow('Method', paymentMethod.toUpperCase()), // Settlement type (Cash/Credit)
+                  SizedBox(height: 8),
+                  _buildInfoRow('Customer', customerName), // Associated buyer profile
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
 
-            const Text(
+            Text(
               'ORDER SUMMARY',
-              style: TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textLight,
                 letterSpacing: 1.2,
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
 
-            // Items list
+            // Items list: Scrollable container for multi-item checkouts
             Flexible(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 180),
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: items.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  separatorBuilder: (_, _) => SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final item = items[index];
                     return Row(
@@ -117,16 +126,16 @@ class PaymentConfirmationDialog extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            '${item['name']} x${item['quantity']} ${item['unit'] ?? ''}',
-                            style: const TextStyle(
+                            '${item['name']} x${item['quantity']} ${item['unit'] ?? ''}', // Product qty/unit pair
+                            style: GoogleFonts.poppins(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
                         Text(
-                          'Rs. ${(item['price'] * item['quantity']).toStringAsFixed(0)}',
-                          style: const TextStyle(
+                          'Rs. ${(item['price'] * item['quantity']).toStringAsFixed(0)}', // Itemized subtotal
+                          style: GoogleFonts.poppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -143,13 +152,13 @@ class PaymentConfirmationDialog extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'PAYABLE TOTAL',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                Text(
+                  'PAYABLE TOTAL', // High-level settlement label
+                  style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700),
                 ),
                 Text(
-                  'Rs. ${totalAmount.toStringAsFixed(0)}',
-                  style: const TextStyle(
+                  'Rs. ${totalAmount.toStringAsFixed(0)}', // Final aggregated amount
+                  style: GoogleFonts.poppins(
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
                     color: AppColors.primary,
@@ -158,43 +167,43 @@ class PaymentConfirmationDialog extends StatelessWidget {
               ],
             ),
 
-            const SizedBox(height: 32),
+            SizedBox(height: 32),
 
             Row(
               children: [
                 Expanded(
                   child: TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(context), // Dismiss without changes
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       foregroundColor: AppColors.textMedium,
                     ),
-                    child: const Text(
+                    child: Text(
                       'Cancel',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   flex: 2,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context);
-                      onConfirm();
+                      Navigator.pop(context); // Close modal
+                      onConfirm(); // Execute database write and inventory update callback
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       elevation: 0,
                     ),
-                    child: const Text(
+                    child: Text(
                       'Confirm Payment',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
@@ -206,6 +215,7 @@ class PaymentConfirmationDialog extends StatelessWidget {
     );
   }
 
+  // Helper for consistent key-value display styling
   Widget _buildInfoRow(
     String label,
     String value, {
@@ -217,11 +227,11 @@ class PaymentConfirmationDialog extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: AppColors.textLight),
+          style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textLight),
         ),
         Text(
           value,
-          style: TextStyle(
+          style: GoogleFonts.poppins(
             fontSize: 12,
             fontWeight: isBold ? FontWeight.w700 : FontWeight.w600,
             color: color ?? AppColors.textDark,
@@ -231,3 +241,4 @@ class PaymentConfirmationDialog extends StatelessWidget {
     );
   }
 }
+

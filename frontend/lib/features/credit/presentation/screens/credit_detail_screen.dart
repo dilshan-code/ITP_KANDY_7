@@ -1,17 +1,31 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
-import 'package:frontend/core/theme/app_colors.dart';
-import 'package:frontend/core/utils/snackbar_utils.dart';
-import 'package:frontend/features/credit/domain/entities/customer.dart';
-import 'package:frontend/features/credit/domain/entities/credit_transaction.dart';
-import 'package:frontend/features/credit/presentation/providers/credit_provider.dart';
-import 'package:frontend/features/sales/presentation/providers/sale_provider.dart';
-import 'package:frontend/features/sales/presentation/screens/invoice_dialog.dart';
-import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart';
-import 'package:frontend/features/credit/presentation/utils/credit_pdf_utils.dart';
-import 'package:frontend/shared/main_shell.dart';
+// ------------------------------------------------------------------------------
+// File: credit_detail_screen.dart
+// Purpose: Unified Financial Ledger and Debt Lifecycle Monitor.
+// Rationale: Merges diverse transaction types (Credit, Payments, Sales) into 
+//   a single chronological timeline for deep-dive customer audits. Supports 
+//   payment reconciliation, automated statement generation, and proactive 
+//   balance monitoring with administrative guards.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // UI: Flutter Material widgets
+import 'package:google_fonts/google_fonts.dart'; // UI: Poppins typography
+import 'package:provider/provider.dart'; // State: Provider read/watch
+import 'package:intl/intl.dart'; // Format: Date and currency formatting
+import 'package:frontend/core/theme/app_colors.dart'; // Theme: Brand colour tokens
+import 'package:frontend/core/utils/snackbar_utils.dart'; // UX: Feedback toasts with diagnostics
+import 'package:frontend/features/credit/domain/entities/customer.dart'; // Domain: Customer model
+import 'package:frontend/features/credit/domain/entities/credit_transaction.dart'; // Domain: Ledger entry model
+import 'package:frontend/features/credit/presentation/providers/credit_provider.dart'; // State: Customer data manager
+import 'package:frontend/features/sales/presentation/providers/sale_provider.dart'; // State: Sales history for ledger merge
+import 'package:frontend/features/sales/presentation/screens/invoice_dialog.dart'; // Navigation: Sale invoice detail
+import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart'; // State: In-app alert logging
+import 'package:frontend/features/credit/presentation/utils/credit_pdf_utils.dart'; // PDF: Customer statement generator
+import 'package:frontend/shared/widgets/modern_pdf_icon.dart'; // UI: Brand-consistent PDF trigger icon
+import 'package:frontend/shared/main_shell.dart'; // Shell: Global app state anchor for dashboard refresh
+import 'package:frontend/shared/widgets/app_back_button.dart'; // Standardized navigation trigger
+import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // Auth: User context
 
+/// CreditDetailScreen: An in-depth financial ledger for a specific customer.
+/// Displays a unified chronological view of sales, payments, and credit adjustments.
 class CreditDetailScreen extends StatefulWidget {
   final Customer customer;
   const CreditDetailScreen({super.key, required this.customer});
@@ -61,21 +75,26 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_currentCustomer.name),
+        leading: AppBackButton(
+          onTap: () => Navigator.pop(context),
+          margin: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit_outlined),
+            icon: Icon(Icons.edit_rounded),
             onPressed: () => _showEditCustomerDialog(context),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: AppColors.error),
+            icon: Icon(Icons.delete_outline_rounded, color: AppColors.error),
             onPressed: () => _showDeleteConfirmation(context),
           ),
           IconButton(
-            icon: const Icon(Icons.picture_as_pdf_outlined),
+            icon: const ModernPdfIcon(),
             onPressed: () {
               final creditProvider = context.read<CreditProvider>();
               final saleProvider = context.read<SaleProvider>();
               
+              // Filter logic to unify disparate data streams for the PDF statement.
               final customerSales = saleProvider.sales.where((sale) {
                 if (sale is Map) {
                   return sale['customerId'] == _currentCustomer.id;
@@ -83,6 +102,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                 return false;
               }).toList();
 
+              // Exclude automated system transactions that pollute the human-readable statement.
               final filteredTransactions = creditProvider.transactions.where(
                 (txn) => !(txn.type == 'credit' && txn.title.startsWith('Purchase Loan')) &&
                          !(txn.type == 'payment' && (txn.title == 'Full Balance Settlement' || txn.title == 'Partial Credit Payment')),
@@ -93,25 +113,30 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                 ...customerSales,
               ];
 
+              // Chronological sorting for financial auditing.
               combined.sort((a, b) {
                 final dateA = DateTime.parse(a is Map ? a['createdAt'] : a.createdAt).toLocal();
                 final dateB = DateTime.parse(b is Map ? b['createdAt'] : b.createdAt).toLocal();
                 return dateB.compareTo(dateA);
               });
 
+
+              final owner = context.read<AuthProvider>().currentOwner;
               CreditPdfUtils.generateAndDownloadStatement(
                 customer: _currentCustomer,
                 history: combined,
+                owner: owner,
               );
             },
             tooltip: 'Download Statement',
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
         ],
       ),
       body: SafeArea(
         child: Consumer2<CreditProvider, SaleProvider>(
           builder: (context, provider, saleProvider, _) {
+            // Chronological Merger: Sorting disparate data sources for the ledger view
             final customerSales = saleProvider.sales.where((sale) {
               if (sale is Map) {
                 return sale['customerId'] == _currentCustomer.id;
@@ -119,7 +144,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
               return false;
             }).toList();
 
-            // Update character if found in provider list (to reflect edits)
+            // Real-time synchronization: Update the local entity if the provider data changes.
             final updatedCustomer = provider.customers.isEmpty
                 ? null
                 : provider.customers.cast<Customer?>().firstWhere(
@@ -131,6 +156,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
               _currentCustomer = updatedCustomer;
             }
 
+            // Noise Reduction: Filter out system-generated metadata transactions for cleaner UI.
             final filteredTransactions = provider.transactions.where(
               (txn) => !(txn.type == 'credit' && txn.title.startsWith('Purchase Loan')) &&
                        !(txn.type == 'payment' && (txn.title == 'Full Balance Settlement' || txn.title == 'Partial Credit Payment')),
@@ -138,7 +164,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
 
             return SingleChildScrollView(
               controller: _scrollController,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -163,31 +189,31 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                             _currentCustomer.name.isNotEmpty
                                 ? _currentCustomer.name[0].toUpperCase()
                                 : '?',
-                            style: const TextStyle(
+                            style: GoogleFonts.poppins(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
                               fontSize: 28,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12),
                         Text(
                           _currentCustomer.name,
-                          style: const TextStyle(
+                          style: GoogleFonts.poppins(
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         Text(
                           _currentCustomer.phone,
-                          style: TextStyle(
+                          style: GoogleFonts.poppins(
                             fontSize: 14,
                             color: Colors.white.withValues(alpha: 0.8),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
@@ -218,7 +244,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                           ],
                         ),
                         if (_currentCustomer.totalOutstanding > 0) ...[
-                          const SizedBox(height: 20),
+                          SizedBox(height: 20),
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
@@ -232,9 +258,9 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                                 ),
                                 elevation: 0,
                               ),
-                              child: const Text(
-                                'Settle Full Balance',
-                                style: TextStyle(
+                              child: Text(
+                                'Settle Full Balance', // Logic for clearing all debt in one tap
+                                style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.w800,
                                   fontSize: 13,
                                 ),
@@ -245,29 +271,29 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   // History section
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'History & Invoices',
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textDark,
                         ),
                       ),
                       if (provider.isLoading)
-                        const SizedBox(
+                        SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
 
                   if (!provider.isLoading &&
                       !saleProvider.isLoading &&
@@ -283,10 +309,10 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                               size: 48,
                               color: Colors.grey.shade200,
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12),
                             Text(
                               'No history found',
-                              style: TextStyle(color: AppColors.textLight),
+                              style: GoogleFonts.poppins(color: AppColors.textLight),
                             ),
                           ],
                         ),
@@ -304,7 +330,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
         heroTag: 'credit_add_transaction_btn',
         onPressed: () => _showAddTransactionDialog(context),
         backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white),
+        child: Icon(Icons.add, color: Colors.white),
       ),
     );
   }
@@ -314,16 +340,16 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
       children: [
         Text(
           value,
-          style: const TextStyle(
+          style: GoogleFonts.poppins(
             fontSize: 16,
             fontWeight: FontWeight.w800,
             color: Colors.white,
           ),
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.7)),
+          style: GoogleFonts.poppins(fontSize: 12, color: Colors.white.withValues(alpha: 0.7)),
         ),
       ],
     );
@@ -358,7 +384,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
           },
         ),
         if (isFetchingMore)
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
             child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
           ),
@@ -382,7 +408,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: AppColors.textDark.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -418,7 +444,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                     size: 22,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -427,28 +453,28 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                         customerName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: GoogleFonts.poppins(
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
                           color: AppColors.textDark,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2),
                       Text(
                         '#${invoiceId.length > 5 ? invoiceId.substring(0, 5) : invoiceId} • $formattedTime',
-                        style: const TextStyle(
+                        style: GoogleFonts.poppins(
                           color: AppColors.textLight,
                           fontSize: 11,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       _buildPaymentBadge(paymentMethod),
                     ],
                   ),
                 ),
                 Text(
                   '${isCredit ? '-' : ''} Rs ${amount.toStringAsFixed(0)}',
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                     color: isCredit ? AppColors.error : AppColors.textDark,
@@ -472,7 +498,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
       ),
       child: Text(
         method.toUpperCase(),
-        style: TextStyle(
+        style: GoogleFonts.poppins(
           fontSize: 9,
           fontWeight: FontWeight.w700,
           color: isCredit ? Colors.orange.shade800 : AppColors.primary,
@@ -517,28 +543,28 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
               size: 20,
             ),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   txn.title,
-                  style: const TextStyle(
+                  style: GoogleFonts.poppins(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),
                 ),
                 Text(
                   DateFormat('dd MMM, hh:mm a').format(date),
-                  style: TextStyle(fontSize: 11, color: AppColors.textLight),
+                  style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textLight),
                 ),
               ],
             ),
           ),
           Text(
             '${isPayment ? '+' : '-'} Rs ${txn.amount.toStringAsFixed(0)}',
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w800,
               color: isPayment ? AppColors.primary : AppColors.error,
@@ -553,22 +579,24 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Settle Balance'),
+        title: Text('Settle Balance'),
         content: Text(
           'Confirm payment of Rs ${_currentCustomer.totalOutstanding.toStringAsFixed(0)} for ${_currentCustomer.name}?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
+              // Multi-provider settlement: Clearing debt across logic layers.
               await context.read<CreditProvider>().settleFullBalance(
                 _currentCustomer,
               );
               if (context.mounted) {
+                // Background cache invalidation to keep the app shell consistent.
                 context.read<NotificationProvider>().fetchNotifications();
                 context.read<SaleProvider>().fetchSales();
                 
@@ -581,7 +609,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                 );
               }
             },
-            child: const Text('Confirm'),
+            child: Text('Confirm'),
           ),
         ],
       ),
@@ -598,7 +626,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Edit Customer'),
+        title: Text('Edit Customer'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -606,12 +634,12 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
               controller: nameController,
               decoration: const InputDecoration(hintText: 'Customer name'),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextField(
               controller: phoneController,
               decoration: const InputDecoration(hintText: 'Phone number'),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextField(
               controller: limitController,
               keyboardType: TextInputType.number,
@@ -625,12 +653,13 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.isNotEmpty) {
                 final double? limit = double.tryParse(limitController.text);
+                // Synchronous update triggering local state rebuild via Provider.
                 final success =
                     await Provider.of<CreditProvider>(
                       context,
@@ -659,7 +688,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                 }
               }
             },
-            child: const Text('Save Changes'),
+            child: Text('Save Changes'),
           ),
         ],
       ),
@@ -670,7 +699,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Customer'),
+        title: Text('Delete Customer'),
         content: Text(
           _currentCustomer.totalOutstanding > 0
               ? 'Warning: This customer has Rs ${_currentCustomer.totalOutstanding.toStringAsFixed(0)} outstanding credit. Are you sure you want to delete them?'
@@ -679,7 +708,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text('Cancel'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
@@ -707,7 +736,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                 }
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: Text('Delete', style: GoogleFonts.poppins(color: Colors.white)),
           ),
         ],
       ),
@@ -722,24 +751,24 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Add Transaction'),
+          title: Text('Add Transaction'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               SegmentedButton<String>(
-                segments: const [
+                segments: [
                   ButtonSegment(value: 'credit', label: Text('Credit')),
                   ButtonSegment(value: 'payment', label: Text('Payment')),
                 ],
                 selected: {type},
                 onSelectionChanged: (v) => setDialogState(() => type = v.first),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextField(
                 controller: titleController,
                 decoration: const InputDecoration(hintText: 'Description'),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               TextField(
                 controller: amountController,
                 keyboardType: TextInputType.number,
@@ -750,7 +779,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -775,7 +804,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                   MainShell.homeKey.currentState?.refresh();
                 }
               },
-              child: const Text('Add'),
+              child: Text('Add'),
             ),
           ],
         ),
@@ -783,3 +812,4 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
     );
   }
 }
+

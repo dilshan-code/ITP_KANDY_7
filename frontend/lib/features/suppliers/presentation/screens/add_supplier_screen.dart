@@ -1,11 +1,21 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:frontend/core/theme/app_colors.dart';
-import 'package:frontend/core/utils/snackbar_utils.dart';
-import 'package:frontend/features/suppliers/domain/entities/supplier.dart';
-import 'package:frontend/features/suppliers/presentation/providers/supplier_provider.dart';
-import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart';
-import 'package:frontend/core/utils/validation_utils.dart';
+// ------------------------------------------------------------------------------
+// File: add_supplier_screen.dart
+// Purpose: Dual-Purpose Business Partner Registration Interface.
+// Rationale: Facilitates both the onboarding of new suppliers and the 
+//   modification of existing partner profiles. Integrates with the 
+//   notification system for administrative audit logging and utilizes 
+//   standardized validation for consistent data integrity across the CRM layer.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // UI: Flutter Material widgets
+import 'package:google_fonts/google_fonts.dart'; // UI: Poppins typography
+import 'package:provider/provider.dart'; // State: Provider read/watch
+import 'package:frontend/core/theme/app_colors.dart'; // Theme: Brand colour tokens
+import 'package:frontend/core/utils/snackbar_utils.dart'; // UX: Feedback toasts with diagnostics
+import 'package:frontend/features/suppliers/domain/entities/supplier.dart'; // Domain: Supplier model
+import 'package:frontend/features/suppliers/presentation/providers/supplier_provider.dart'; // State: Supplier data manager
+import 'package:frontend/features/notifications/presentation/providers/notification_provider.dart'; // State: Audit trail logger
+import 'package:frontend/core/utils/validation_utils.dart'; // Util: Form field validators
+import 'package:frontend/shared/widgets/app_back_button.dart'; // Standardized navigation trigger
 
 class AddSupplierScreen extends StatefulWidget {
   final Supplier? supplier;
@@ -27,6 +37,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
   @override
   void initState() {
     super.initState();
+    // Pre-filling form for update mode based on passed entity.
     if (widget.supplier != null) {
       _nameController.text = widget.supplier!.name;
       _phoneController.text = widget.supplier!.phone;
@@ -61,6 +72,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
     };
 
     bool success;
+    // Branching logic: Patch vs Post based on widget intent.
     if (widget.supplier != null) {
       success = await provider.updateSupplier(
         widget.supplier!.id,
@@ -74,6 +86,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
 
     if (success && mounted) {
       if (widget.supplier == null) {
+        // Log entry in the internal notification system for administrative tracking.
         context.read<NotificationProvider>().createNotification(
           type: 'info',
           title: 'New Supplier Added',
@@ -104,6 +117,10 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
         title: Text(
           widget.supplier != null ? 'Edit Supplier' : 'Add New Supplier',
         ),
+        leading: AppBackButton(
+          onTap: () => Navigator.pop(context),
+          margin: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -122,17 +139,17 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                       color: AppColors.accentGreen,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.local_shipping_outlined,
                       size: 36,
                       color: AppColors.primary,
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: 32),
 
                 _buildLabel('Supplier Name *'),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(
@@ -145,10 +162,10 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                   validator: (v) =>
                       ValidationUtils.validateRequired(v, 'Supplier name'),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
 
                 _buildLabel('Phone Number *'),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
@@ -161,10 +178,10 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                   ),
                   validator: ValidationUtils.validatePhone,
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
 
                 _buildLabel('Email'),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -177,10 +194,10 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                   ),
                   validator: ValidationUtils.validateEmail,
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
 
                 _buildLabel('Address'),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextFormField(
                   controller: _addressController,
                   maxLines: 2,
@@ -192,10 +209,10 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20),
 
                 _buildLabel('Notes'),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextFormField(
                   controller: _notesController,
                   maxLines: 3,
@@ -207,7 +224,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: 32),
 
                 SizedBox(
                   width: double.infinity,
@@ -220,7 +237,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                       ),
                     ),
                     child: _isSubmitting
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 24,
                             height: 24,
                             child: CircularProgressIndicator(
@@ -237,12 +254,12 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                                     : Icons.add_circle_outline,
                                 size: 20,
                               ),
-                              const SizedBox(width: 8),
+                              SizedBox(width: 8),
                               Text(
                                 widget.supplier != null
                                     ? 'Update Supplier'
                                     : 'Add Supplier',
-                                style: const TextStyle(
+                                style: GoogleFonts.poppins(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -262,7 +279,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
   Widget _buildLabel(String text) {
     return Text(
       text,
-      style: const TextStyle(
+      style: GoogleFonts.poppins(
         fontWeight: FontWeight.w600,
         fontSize: 14,
         color: AppColors.textDark,
@@ -270,4 +287,5 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
     );
   }
 }
+
 

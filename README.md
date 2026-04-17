@@ -6,11 +6,16 @@ ClickBuy is a modern, full-stack application designed to streamline inventory ma
 
 - **Multi-tenant Core**: Secure data isolation using `ownerId` scoping across the entire stack.
 - **Inventory Management**: Real-time tracking of product stock, categories, and inventory value with out-of-stock alerts.
-- **Sales System**: Efficient cart management and payment processing with automatic stock updates.
+- **Supplier & Purchase Accounting**: Detailed tracking of historical purchase records with automated balance (actual debt) synchronization.
+- **Sales System**: Efficient cart management and atomic payment processing with automatic stock updates and PDF invoicing.
 - **Customer Credit Tracking**: Dedicated module for managing debtors, credit settlements, and credit limit alerts.
-- **Robust Validation**: Centralized, dual-layer validation system (frontend/backend) for maximum data integrity.
-- **Enhanced Notifications**: Advanced system for low-stock, out-of-stock, and credit limit alerts with icon badges.
-- **Premium UI/UX**: iOS-inspired design with repositioned snackbars for a clutter-free experience.
+- **Standardized Business-First PDF Reporting**: Professional, high-fidelity PDF reporting engine with standardized layouts and full Unicode support across all business modules.
+- **Server-Side Database Backup**: Integrated utility for administrators to trigger and download secure database collection archives.
+- **UDP Auto-Discovery**: Automated backend discovery service that dynamically identifies the host machine's IP address on the local network.
+- **Total Wipeout Control**: Coordinated, multi-collection data erasure system for total privacy compliance and account deletion.
+- **Administrative Dashboard Evolution**: Specialized portal for system managers with advanced feedback filtering and owner triage tools.
+- **Advanced Error Diagnostics**: Comprehensive technical breakdown of backend failures (mapping status codes like 404, 500) within the mobile interface.
+- **Premium UI/UX**: iOS-inspired design with frosted glass elements and frosted mint aesthetics for a cluttered-free experience.
 
 ## 🛠 Tech Stack
 
@@ -77,12 +82,12 @@ small_store_app/
    ```
 
 > [!TIP]
-> **Android Emulator Connection**: The app is pre-configured to use `10.0.2.2:3000` to connect to the backend running on your host's localhost. Ensure the backend is running before launching the app on an Android emulator.
+> **Dynamic Backend Discovery**: ClickBuy now features an automated UDP discovery service. When you launch the app on your local network, it will automatically attempt to identify the backend server's IP address. If it fails, you can manually configure the IP in the "Backend Settings" dialog available on the Login screen.
 
 ## 📖 Documentation & Maintenance
 
-- **[bugs_and_fixes.md](file:///c:/Users/SADINSA/Desktop/IT%20Project/Mobile%20Application/Beta/small_store_app/bugs_and_fixes.md)**: A chronological log of every technical challenge resolved.
-- **[system_improvements.md](file:///c:/Users/SADINSA/Desktop/IT%20Project/Mobile%20Application/Beta/small_store_app/system_improvements.md)**: A roadmap of architectural evolution and feature updates.
+- **[bugs_and_fixes.md](./bugs_and_fixes.md)**: A chronological log of every technical challenge resolved.
+- **[system_improvements.md](./system_improvements.md)**: A roadmap of architectural evolution and feature updates.
 
 ## 📄 License
 This project is for internal use and development purposes.

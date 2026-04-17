@@ -14,15 +14,15 @@ describe('Report Use Cases', () => {
         mockSaleRepository = {
             getAll: jest.fn().mockResolvedValue([
                 {
-                    id: 'sale1', totalAmount: 1000, createdAt: today,
+                    id: 'sale1', totalAmount: 1000, createdAt: today, status: 'completed',
                     items: [{ productId: 'p1', name: 'Rice', quantity: 5, price: 200 }]
                 },
                 {
-                    id: 'sale2', totalAmount: 600, createdAt: yesterday,
+                    id: 'sale2', totalAmount: 600, createdAt: yesterday, status: 'completed',
                     items: [{ productId: 'p2', name: 'Sugar', quantity: 3, price: 200 }]
                 },
                 {
-                    id: 'sale3', totalAmount: 400, createdAt: today,
+                    id: 'sale3', totalAmount: 400, createdAt: today, status: 'completed',
                     items: [{ productId: 'p1', name: 'Rice', quantity: 2, price: 200 }]
                 }
             ]),
@@ -33,15 +33,15 @@ describe('Report Use Cases', () => {
             }),
             getAllByDateRange: jest.fn().mockResolvedValue([
                 {
-                    id: 'sale1', totalAmount: 1000, createdAt: today,
+                    id: 'sale1', totalAmount: 1000, createdAt: today, status: 'completed',
                     items: [{ productId: 'p1', name: 'Rice', quantity: 5, price: 200 }]
                 },
                 {
-                    id: 'sale2', totalAmount: 600, createdAt: yesterday,
+                    id: 'sale2', totalAmount: 600, createdAt: yesterday, status: 'completed',
                     items: [{ productId: 'p2', name: 'Sugar', quantity: 3, price: 200 }]
                 },
                 {
-                    id: 'sale3', totalAmount: 400, createdAt: today,
+                    id: 'sale3', totalAmount: 400, createdAt: today, status: 'completed',
                     items: [{ productId: 'p1', name: 'Rice', quantity: 2, price: 200 }]
                 }
             ]),
@@ -126,8 +126,9 @@ describe('Report Use Cases', () => {
 
         test('should calculate total inventory value', async () => {
             const report = await getReport.execute(ownerId);
-            // (50*200) + (3*200) + (0*300) = 10000 + 600 + 0 = 10600
-            expect(report.inventory.totalValue).toBe(10600);
+            // Updated calculation to use purchasePrice (Cost basis):
+            // (50*150) + (3*120) + (0*250) = 7500 + 360 + 0 = 7860
+            expect(report.inventory.totalValue).toBe(7860);
         });
 
         test('should produce top products sorted by quantity sold', async () => {

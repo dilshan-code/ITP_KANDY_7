@@ -1,6 +1,11 @@
-// This use case gathers all the essential numbers needed for the App's home screen.
+/**
+ * Business Logic: Orchestrates the first-glance experience for the shop owner.
+ * Aggregates high-level metrics from across the entire system into a single summary object.
+ */
 class GetDashboardData {
-    // Inject all required repositories to pull data from different collections.
+    /**
+     * Dependency Injection: Ingests all core repositories to perform cross-collection analysis.
+     */
     constructor(repositories) {
         this.productRepository = repositories.productRepository;
         this.saleRepository = repositories.saleRepository;
@@ -9,9 +14,15 @@ class GetDashboardData {
         this.supplierRepository = repositories.supplierRepository;
     }
 
-    // This is the core method that builds the dashboard summary report.
+    /**
+     * Executes a coordinated fetch of all KPIs (Key Performance Indicators).
+     * @param {string} ownerId - The merchant's unique identifier.
+     * @param {number} timezoneOffset - User's local time offset to ensure "Today" matches their wall clock.
+     */
     async execute(ownerId, timezoneOffset = 0) {
-        // We run all data-gathering queries at once (in parallel) to ensure the home screen loads instantly.
+        // --- High-Performance Parallel Execution ---
+        // We use Promise.all to trigger all independent DB queries simultaneously.
+        // This ensures the dashboard loads with minimal latency by overlapping network wait times.
         const [
             todaysSales,
             lowStockCount,
@@ -21,41 +32,48 @@ class GetDashboardData {
             recentSales,
             recentPurchases
         ] = await Promise.all([
-            this.saleRepository.getTodayTotal(ownerId, timezoneOffset),
-            this.productRepository.getLowStockCount(ownerId),
-            this.customerRepository.getTotalOutstanding(ownerId),
-            this.supplierRepository.getTotalPayable(ownerId),
-            this.getTotalItemsInStock(ownerId),
-            this.saleRepository.getAll(ownerId, 5), // Only get 5 newest sales
-            this.purchaseRepository.getAll(ownerId, 5) // Only get 5 newest purchases
+            this.saleRepository.getTodayTotal(ownerId, timezoneOffset), // Revenue generated since 00:00 local time
+            this.productRepository.getLowStockCount(ownerId), // Inventory replenishment alerts
+            this.customerRepository.getTotalOutstanding(ownerId), // Asset: Money owed to the merchant
+            this.supplierRepository.getTotalPayable(ownerId), // Liability: Money merchant owes to vendors
+            this.getTotalItemsInStock(ownerId), // Total physical units on hand
+            this.saleRepository.getAll(ownerId, 5), // Latest 5 outbound transactions
+            this.purchaseRepository.getAll(ownerId, 5) // Latest 5 inbound transactions
         ]);
 
-        // Merge and sort the 5 overall most recent transactions for the dashboard timeline
+        // --- Data Normalization: Unified Activity Timeline ---
+        // We merge disparate Sales and Purchases into a single "Transaction Feed" for the home UI.
         let allTxns = [];
+
+        // 1. Process Sales into a UI-friendly format
         recentSales.forEach(s => {
             allTxns.push({
                 id: s.id,
-                type: s.paymentMethod === 'credit' ? 'credit' : 'order',
+                type: s.paymentMethod === 'credit' ? 'credit' : 'order', // Distinguish cash vs credit sales
                 title: s.paymentMethod === 'credit' ? 'Credit Sale' : `Sale #${(s.id || '').substring(0, 5)}`,
                 subtitle: s.customerName || 'Walk-in Customer',
-                amount: s.totalAmount || 0,
+                amount: s.totalAmount || 0, // Positive flow (Revenue)
                 time: s.createdAt
             });
         });
+
+        // 2. Process Purchases (Inbound Stock)
         recentPurchases.forEach(p => {
             allTxns.push({
                 id: p.id,
                 type: 'purchase',
                 title: `Purchase #${(p.id || '').substring(0, 5)}`,
                 subtitle: `Supplier: ${p.supplierName || 'Unknown'}`,
-                amount: -(p.totalAmount || 0),
+                amount: -(p.totalAmount || 0), // Negative flow (Expense) for accounting clarity
                 time: p.purchaseDate || p.createdAt
             });
         });
 
+        // 3. Chronological Sort: Show the absolute latest activity at the top regardless of type.
         allTxns.sort((a, b) => new Date(b.time) - new Date(a.time));
-        const recentTransactions = allTxns.slice(0, 5);
+        const recentTransactions = allTxns.slice(0, 5); // Limit to top 5 most relevant events
 
+        // Return the consolidated dashboard state.
         return {
             todaysSales,
             lowStockCount,
@@ -66,9 +84,13 @@ class GetDashboardData {
         };
     }
 
+    /**
+     * Helper: Summarizes global inventory levels across the catalog.
+     */
     async getTotalItemsInStock(ownerId) {
         return this.productRepository.getTotalStockQuantity(ownerId);
     }
 }
 
+// Module Export: Entry point for the Home Screen data gateway.
 module.exports = { GetDashboardData };

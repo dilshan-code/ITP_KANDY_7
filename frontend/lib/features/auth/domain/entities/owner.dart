@@ -1,29 +1,43 @@
-// The Owner entity represents a shop manager's account details in the Flutter app.
+﻿/**
+ * Auth Domain Entity: Owner.
+ * Represents the primary identity of a shop manager within the ClickBuy ecosystem.
+ * Rationale: Acts as the root object for data isolation; most backend records (Products, Sales) are linked to an Owner ID.
+ */
 class Owner {
-  final String id;
-  final String name;
-  final String shopName;
-  final String phone;
-  final String email;
-  final String status;
-  final bool isSuspended;
-  final String role;
-  final String createdAt;
+  // --- Core Identity Attributes ---
+  final String id; // Protocol: Unique identifier (MongoDB _id) used for multi-tenant filtering
+  final String name; // Profile: Legal or display name of the shop manager
+  final String shopName; // Branding: The public name of the business entity
+  final String phone; // Authentication: Verified mobile number used for SMS sign-in
+  final String email; // Communication: Standardized backup/support contact (@gmail.com)
+  
+  // --- Authorization & Lifecycle ---
+  final String status; // Lifecycle: Account state (e.g., 'pending', 'approved')
+  final bool isSuspended; // Guard: Security flag to block access if administrative rules are violated
+  final String role; // Permissions: Distinguishes between 'owner' and 'admin' accounts
+  final String? profilePic; // Visuals: URL to Cloudinary-stored profile image
+  final String createdAt; // Traceability: Timestamp of account creation
 
   Owner({
     required this.id,
     required this.name,
-    this.shopName = '', // The name of the business they manage
+    this.shopName = '', 
     this.phone = '',
     required this.email,
     this.status = 'approved',
     this.isSuspended = false,
     this.role = 'owner',
+    this.profilePic,
     this.createdAt = '',
   });
 
+  /**
+   * Logic: Deserialization Engine.
+   * Rationale: Securely maps backend response keys (including MongoDB's _id variant) to the typed entity.
+   */
   factory Owner.fromJson(Map<String, dynamic> json) {
     return Owner(
+      // Strategy: Handle both API 'id' and MongoDB '_id' formats to ensure compatibility.
       id: json['id'] ?? json['_id'] ?? '',
       name: json['name'] ?? '',
       shopName: json['shopName'] ?? '',
@@ -32,10 +46,15 @@ class Owner {
       status: json['status'] ?? 'approved',
       isSuspended: json['isSuspended'] ?? false,
       role: json['role'] ?? 'owner',
+      profilePic: json['profilePic'],
       createdAt: json['createdAt'] ?? '',
     );
   }
 
+  /**
+   * Logic: Serialization Engine.
+   * Rationale: Prepares the entity for backend updates (e.g., profile editing).
+   */
   Map<String, dynamic> toJson() {
     return {
       'name': name,
@@ -45,6 +64,8 @@ class Owner {
       'status': status,
       'isSuspended': isSuspended,
       'role': role,
+      'profilePic': profilePic,
     };
   }
 }
+

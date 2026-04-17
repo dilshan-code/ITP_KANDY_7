@@ -1,12 +1,26 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:frontend/core/theme/app_colors.dart';
-import 'package:frontend/core/utils/snackbar_utils.dart';
-import 'package:frontend/features/credit/presentation/providers/credit_provider.dart';
-import 'package:frontend/features/credit/domain/entities/customer.dart';
-import 'package:frontend/features/credit/presentation/screens/credit_detail_screen.dart';
-import 'package:frontend/features/credit/presentation/utils/export_utils.dart';
+// ------------------------------------------------------------------------------
+// File: credit_list_screen.dart
+// Purpose: Dual-purpose CRM and Credit Selection Interface.
+// Rationale: Serves as the central repository for customer relationship 
+//   management, supporting standalone profile administration (Add/Edit/Delete) 
+//   and real-time debtor identification. Operates in 'Selection Mode' for 
+//   POS checkout flows and provides deep-link navigation to customer ledgers.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // UI: Flutter Material widgets
+import 'package:google_fonts/google_fonts.dart'; // UI: Poppins typography
+import 'package:provider/provider.dart'; // State: Provider read/watch
+import 'package:frontend/core/theme/app_colors.dart'; // Theme: Brand colour tokens
+import 'package:frontend/core/utils/snackbar_utils.dart'; // UX: Feedback toasts with diagnostics
+import 'package:frontend/features/credit/presentation/providers/credit_provider.dart'; // State: Customer data manager
+import 'package:frontend/features/credit/domain/entities/customer.dart'; // Domain: Customer model
+import 'package:frontend/features/credit/presentation/screens/credit_detail_screen.dart'; // Navigation: Customer ledger
+import 'package:frontend/features/credit/presentation/utils/export_utils.dart'; // PDF: Batch credit export
+import 'package:frontend/shared/widgets/modern_pdf_icon.dart'; // UI: Brand-consistent PDF trigger icon
+import 'package:frontend/shared/widgets/app_back_button.dart'; // Standardized navigation trigger
+import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // State: Identity management
 
+/// CreditListScreen: A dual-purpose screen for managing customer credit.
+/// Works as both a standalone CRM view and a selection picker for the checkout flow.
 class CreditListScreen extends StatefulWidget {
   final bool isSelectionMode;
 
@@ -23,9 +37,11 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
   String _searchQuery = '';
 
   @override
+  @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Initial data load on mount.
       if (mounted) context.read<CreditProvider>().fetchCustomers();
     });
     _tabController = TabController(length: 2, vsync: this);
@@ -34,6 +50,7 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
   }
 
   void _onScroll() {
+    // Pagination trigger when reaching the 200px threshold from bottom.
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       context.read<CreditProvider>().fetchCustomers(refresh: false);
@@ -60,23 +77,32 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Customer Credit'),
+          title: Text('Customer Credit'),
+          leading: (widget.isSelectionMode || Navigator.canPop(context))
+              ? AppBackButton(
+                  onTap: () => Navigator.pop(context),
+                  margin: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
+                )
+              : null,
+          automaticallyImplyLeading: false,
           actions: [
             IconButton(
-              icon: const Icon(Icons.picture_as_pdf_outlined),
+              icon: const ModernPdfIcon(),
               onPressed: () {
                 final provider = context.read<CreditProvider>();
+                final owner = context.read<AuthProvider>().currentOwner;
+                // Branching export logic based on active tab view.
                 if (_tabController.index == 0) {
                   final outstanding = provider.outstandingCustomers;
                   if (outstanding.isNotEmpty) {
-                    CreditExportUtils.exportActiveCreditsPdf(outstanding);
+                    CreditExportUtils.exportActiveCreditsPdf(outstanding, owner: owner);
                   } else {
                     SnackBarUtils.showSnackBar(context, 'No active credit users to export');
                   }
                 } else {
                   final settled = provider.settledCustomers;
                   if (settled.isNotEmpty) {
-                    CreditExportUtils.exportSettledCreditsPdf(settled);
+                    CreditExportUtils.exportSettledCreditsPdf(settled, owner: owner);
                   } else {
                     SnackBarUtils.showSnackBar(context, 'No settled customers to export');
                   }
@@ -88,7 +114,7 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(48),
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(12),
@@ -98,11 +124,11 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
                 dividerColor: Colors.transparent,
                 indicatorSize: TabBarIndicatorSize.tab,
                 indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(16),
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: AppColors.textDark.withValues(alpha: 0.05),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -110,10 +136,10 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
                 ),
                 labelColor: AppColors.primary,
                 unselectedLabelColor: AppColors.textMedium,
-                labelStyle: const TextStyle(fontWeight: FontWeight.w700),
-                tabs: const [
-                  Tab(text: 'Credit Users'),
-                  Tab(text: 'Settled / Paid'),
+                labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                tabs: [
+                  Tab(text: 'Credit Users'), // Displaying customers with active liabilities
+                  Tab(text: 'Settled / Paid'), // Displaying customers with zero balances
                 ],
               ),
             ),
@@ -122,10 +148,21 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
         body: SafeArea(
           child: Consumer<CreditProvider>(
           builder: (context, provider, _) {
+            // Auto-trigger: Opens the "Add New Customer" dialog if signaled from the Home screen.
+            if (provider.shouldOpenAddCustomer) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  _showAddCustomerDialog(context);
+                  provider.setShouldOpenAddCustomer(false);
+                }
+              });
+            }
+            // Guard: Initial data retrieval state
             if (provider.isLoading && provider.customers.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
+              return Center(child: CircularProgressIndicator());
             }
 
+            // Filtering Logic: Dynamic search across name and phone fields
             final outstanding = provider.outstandingCustomers.where((c) {
               return c.name.toLowerCase().contains(_searchQuery) ||
                   c.phone.toLowerCase().contains(_searchQuery);
@@ -158,10 +195,11 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'credit_add_customer_btn',
-        onPressed: () => _showAddCustomerDialog(context),
+        onPressed: () => _showAddCustomerDialog(context), // Registration entry point
         backgroundColor: AppColors.primary,
-        child: const Icon(Icons.person_add, color: Colors.white),
+        child: Icon(Icons.person_add, color: Colors.white),
       ),
+      bottomNavigationBar: const SizedBox(height: 110), // Buffer to clear the floating navbar in MainShell
     ),
   );
 }
@@ -175,26 +213,28 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
     return Column(
       children: [
         if (emptyMessage == 'No active credit users')
-          _buildSummaryCard(context),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: _buildSummaryCard(context),
+          ),
 
         // Search bar
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
               hintText: 'Search customers...',
-              prefixIcon: const Icon(Icons.search, color: AppColors.textLight),
+              prefixIcon: Icon(Icons.search, color: AppColors.textLight),
               filled: true,
               fillColor: Colors.grey.shade50,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(20),
                 borderSide: BorderSide.none,
               ),
             ),
           ),
         ),
-        const SizedBox(height: 12),
 
         Expanded(
           child: customers.isEmpty
@@ -207,10 +247,10 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
                         size: 64,
                         color: Colors.grey.shade300,
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16),
                       Text(
                         emptyMessage,
-                        style: TextStyle(
+                        style: GoogleFonts.poppins(
                           fontSize: 16,
                           color: AppColors.textMedium,
                         ),
@@ -220,12 +260,12 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
                 )
               : ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 180),
                   itemCount: customers.length + (provider.hasMoreCustomers ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index == customers.length) {
                       return provider.isFetchingMoreCustomers
-                          ? const Padding(
+                          ? Padding(
                               padding: EdgeInsets.all(16.0),
                               child: Center(child: CircularProgressIndicator()),
                             )
@@ -234,6 +274,7 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
                     final customer = customers[index];
                     return GestureDetector(
                       onTap: () {
+                        // Routing logic based on app context (Sales selection vs CRM view)
                         if (widget.isSelectionMode) {
                           Navigator.pop(context, customer);
                         } else {
@@ -244,6 +285,7 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
                                   CreditDetailScreen(customer: customer),
                             ),
                           ).then((_) {
+                            // Conditional refresh on return to ensure data consistency
                             if (context.mounted) {
                               context.read<CreditProvider>().fetchCustomers();
                             }
@@ -255,7 +297,7 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.03),
@@ -264,101 +306,108 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
                             ),
                           ],
                         ),
-                        child: Row(
+                        child: Column(
                           children: [
-                            CircleAvatar(
-                              radius: 24,
-                              backgroundColor: customer.totalOutstanding > 0
-                                  ? AppColors.accentGreen
-                                  : Colors.blue.shade50,
-                              child: Text(
-                                customer.name.isNotEmpty
-                                    ? customer.name[0].toUpperCase()
-                                    : '?',
-                                style: TextStyle(
-                                  color: customer.totalOutstanding > 0
-                                      ? AppColors.primary
-                                      : Colors.blue,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    customer.name,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    customer.totalOutstanding > 0
-                                        ? 'Rs ${customer.totalOutstanding.toStringAsFixed(0)} active credit'
-                                        : 'All clear / Paid',
-                                    style: TextStyle(
-                                      fontSize: 13,
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: customer.totalOutstanding > 0
+                                      ? AppColors.accentGreen // Alert color for debtors
+                                      : Colors.blue.shade50, // Neutral color for clear accounts
+                                  child: Text(
+                                    customer.name.isNotEmpty
+                                        ? customer.name[0].toUpperCase() // Initial-based avatar
+                                        : '?',
+                                    style: GoogleFonts.poppins(
                                       color: customer.totalOutstanding > 0
-                                          ? AppColors.textMedium
-                                          : AppColors.primary,
-                                      fontWeight: customer.totalOutstanding > 0
-                                          ? FontWeight.normal
-                                          : FontWeight.w600,
+                                          ? AppColors.primary
+                                          : Colors.blue,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 18,
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-                            _buildStatusBadge(
-                              customer.totalOutstanding,
-                              customer.creditLimit,
-                            ),
-                            const SizedBox(width: 8),
-                            PopupMenuButton<String>(
-                              icon: const Icon(
-                                Icons.more_vert,
-                                color: AppColors.textLight,
-                              ),
-                              onSelected: (value) {
-                                if (value == 'edit') {
-                                  _showEditCustomerDialog(context, customer);
-                                } else if (value == 'delete') {
-                                  _showDeleteConfirmation(context, customer);
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(
-                                  value: 'edit',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.edit, size: 18),
-                                      SizedBox(width: 8),
-                                      Text('Edit'),
-                                    ],
-                                  ),
                                 ),
-                                const PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(
+                                const SizedBox(width: 14),
+                                // Customer Identity: Displays name and real-time balance
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Icon(
-                                        Icons.delete,
-                                        size: 18,
-                                        color: AppColors.error,
-                                      ),
-                                      SizedBox(width: 8),
                                       Text(
-                                        'Delete',
-                                        style: TextStyle(
-                                          color: AppColors.error,
+                                        customer.name, // The registered buyer name
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 15,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        customer.totalOutstanding > 0
+                                            ? 'Rs ${customer.totalOutstanding.toStringAsFixed(0)} active credit'
+                                            : 'All clear / Paid', // UX: Positive reinforcement for clear accounts
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 13,
+                                          color: customer.totalOutstanding > 0
+                                              ? AppColors.textMedium
+                                              : AppColors.primary,
+                                          fontWeight: customer.totalOutstanding > 0
+                                              ? FontWeight.normal
+                                              : FontWeight.w600,
                                         ),
                                       ),
                                     ],
+                                  ),
+                                ),
+                                _buildStatusBadge(
+                                  customer.totalOutstanding,
+                                  customer.creditLimit,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton.icon(
+                                  onPressed: () => _showEditCustomerDialog(context, customer),
+                                  icon: const Icon(Icons.edit_rounded, size: 18),
+                                  label: Text(
+                                    'Edit',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.green.shade700,
+                                    backgroundColor: Colors.green.shade50,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                TextButton.icon(
+                                  onPressed: () => _showDeleteConfirmation(context, customer),
+                                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                                  label: Text(
+                                    'Delete',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.red.shade700,
+                                    backgroundColor: Colors.red.shade50,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -390,12 +439,12 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
               controller: nameController,
               decoration: const InputDecoration(hintText: 'Customer name'),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextField(
               controller: phoneController,
               decoration: const InputDecoration(hintText: 'Phone number'),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextField(
               controller: limitController,
               keyboardType: TextInputType.number,
@@ -409,16 +458,17 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
+              // Patch local edit to the server
               if (nameController.text.isNotEmpty) {
                 final double? limit = double.tryParse(limitController.text);
                 final success =
                     await Provider.of<CreditProvider>(
-                      context,
-                      listen: false,
+                       context,
+                       listen: false,
                     ).updateCustomer(customer.id, {
                       'name': nameController.text.trim(),
                       'phone': phoneController.text.trim(),
@@ -432,17 +482,18 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
                     );
                     Navigator.pop(ctx);
                   } else {
+                    final creditProvider = context.read<CreditProvider>();
                     SnackBarUtils.showSnackBar(
                       context,
-                      context.read<CreditProvider>().error ??
-                          'Failed to update customer',
+                      creditProvider.error ?? 'Failed to update customer',
                       isError: true,
+                      technicalDetails: creditProvider.technicalDetails,
                     );
                   }
                 }
               }
             },
-            child: const Text('Update'),
+            child: Text('Update'),
           ),
         ],
       ),
@@ -453,8 +504,9 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Customer'),
+        title: Text('Delete Customer'),
         content: Text(
+          // Conditional warning for active liabilities
           customer.totalOutstanding > 0
               ? 'Warning: This customer has Rs ${customer.totalOutstanding.toStringAsFixed(0)} active credit. Are you sure you want to delete them?'
               : 'Are you sure you want to delete ${customer.name}?',
@@ -462,7 +514,7 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text('Cancel'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
@@ -479,16 +531,17 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
                   );
                   Navigator.pop(ctx);
                 } else {
+                  final creditProvider = context.read<CreditProvider>();
                   SnackBarUtils.showSnackBar(
                     context,
-                    context.read<CreditProvider>().error ??
-                        'Failed to delete customer',
+                    creditProvider.error ?? 'Failed to delete customer',
                     isError: true,
+                    technicalDetails: creditProvider.technicalDetails,
                   );
                 }
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: Text('Delete', style: GoogleFonts.poppins(color: Colors.white)),
           ),
         ],
       ),
@@ -498,7 +551,7 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
   Widget _buildSummaryCard(BuildContext context) {
     final provider = context.watch<CreditProvider>();
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -515,16 +568,16 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Total Active Credit',
-                  style: TextStyle(
+                  'Total Active Credit', // Aggregate system liability
+                  style: GoogleFonts.poppins(
                     fontSize: 13,
                     color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   'Rs ${provider.totalOutstanding.toStringAsFixed(0)}',
-                  style: const TextStyle(
+                  style: GoogleFonts.poppins(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -543,7 +596,7 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
               children: [
                 Text(
                   provider.activeCredits.toString(),
-                  style: const TextStyle(
+                  style: GoogleFonts.poppins(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -551,7 +604,7 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
                 ),
                 Text(
                   'Active',
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: Colors.white.withValues(alpha: 0.8),
                   ),
@@ -581,11 +634,11 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         text,
-        style: TextStyle(
+        style: GoogleFonts.poppins(
           fontSize: 12,
           fontWeight: FontWeight.w600,
           color: color,
@@ -608,12 +661,12 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
               controller: nameController,
               decoration: const InputDecoration(hintText: 'Customer name'),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextField(
               controller: phoneController,
               decoration: const InputDecoration(hintText: 'Phone number'),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             TextField(
               controller: limitController,
               keyboardType: TextInputType.number,
@@ -627,7 +680,7 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -650,11 +703,12 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
                     );
                     Navigator.pop(ctx);
                   } else if (ctx.mounted) {
+                    final creditProvider = context.read<CreditProvider>();
                     SnackBarUtils.showSnackBar(
                       context,
-                      context.read<CreditProvider>().error ??
-                          'Failed to add customer',
+                      creditProvider.error ?? 'Failed to add customer',
                       isError: true,
+                      technicalDetails: creditProvider.technicalDetails,
                     );
                   }
                 }
@@ -666,10 +720,11 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
                 }
               }
             },
-            child: const Text('Add'),
+            child: Text('Add'),
           ),
         ],
       ),
     );
   }
 }
+

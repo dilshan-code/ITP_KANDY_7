@@ -1,10 +1,16 @@
-import 'package:flutter/material.dart';
-import 'package:frontend/features/credit/domain/entities/customer.dart';
-import 'package:frontend/features/credit/domain/entities/credit_transaction.dart';
-import 'package:frontend/features/credit/data/repositories/credit_repository_impl.dart';
-
-// CreditProvider manages the list of customers and their credit (debt) history.
-// It notifies the UI to update whenever a payment is made or a new customer is added.
+// ------------------------------------------------------------------------------
+// File: credit_provider.dart
+// Purpose: Customer Account Lifecycle and Debt Governance.
+// Rationale: Orchestrates customer identity management, credit limit 
+//   monitoring, and transparent debt/payment tracking. Centralizes CRUD 
+//   operations and surfaces structured AppException diagnostics for robust 
+//   financial error reporting.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // State: ChangeNotifier foundation
+import 'package:frontend/core/error/exceptions.dart'; // Diagnostics: Structured error propagation
+import 'package:frontend/features/credit/domain/entities/customer.dart'; // Domain: Customer profile entity
+import 'package:frontend/features/credit/domain/entities/credit_transaction.dart'; // Domain: Ledger entry model
+import 'package:frontend/features/credit/data/repositories/credit_repository_impl.dart'; // Data: Server communication
 class CreditProvider extends ChangeNotifier {
   final CreditRepositoryImpl _repository = CreditRepositoryImpl();
 
@@ -15,7 +21,9 @@ class CreditProvider extends ChangeNotifier {
   bool _hasMoreTransactions = true;
   bool _isFetchingMoreCustomers = false;
   bool _hasMoreCustomers = true;
+  bool _shouldOpenAddCustomer = false;
   String? _error;
+  String? _technicalDetails;
   static const int _pageSize = 20;
 
   List<Customer> get customers => _customers;
@@ -26,6 +34,8 @@ class CreditProvider extends ChangeNotifier {
   bool get isFetchingMoreCustomers => _isFetchingMoreCustomers;
   bool get hasMoreCustomers => _hasMoreCustomers;
   String? get error => _error;
+  String? get technicalDetails => _technicalDetails;
+  bool get shouldOpenAddCustomer => _shouldOpenAddCustomer;
 
   double get totalOutstanding =>
       _customers.fold(0, (sum, c) => sum + c.totalOutstanding);
@@ -37,7 +47,10 @@ class CreditProvider extends ChangeNotifier {
   List<Customer> get settledCustomers =>
       _customers.where((c) => c.totalOutstanding <= 0).toList();
 
-  // Fetches all customers from the backend database.
+  /*
+   * Logic: Customer Registry Fetch.
+   * Rationale: Loads paginated customer profiles from the backend.
+   */
   Future<void> fetchCustomers({bool refresh = true}) async {
     if (refresh) {
       _isLoading = true;
@@ -68,10 +81,17 @@ class CreditProvider extends ChangeNotifier {
       _isFetchingMoreCustomers = false;
       notifyListeners();
     } catch (e) {
-      _error = e.toString();
+      if (e is AppException) {
+        _error = e.message;
+        _technicalDetails = e.details;
+      } else {
+        _error = e.toString();
+      }
       _isLoading = false;
       _isFetchingMoreCustomers = false;
+      _isFetchingMoreTransactions = false;
       notifyListeners();
+      if (e is! AppException) rethrow;
     }
   }
 
@@ -113,6 +133,10 @@ class CreditProvider extends ChangeNotifier {
     }
   }
 
+  /*
+   * Logic: Customer Registration.
+   * Rationale: Onboards a new customer profile into the system.
+   */
   Future<bool> addCustomer(Map<String, dynamic> data) async {
     try {
       await _repository.createCustomer(data);
@@ -125,6 +149,15 @@ class CreditProvider extends ChangeNotifier {
     }
   }
 
+  void setShouldOpenAddCustomer(bool value) {
+    _shouldOpenAddCustomer = value;
+    notifyListeners();
+  }
+
+  /*
+   * Logic: Profile Update.
+   * Rationale: Modifies existing customer metadata (name, phone, address).
+   */
   Future<bool> updateCustomer(String id, Map<String, dynamic> data) async {
     try {
       await _repository.updateCustomer(id, data);
@@ -137,6 +170,10 @@ class CreditProvider extends ChangeNotifier {
     }
   }
 
+  /*
+   * Logic: Record Deletion.
+   * Rationale: Removes a customer profile from the registry.
+   */
   Future<bool> deleteCustomer(String id) async {
     try {
       final success = await _repository.deleteCustomer(id);
@@ -151,6 +188,10 @@ class CreditProvider extends ChangeNotifier {
     }
   }
 
+  /*
+   * Logic: Debt Reversal / Mutation.
+   * Rationale: Directly creates a credit transaction entry.
+   */
   Future<bool> addTransaction(Map<String, dynamic> data) async {
     try {
       await _repository.createTransaction(data);
@@ -164,8 +205,10 @@ class CreditProvider extends ChangeNotifier {
     }
   }
 
-  // A helper method that records a payment for the entire outstanding debt of a customer.
-  // Now updated to create a Sale (Invoice) record for the settlement.
+  /*
+   * Logic: Debt Settle / Payment Entry.
+   * Rationale: Records a financial payment against a customer's loan balance.
+   */
   Future<void> settleFullBalance(Customer customer) async {
     _isLoading = true;
     _error = null;
@@ -204,3 +247,4 @@ class CreditProvider extends ChangeNotifier {
     }
   }
 }
+

@@ -1,8 +1,12 @@
-import 'package:frontend/core/network/api_client.dart';
-import 'package:frontend/features/suppliers/domain/entities/purchase.dart';
-import 'package:frontend/features/suppliers/domain/repositories/purchase_repository.dart';
-
-// PurchaseRepositoryImpl handles all restocking transactions between the shop and its suppliers.
+﻿// ------------------------------------------------------------------------------
+// File: purchase_repository_impl.dart
+// Purpose: Concrete implementation of purchase data operations via REST API.
+// Rationale: Translates domain-level CRUD for purchase records, supplier-
+//   scoped queries, and settlement actions into HTTP calls via ApiClient.
+// ------------------------------------------------------------------------------
+import 'package:frontend/core/network/api_client.dart'; // Network: HTTP request dispatch
+import 'package:frontend/features/suppliers/domain/entities/purchase.dart'; // Domain: Purchase model
+import 'package:frontend/features/suppliers/domain/repositories/purchase_repository.dart'; // Contract: Repository interface
 class PurchaseRepositoryImpl implements PurchaseRepository {
   // Fetches the complete history of all stock purchases made by the shop.
   @override
@@ -43,6 +47,12 @@ class PurchaseRepositoryImpl implements PurchaseRepository {
     return response['success'] ?? false;
   }
 
+  @override
+  Future<Purchase?> settlePurchase(String id) async {
+    final response = await ApiClient.put('/purchases/$id/settle', {});
+    return response['data'] != null ? Purchase.fromJson(response['data']) : null;
+  }
+
   // Shows all purchases linked to a single supplier, useful for debt tracking.
   @override
   Future<List<Purchase>> getPurchasesBySupplier(String supplierId, {int? limit, String? lastId}) async {
@@ -56,3 +66,4 @@ class PurchaseRepositoryImpl implements PurchaseRepository {
         .toList();
   }
 }
+

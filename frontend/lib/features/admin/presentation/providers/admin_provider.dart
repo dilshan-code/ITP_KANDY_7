@@ -1,18 +1,29 @@
-import 'package:flutter/material.dart';
-import 'package:frontend/core/network/api_client.dart';
-import 'package:frontend/features/auth/domain/entities/owner.dart';
+﻿// ------------------------------------------------------------------------------
+// File: admin_provider.dart
+// Purpose: Centralized state management for global administrative operations.
+// Rationale: Orchestrates high-level system control including store owner 
+//   lifecycle (fetch, suspend, delete) and real-time MongoDB health monitoring.
+//   Directly utilizes ApiClient to bypass feature-specific repositories for 
+//   platform-wide administrative agility.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // UI: Flutter Material & ChangeNotifier
+import 'package:frontend/core/error/exceptions.dart'; // Core: Structured error handling
+import 'package:frontend/core/network/api_client.dart'; // Network: Global API operations
+import 'package:frontend/features/auth/domain/entities/owner.dart'; // Domain: Owner entity model
 
 class AdminProvider extends ChangeNotifier {
   List<Owner> _owners = [];
   bool _isLoading = false;
   bool _isActionInProgress = false;
   String? _error;
+  String? _technicalDetails;
   Map<String, dynamic>? _systemHealth;
 
   List<Owner> get owners => _owners;
   bool get isLoading => _isLoading;
   bool get isActionInProgress => _isActionInProgress;
   String? get error => _error;
+  String? get technicalDetails => _technicalDetails;
   Map<String, dynamic>? get systemHealth => _systemHealth;
 
   // Fetch real-time system health and MongoDB metrics.
@@ -28,7 +39,7 @@ class AdminProvider extends ChangeNotifier {
     }
   }
 
-  // Fetch all store owners for the client dashboard
+  // Fetch all store owners for the Admin Dashboard
   Future<void> fetchOwners() async {
     _isLoading = true;
     _error = null;
@@ -43,7 +54,12 @@ class AdminProvider extends ChangeNotifier {
         _error = response['error'] ?? 'Failed to fetch owners';
       }
     } catch (e) {
-      _error = e.toString().replaceAll('Exception: ', '');
+      if (e is AppException) {
+        _error = e.message;
+        _technicalDetails = e.details;
+      } else {
+        _error = e.toString();
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -86,7 +102,12 @@ class AdminProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     } catch (e) {
-      _error = e.toString().replaceAll('Exception: ', '');
+      if (e is AppException) {
+        _error = e.message;
+        _technicalDetails = e.details;
+      } else {
+        _error = e.toString();
+      }
       notifyListeners();
       return false;
     } finally {
@@ -147,3 +168,4 @@ class AdminProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
+

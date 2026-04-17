@@ -1,9 +1,22 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:frontend/core/utils/snackbar_utils.dart';
-import 'package:frontend/features/admin/presentation/providers/admin_provider.dart';
-import 'package:frontend/features/admin/presentation/utils/owner_pdf_utils.dart';
-import 'package:frontend/features/auth/domain/entities/owner.dart';
+// ------------------------------------------------------------------------------
+// File: manage_owners_screen.dart
+// Purpose: Granular control interface for platform-wide grocery store accounts.
+// Rationale: Implements the full lifecycle management for Shop Owners, including
+//   complex search/filtering, account suspension toggle, and record deletion. 
+//   Serves as the primary defensive tool against system abuse or churn metadata.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // UI: Material framework
+import 'package:provider/provider.dart'; // State: Dependency injection system
+import 'package:frontend/core/utils/snackbar_utils.dart'; // Utils: Feedback surface
+import 'package:frontend/features/admin/presentation/providers/admin_provider.dart'; // State: Administrative data source
+import 'package:frontend/features/admin/presentation/utils/owner_pdf_utils.dart'; // Utils: PDF report generator
+import 'package:frontend/features/auth/domain/entities/owner.dart'; // Domain: User identity model
+import 'package:frontend/shared/widgets/modern_pdf_icon.dart'; // UI: Custom asset widgets
+import 'package:frontend/shared/widgets/shimmer_loading.dart'; // UI: Async state indicators
+import 'package:frontend/shared/widgets/tactile_scale.dart'; // UI: Interaction physics
+import 'package:frontend/core/theme/app_colors.dart'; // Styling: Design tokens
+import 'package:animate_do/animate_do.dart'; // UI: Motion design framework
+
 
 class ManageOwnersScreen extends StatefulWidget {
   const ManageOwnersScreen({super.key});
@@ -28,7 +41,7 @@ class _ManageOwnersScreenState extends State<ManageOwnersScreen> {
     final filteredOwners = _buildFilteredOwners(adminProvider.owners);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F7F6),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
           'Owner Management',
@@ -39,37 +52,31 @@ class _ManageOwnersScreenState extends State<ManageOwnersScreen> {
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        centerTitle: false,
-        automaticallyImplyLeading: false,
+        leading: null,
         actions: [
-          IconButton(
-            tooltip: 'Export to PDF',
-            onPressed: adminProvider.isLoading || filteredOwners.isEmpty
+          TactileScale(
+            onTap: adminProvider.isLoading || filteredOwners.isEmpty
                 ? null
                 : () => OwnerPdfUtils.generateOwnerListPdf(
                       owners: filteredOwners,
                       filterName: _selectedFilter,
                     ),
-            icon: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFF16302B)),
-          ),
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: adminProvider.isLoading
-                ? null
-                : () => context.read<AdminProvider>().fetchOwners(),
-            icon: const Icon(Icons.refresh_rounded, color: Color(0xFF16302B)),
+            child: IconButton(
+              tooltip: 'Export to PDF',
+              onPressed: null, // Handled by TactileScale
+              icon: const ModernPdfIcon(),
+            ),
           ),
         ],
       ),
       body: SafeArea(
         child: adminProvider.isLoading && adminProvider.owners.isEmpty
-            ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFF0F9D58)))
+            ? _buildOwnersShimmer()
             : RefreshIndicator(
                 onRefresh: () => context.read<AdminProvider>().fetchOwners(),
                 color: const Color(0xFF0F9D58),
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
                   children: [
                     _OverviewPanel(provider: adminProvider),
                     const SizedBox(height: 18),
@@ -127,10 +134,14 @@ class _ManageOwnersScreenState extends State<ManageOwnersScreen> {
                     if (filteredOwners.isEmpty)
                       _EmptyOwnersState(activeFilter: _selectedFilter)
                     else
-                      ...filteredOwners.map(
-                        (owner) => Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: _OwnerCard(owner: owner),
+                      ...filteredOwners.indexed.map(
+                        (entry) => FadeInLeft(
+                          duration: const Duration(milliseconds: 500),
+                          delay: Duration(milliseconds: entry.$1 * 100),
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 14),
+                            child: _OwnerCard(owner: entry.$2),
+                          ),
                         ),
                       ),
                   ],
@@ -140,9 +151,26 @@ class _ManageOwnersScreenState extends State<ManageOwnersScreen> {
     );
   }
 
+  Widget _buildOwnersShimmer() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+      children: List.generate(
+        5,
+        (index) => Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: ShimmerLoading(
+            isLoading: true,
+            child: ShimmerSkeleton(height: 180, borderRadius: 24),
+          ),
+        ),
+      ),
+    );
+  }
+
   List<Owner> _buildFilteredOwners(List<Owner> owners) {
     final query = _searchController.text.trim().toLowerCase();
     final filtered = owners.where((owner) {
+      // Reactive switch: Filtering by operational status (Active vs Suspended).
       final matchesFilter = switch (_selectedFilter) {
         'active' =>
           owner.isSuspended == false && owner.status != 'suspended',
@@ -151,6 +179,7 @@ class _ManageOwnersScreenState extends State<ManageOwnersScreen> {
         _ => true,
       };
 
+      // Multi-criteria aggregation: Searching across name, shop, phone, and email.
       final searchable = [
         owner.name,
         owner.shopName,
@@ -164,6 +193,7 @@ class _ManageOwnersScreenState extends State<ManageOwnersScreen> {
     }).toList();
 
     filtered.sort((a, b) {
+      // Priority sorting: Show suspended accounts at the bottom or highlighted depending on rank.
       final rankA = _statusRank(a);
       final rankB = _statusRank(b);
       if (rankA != rankB) return rankA.compareTo(rankB);
@@ -230,6 +260,7 @@ class _OverviewPanel extends StatelessWidget {
                   label: 'Active',
                   value: provider.activeOwners.toString(),
                   tint: const Color(0xFFB7F7CE),
+                  isLoading: provider.isLoading,
                 ),
               ),
               const SizedBox(width: 12),
@@ -238,6 +269,7 @@ class _OverviewPanel extends StatelessWidget {
                   label: 'Suspended',
                   value: provider.suspendedOwners.toString(),
                   tint: const Color(0xFFFFC9D2),
+                  isLoading: provider.isLoading,
                 ),
               ),
             ],
@@ -252,11 +284,13 @@ class _MiniStat extends StatelessWidget {
   final String label;
   final String value;
   final Color tint;
+  final bool isLoading;
 
   const _MiniStat({
     required this.label,
     required this.value,
     required this.tint,
+    this.isLoading = false,
   });
 
   @override
@@ -271,13 +305,27 @@ class _MiniStat extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            value,
-            style: TextStyle(
-              color: tint,
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  color: tint,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              if (isLoading)
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: tint,
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
@@ -551,6 +599,7 @@ class _OwnerCard extends StatelessWidget {
                       : const Color(0xFFDC2626),
                   onPressed: () => _runAction(
                     context,
+                    // Administrative suspension: Toggling account access via AdminProvider.
                     () => context.read<AdminProvider>().suspendOwner(owner.id),
                     owner.isSuspended 
                         ? 'Owner unsuspended successfully' 
@@ -559,7 +608,7 @@ class _OwnerCard extends StatelessWidget {
                 ),
                 _ActionButton(
                   label: 'Update',
-                  icon: Icons.edit_outlined,
+                  icon: Icons.edit_rounded,
                   color: const Color(0xFF1D4ED8),
                   onPressed: () => _showEditDialog(context),
                 ),
@@ -611,35 +660,19 @@ class _OwnerCard extends StatelessWidget {
     final adminProvider = context.read<AdminProvider>();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete owner account'),
-        content: Text(
-          'Delete ${owner.name.isNotEmpty ? owner.name : owner.shopName} permanently? This will remove the registration record from the admin list.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFB42318),
-            ),
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      barrierDismissible: false,
+      builder: (dialogContext) => _AdminDeleteConfirmationDialog(owner: owner),
     );
 
     if (confirmed != true) return;
 
     final success = await adminProvider.deleteOwner(owner.id);
     if (!context.mounted) return;
+    
     SnackBarUtils.showTopSnackBar(
       context,
       success
-          ? 'Owner deleted successfully'
+          ? 'Owner and all associated business data wiped successfully'
           : adminProvider.error ?? 'Failed to delete owner',
       isError: !success,
     );
@@ -717,17 +750,21 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: context.watch<AdminProvider>().isActionInProgress
+    return TactileScale(
+      onTap: context.watch<AdminProvider>().isActionInProgress
           ? null
           : onPressed,
-      icon: Icon(icon, size: 18),
-      label: Text(label),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: color,
-        side: BorderSide(color: color.withValues(alpha: 0.35)),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: ElevatedButton.icon(
+        onPressed: () {}, // Restoration: Providing a callback ensures the button stays vibrant/colored rather than graying out. TactileScale still handles the actual logic.
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
       ),
     );
   }
@@ -851,7 +888,7 @@ class _OwnerEditSheetState extends State<_OwnerEditSheet> {
                   decoration: BoxDecoration(
                     color: _isSuspended 
                         ? const Color(0xFFFFF1F2) 
-                        : const Color(0xFFF3F7F6),
+                        : AppColors.background,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: _isSuspended 
@@ -1012,7 +1049,7 @@ class _SheetField extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.w600),
           decoration: InputDecoration(
             filled: true,
-            fillColor: const Color(0xFFF3F7F6),
+            fillColor: AppColors.background,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide.none,
@@ -1027,3 +1064,134 @@ class _SheetField extends StatelessWidget {
     );
   }
 }
+
+class _AdminDeleteConfirmationDialog extends StatefulWidget {
+  final Owner owner;
+
+  const _AdminDeleteConfirmationDialog({required this.owner});
+
+  @override
+  State<_AdminDeleteConfirmationDialog> createState() => _AdminDeleteConfirmationDialogState();
+}
+
+class _AdminDeleteConfirmationDialogState extends State<_AdminDeleteConfirmationDialog> {
+  bool _confirmed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      title: Row(
+        children: [
+          const Icon(Icons.warning_amber_rounded, color: Color(0xFFB42318), size: 28),
+          const SizedBox(width: 12),
+          const Text(
+            'Confirm Destruction',
+            style: TextStyle(
+              color: Color(0xFF16302B),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'You are about to permanently delete:',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.storefront, size: 20, color: Color(0xFF16302B)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.owner.shopName,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'WARNING: This is a cascading delete. It will immediately wipe:',
+            style: TextStyle(
+              color: Color(0xFFB42318),
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildImpactItem(Icons.inventory_2_outlined, 'All product inventory'),
+          _buildImpactItem(Icons.receipt_long_outlined, 'Full sales database'),
+          _buildImpactItem(Icons.people_outline, 'Customer & credit records'),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Checkbox(
+                value: _confirmed,
+                activeColor: const Color(0xFFB42318),
+                onChanged: (val) => setState(() => _confirmed = val ?? false),
+              ),
+              const Expanded(
+                child: Text(
+                  'I understand this action is irreversible and affects all data.',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(color: Color(0xFF5E7A73), fontWeight: FontWeight.w700),
+          ),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFFB42318),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          ),
+          onPressed: _confirmed ? () => Navigator.pop(context, true) : null,
+          child: const Text(
+            'YES, WIPE DATA',
+            style: TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImpactItem(IconData icon, String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: Colors.grey.shade600),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

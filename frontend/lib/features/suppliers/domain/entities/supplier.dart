@@ -1,4 +1,10 @@
-// The Supplier entity represents a business that provides products to the shop.
+﻿// ------------------------------------------------------------------------------
+// File: supplier.dart
+// Purpose: Domain entity representing an external business partner/supplier.
+// Rationale: Provides a strongly-typed model for supplier profile data
+//   including aggregate payable balance. Used across Supplier module screens,
+//   providers, and PDF export utilities.
+// ------------------------------------------------------------------------------
 class Supplier {
   final String id;
   final String name;
@@ -46,3 +52,4 @@ class Supplier {
     };
   }
 }
+

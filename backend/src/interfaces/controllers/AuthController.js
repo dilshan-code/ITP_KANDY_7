@@ -1,12 +1,14 @@
 // AuthController handles everything related to user accounts: signing up, logging in, and managing profiles.
 class AuthController {
-    constructor({ registerOwner, loginOwner, getOwnerProfile, updateOwnerProfile, changeOwnerPassword, resetPassword }) {
+    constructor({ registerOwner, loginOwner, getOwnerProfile, updateOwnerProfile, changeOwnerPassword, resetPassword, checkAvailability, deleteOwner }) {
         this.registerOwner = registerOwner;
         this.loginOwner = loginOwner;
         this.getOwnerProfile = getOwnerProfile;
         this.updateOwnerProfile = updateOwnerProfile;
         this.changeOwnerPassword = changeOwnerPassword;
         this.resetPasswordUseCase = resetPassword;
+        this.checkAvailabilityUseCase = checkAvailability;
+        this.deleteOwner = deleteOwner;
     }
 
     // Registers a brand new shop owner account.
@@ -29,9 +31,9 @@ class AuthController {
     // Logs in an existing owner using their email or phone number.
     async login(req, res) {
         try {
-            const { email, password, identifier } = req.body;
+            const { email, phone, password, identifier } = req.body;
             // Support login by email, phone, or a generic identifier field
-            const loginId = identifier || email;
+            const loginId = identifier || email || phone;
             if (!loginId || !password) {
                 return res.status(400).json({ success: false, error: 'Email/Phone and password are required' });
             }
@@ -98,15 +100,44 @@ class AuthController {
     // Allows unauthenticated password reset for cases where users forgot their password.
     async resetPassword(req, res) {
         try {
-            const { identifier, newPassword } = req.body;
-            if (!identifier || !newPassword) {
+            const { identifier, email, phone, newPassword } = req.body;
+            const resetId = identifier || email || phone;
+            if (!resetId || !newPassword) {
                 return res.status(400).json({ success: false, error: 'Email/Phone and new password are required' });
             }
-            const owner = await this.resetPasswordUseCase.execute(identifier, newPassword);
+            const owner = await this.resetPasswordUseCase.execute(resetId, newPassword);
             res.json({ success: true, message: 'Password reset successfully', data: owner });
         } catch (error) {
             const statusCode = error.message.includes('not found') ? 404 : 400;
             res.status(statusCode).json({ success: false, error: error.message });
+        }
+    }
+
+    // Checks if a phone number or email is already registered.
+    async checkAvailability(req, res) {
+        try {
+            const { phone, email } = req.body;
+            const result = await this.checkAvailabilityUseCase.execute({ phone, email });
+            res.json({ success: true, ...result });
+        } catch (error) {
+            res.status(400).json({ success: false, error: error.message });
+        }
+    }
+
+    // Permanently deletes an owner profile and all associated data.
+    async deleteProfile(req, res) {
+        try {
+            // Security: Only allow users to delete their own profile
+            if (req.params.id !== req.ownerId) {
+                return res.status(403).json({ success: false, error: 'Unauthorized access' });
+            }
+            const success = await this.deleteOwner.execute(req.params.id);
+            if (!success) {
+                return res.status(404).json({ success: false, error: 'Account not found or already deleted' });
+            }
+            res.json({ success: true, message: 'Account and all associated data have been permanently deleted' });
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
         }
     }
 }

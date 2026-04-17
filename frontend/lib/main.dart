@@ -1,5 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+﻿// ------------------------------------------------------------------------------
+// File: main.dart
+// Purpose: Application Entry Point and Dependency Injection Root.
+// Rationale: Initializes the Flutter framework, cloud services (Firebase), 
+//   and the distributed service layer (UDP discovery, API client). 
+//   Orchestrates the MultiProvider tree for global state management and 
+//   registers top-level error boundaries for system resilience.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // UI: Framework core
+import 'package:provider/provider.dart'; // State: Dependency injection
 import 'package:frontend/core/theme/app_theme.dart';
 import 'package:frontend/features/products/presentation/providers/product_provider.dart';
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart';
@@ -12,15 +20,40 @@ import 'package:frontend/features/auth/presentation/screens/splash_screen.dart';
 import 'package:frontend/features/admin/presentation/providers/admin_provider.dart';
 import 'package:frontend/features/account/presentation/providers/feedback_provider.dart';
 import 'package:frontend/core/services/notification_service.dart';
+import 'package:frontend/core/utils/restart_widget.dart';
+import 'package:frontend/shared/widgets/global_error_widget.dart';
+import 'package:frontend/core/network/api_client.dart';
+import 'package:frontend/core/network/backend_discovery.dart';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:frontend/firebase_options.dart';
 
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  await NotificationService().initialize();
-  runApp(const ClickBuyApp());
+  WidgetsFlutterBinding.ensureInitialized(); // Required by Flutter to run async code in main()
+  
+  // Register a global error builder to provide a premium error design.
+  // This replaces the default Flutter "red screen" for the entire app.
+  ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
+    return GlobalErrorWidget(errorDetails: errorDetails); // Use our custom premium error UI
+  };
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform, // Initialize Firebase for the correct OS
+  );
+  
+  // Initialize dynamic API client and start local network discovery
+  await ApiClient.init(); // Setup base URL from local storage or defaults
+  BackendDiscovery.startDiscovery(); // Begin listening for server heatbeats (UDP)
+  
+  await NotificationService().initialize(); // Setup local notifications for Android/iOS
+  
+  // Wrap the entire application in a RestartWidget to allow for full app reloads.
+  runApp(
+    const RestartWidget(
+      child: ClickBuyApp(), // The main application entry widget
+    ),
+  );
 }
 
 class ClickBuyApp extends StatelessWidget {
@@ -53,12 +86,18 @@ class ClickBuyApp extends StatelessWidget {
       ],
 
       child: MaterialApp(
-        title: 'ClickBuy - Shop Manager',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        themeMode: ThemeMode.light,
-        home: const SplashScreen(),
+        title: 'ClickBuy - Shop Manager', // App title for system task switcher
+        debugShowCheckedModeBanner: false, // Remove the "Debug" banner in the corner
+        theme: AppTheme.lightTheme, // Apply out custom sleek light theme
+        themeMode: ThemeMode.light, // Forces light mode for consistency
+        home: const SplashScreen(), // The first screen shown when app starts
+        
+        // Final frame builder (useful for global overlay or theme scoping)
+        builder: (context, widget) {
+          return widget!; // Pass through the widget (screen)
+        },
       ),
     );
   }
 }
+

@@ -1,18 +1,26 @@
-import 'dart:io' show File;
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
-import 'package:frontend/core/theme/app_colors.dart';
-import 'package:frontend/core/utils/snackbar_utils.dart';
-import 'package:frontend/features/products/domain/entities/product.dart';
-import 'package:frontend/features/products/presentation/providers/product_provider.dart';
-import 'package:frontend/core/utils/validation_utils.dart';
-import 'package:frontend/features/products/presentation/utils/category_constants.dart';
+// ------------------------------------------------------------------------------
+// File: edit_product_screen.dart
+// Purpose: Product Modification and Deletion Interface.
+// Rationale: Facilitates secure inventory record updates including partial data 
+//   patches, image replacement, and destructive deletion flows with multi-layer 
+//   confirmation mechanisms.
+// ------------------------------------------------------------------------------
+import 'dart:io' show File; // Platform: File I/O for image preview
+import 'package:flutter/material.dart'; // Core: Flutter UI reactive system
+import 'package:google_fonts/google_fonts.dart'; // Typography: Brand font sets
+import 'package:flutter/foundation.dart'; // Platform: Web/native detection (kIsWeb)
+import 'package:image_picker/image_picker.dart'; // Media: Camera/gallery access
+import 'package:provider/provider.dart'; // State: Dependency injection system
+import 'package:frontend/core/theme/app_colors.dart'; // Styling: Design system tokens
+import 'package:frontend/core/utils/snackbar_utils.dart'; // Feedback: Status notification component
+import 'package:frontend/features/products/domain/entities/product.dart'; // Domain: Product entity
+import 'package:frontend/features/products/presentation/providers/product_provider.dart'; // State: Inventory manager
+import 'package:frontend/core/utils/validation_utils.dart'; // Logic: Form field validators
+import 'package:frontend/features/products/presentation/utils/category_constants.dart'; // Config: Product taxonomy
+import 'package:frontend/shared/widgets/app_back_button.dart'; // Standardized navigation trigger
+import 'package:frontend/core/utils/image_helper.dart'; // Logic: Unified pick-and-crop utility
 
-// EditProductScreen allows users to modify an existing product's details
-// or completely delete it from the system. It pre-fills the form with the
-// current product data passed into it via the constructor.
+
 class EditProductScreen extends StatefulWidget {
   final Product product;
   const EditProductScreen({super.key, required this.product});
@@ -33,7 +41,6 @@ class _EditProductScreenState extends State<EditProductScreen> {
   late bool _notifyOutOfStock;
   bool _saving = false;
   XFile? _imageFile;
-  final ImagePicker _picker = ImagePicker();
   bool _imageRemoved = false;
   final _formKey = GlobalKey<FormState>();
 
@@ -50,6 +57,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   @override
   void initState() {
     super.initState();
+    // Pre-fill local controllers with existing entity data
     _nameController = TextEditingController(text: widget.product.name);
     _sellingPriceController = TextEditingController(
       text: widget.product.sellingPrice.toStringAsFixed(2),
@@ -63,6 +71,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
     _descriptionController = TextEditingController(
       text: widget.product.description,
     );
+    // Category validation against current runtime constants
     _selectedCategory = _categories.contains(widget.product.category)
         ? widget.product.category
         : _categories.first;
@@ -83,22 +92,20 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final pickedFile = await _picker.pickImage(
+      final croppedFile = await ImageHelper.pickAndCropImage(
+        context: context,
         source: source,
-        maxWidth: 1000,
-        maxHeight: 1000,
-        imageQuality: 85,
       );
 
-      if (pickedFile != null) {
+      if (croppedFile != null) {
         setState(() {
-          _imageFile = pickedFile;
-          _imageRemoved = false;
+          _imageFile = croppedFile;
+          _imageRemoved = false; // Override previous removal intent
         });
       }
     } catch (e) {
       if (mounted) {
-        SnackBarUtils.showSnackBar(context, 'Error picking image: $e', isError: true);
+        SnackBarUtils.showSnackBar(context, 'Error processing image: $e', isError: true);
       }
     }
   }
@@ -106,7 +113,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   void _removeImage() {
     setState(() {
       _imageFile = null;
-      _imageRemoved = true;
+      _imageRemoved = true; // Mark for deletion on the server side
     });
   }
 
@@ -115,6 +122,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
 
     setState(() => _saving = true);
 
+    // Patch object construction for partial/full update
     final data = {
       'name': _nameController.text.trim(),
       'category': _selectedCategory,
@@ -123,11 +131,12 @@ class _EditProductScreenState extends State<EditProductScreen> {
       'stockQuantity': _stockQuantity,
       'minimumStockLevel': int.tryParse(_minStockController.text) ?? 0,
       'description': _descriptionController.text.trim(),
-      'imageUrl': _imageRemoved ? '' : widget.product.imageUrl,
+      'imageUrl': _imageRemoved ? '' : widget.product.imageUrl, // Handle remote image deletion
       'unit': _selectedUnit,
       'notifyOutOfStock': _notifyOutOfStock,
     };
 
+    // Execution via Provider to maintain centralized cache consistency
     final success = await context.read<ProductProvider>().updateProduct(
       widget.product.id,
       data,
@@ -138,35 +147,38 @@ class _EditProductScreenState extends State<EditProductScreen> {
       setState(() => _saving = false);
       if (success && mounted) {
         SnackBarUtils.showSnackBar(context, 'Product updated successfully');
-        Navigator.pop(context);
+        Navigator.pop(context); // Return to inventory hub
       } else if (mounted) {
+        final productProvider = context.read<ProductProvider>();
         SnackBarUtils.showSnackBar(
           context,
-          context.read<ProductProvider>().error ?? 'Failed to update product',
+          productProvider.error ?? 'Failed to update product',
           isError: true,
+          technicalDetails: productProvider.technicalDetails,
         );
       }
     }
   }
 
   Future<void> _deleteProduct() async {
+    // Destructive action safeguard
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Product'),
+        title: Text('Delete Product'),
         content: Text(
           'Are you sure you want to delete "${widget.product.name}"?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
+            child: Text(
               'Delete',
-              style: TextStyle(color: AppColors.error),
+              style: GoogleFonts.poppins(color: AppColors.error),
             ),
           ),
         ],
@@ -183,12 +195,14 @@ class _EditProductScreenState extends State<EditProductScreen> {
             context,
             'Product "${widget.product.name}" has been deleted.',
           );
-          Navigator.pop(context);
+          Navigator.pop(context); // Final exit after deletion
         } else {
+          final productProvider = context.read<ProductProvider>();
           SnackBarUtils.showSnackBar(
             context,
-            'Failed to delete product',
+            productProvider.error ?? 'Failed to delete product',
             isError: true,
+            technicalDetails: productProvider.technicalDetails,
           );
         }
       }
@@ -200,27 +214,10 @@ class _EditProductScreenState extends State<EditProductScreen> {
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.primary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Edit Product',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
-          ),
-        ),
-        centerTitle: true,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            height: 1,
-          ),
+        title: const Text('Edit Product'),
+        leading: AppBackButton(
+          onTap: () => Navigator.pop(context),
+          margin: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
         ),
       ),
       body: SafeArea(
@@ -233,20 +230,20 @@ class _EditProductScreenState extends State<EditProductScreen> {
               children: [
               // Product Image
               _buildImageSection(),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               // Product Name
               _buildLabel('PRODUCT NAME (REQUIRED)'),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               _buildFormField(
                 _nameController,
                 validator: (v) => ValidationUtils.validateRequired(v, 'Product name'),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               // Category
               _buildLabel('CATEGORY'),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               _buildCategoryDropdown(),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               // Prices
               Row(
                 children: [
@@ -256,7 +253,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                       _sellingPriceController,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16),
                   Expanded(
                     child: _buildPriceField(
                       'PURCHASE (COST)',
@@ -265,29 +262,29 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               // Stock quantity
               _buildLabel('CURRENT STOCK QUANTITY'),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               _buildStockControl(),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               // Min stock
               _buildLabel('MINIMUM STOCK LEVEL'),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               _buildFormField(
                 _minStockController,
                 keyboardType: TextInputType.number,
                 validator: ValidationUtils.validateStock,
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               // Description
               _buildLabel('DESCRIPTION'),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               _buildFormField(
                 _descriptionController,
                 hint: 'Enter product description...',
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               // Notification Toggle
               Container(
                 decoration: BoxDecoration(
@@ -297,22 +294,22 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 child: SwitchListTile(
                   value: _notifyOutOfStock,
                   onChanged: (v) => setState(() => _notifyOutOfStock = v),
-                  title: const Text(
+                  title: Text(
                     'Notify when out of stock',
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textDark,
                     ),
                   ),
-                  subtitle: const Text(
+                  subtitle: Text(
                     'Receive an alert when this product hits 0 units.',
-                    style: TextStyle(fontSize: 11, color: AppColors.textLight),
+                    style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textLight),
                   ),
                   activeThumbColor: AppColors.primary,
                 ),
               ),
-              const SizedBox(height: 28),
+              SizedBox(height: 28),
               // Buttons
               SizedBox(
                 width: double.infinity,
@@ -321,13 +318,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     elevation: 3,
                     shadowColor: AppColors.primary.withValues(alpha: 0.3),
                   ),
                   child: _saving
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
@@ -335,24 +332,24 @@ class _EditProductScreenState extends State<EditProductScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
+                      : Text(
                           'Update Product',
-                          style: TextStyle(
+                          style: GoogleFonts.poppins(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: TextButton.icon(
                   onPressed: _deleteProduct,
-                  icon: const Icon(Icons.delete_forever, color: AppColors.error),
-                  label: const Text(
+                  icon: Icon(Icons.delete_forever, color: AppColors.error),
+                  label: Text(
                     'Delete Product',
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: AppColors.error,
@@ -381,7 +378,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   width: 128,
                   height: 128,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: AppColors.primary.withValues(alpha: 0.2),
                       width: 2,
@@ -398,7 +395,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                                 widget.product.imageUrl,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) =>
-                                    const Center(
+                                    Center(
                                       child: Icon(
                                         Icons.image_outlined,
                                         size: 40,
@@ -406,7 +403,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                                       ),
                                     ),
                               )
-                            : const Center(
+                            : Center(
                                 child: Icon(
                                   Icons.image_outlined,
                                   size: 40,
@@ -426,16 +423,16 @@ class _EditProductScreenState extends State<EditProductScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             ListTile(
-                              leading: const Icon(Icons.camera_alt),
-                              title: const Text('Take Photo'),
+                              leading: Icon(Icons.camera_alt),
+                              title: Text('Take Photo'),
                               onTap: () {
                                 Navigator.pop(context);
                                 _pickImage(ImageSource.camera);
                               },
                             ),
                             ListTile(
-                              leading: const Icon(Icons.image),
-                              title: const Text('Gallery'),
+                              leading: Icon(Icons.image),
+                              title: Text('Gallery'),
                               onTap: () {
                                 Navigator.pop(context);
                                 _pickImage(ImageSource.gallery);
@@ -458,7 +455,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                           ),
                         ],
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.photo_camera,
                         size: 16,
                         color: Colors.white,
@@ -468,18 +465,18 @@ class _EditProductScreenState extends State<EditProductScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             if (_imageFile != null || (!_imageRemoved && widget.product.imageUrl.isNotEmpty))
               TextButton.icon(
                 onPressed: _removeImage,
-                icon: const Icon(
+                icon: Icon(
                   Icons.delete_outline,
                   size: 16,
                   color: AppColors.error,
                 ),
-                label: const Text(
+                label: Text(
                   'Remove Image',
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: AppColors.error,
@@ -495,7 +492,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   Widget _buildLabel(String text) {
     return Text(
       text,
-      style: const TextStyle(
+      style: GoogleFonts.poppins(
         fontSize: 12,
         fontWeight: FontWeight.w600,
         color: Color(0xFF475569),
@@ -520,15 +517,15 @@ class _EditProductScreenState extends State<EditProductScreen> {
         filled: true,
         fillColor: AppColors.primary.withValues(alpha: 0.04),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: AppColors.primary.withValues(alpha: 0.2)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: AppColors.primary.withValues(alpha: 0.2)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(
@@ -544,7 +541,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -552,8 +549,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
         child: DropdownButton<String>(
           value: _selectedCategory,
           isExpanded: true,
-          icon: const Icon(Icons.expand_more, color: AppColors.textLight),
-          style: const TextStyle(fontSize: 14, color: AppColors.textDark),
+          icon: Icon(Icons.expand_more, color: AppColors.textLight),
+          style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textDark),
           items: _categories
               .map((c) => DropdownMenuItem(value: c, child: Text(c)))
               .toList(),
@@ -568,13 +565,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildLabel(label),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         TextFormField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
             prefixText: 'Rs.  ',
-            prefixStyle: const TextStyle(
+            prefixStyle: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: AppColors.textMedium,
@@ -582,15 +579,15 @@ class _EditProductScreenState extends State<EditProductScreen> {
             filled: true,
             fillColor: AppColors.primary.withValues(alpha: 0.04),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(color: AppColors.primary.withValues(alpha: 0.2)),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide(color: AppColors.primary.withValues(alpha: 0.2)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: AppColors.primary, width: 2),
             ),
             contentPadding: const EdgeInsets.symmetric(
@@ -609,13 +606,13 @@ class _EditProductScreenState extends State<EditProductScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
           _buildUnitSelector(),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           GestureDetector(
             onTap: () {
               if (_stockQuantity > 0) setState(() => _stockQuantity--);
@@ -625,22 +622,22 @@ class _EditProductScreenState extends State<EditProductScreen> {
               height: 40,
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: AppColors.textDark.withValues(alpha: 0.05),
                     blurRadius: 4,
                   ),
                 ],
               ),
-              child: const Icon(Icons.remove, color: AppColors.primary),
+              child: Icon(Icons.remove, color: AppColors.primary),
             ),
           ),
           Expanded(
             child: Text(
               '$_stockQuantity',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textDark,
@@ -654,7 +651,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
               height: 40,
               decoration: BoxDecoration(
                 color: AppColors.primary,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
                     color: AppColors.primary.withValues(alpha: 0.3),
@@ -662,7 +659,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   ),
                 ],
               ),
-              child: const Icon(Icons.add, color: Colors.white),
+              child: Icon(Icons.add, color: Colors.white),
             ),
           ),
         ],
@@ -677,7 +674,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
         ),
         child: Row(
@@ -685,14 +682,14 @@ class _EditProductScreenState extends State<EditProductScreen> {
           children: [
             Text(
               _selectedUnit,
-              style: const TextStyle(
+              style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: AppColors.primary,
               ),
             ),
-            const SizedBox(width: 2),
-            const Icon(Icons.arrow_drop_down, color: AppColors.primary, size: 18),
+            SizedBox(width: 2),
+            Icon(Icons.arrow_drop_down, color: AppColors.primary, size: 18),
           ],
         ),
       ),
@@ -703,9 +700,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(
+        title: Text(
           'Select Unit',
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18),
         ),
         contentPadding: const EdgeInsets.fromLTRB(8, 20, 8, 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -717,26 +714,26 @@ class _EditProductScreenState extends State<EditProductScreen> {
               final isSelected = _selectedUnit == entry.key;
               return ListTile(
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 selected: isSelected,
                 selectedTileColor: AppColors.primary.withValues(alpha: 0.05),
                 title: Text(
                   entry.key,
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                     color: isSelected ? AppColors.primary : AppColors.textDark,
                   ),
                 ),
                 subtitle: Text(
                   'e.g. ${entry.value}',
-                  style: TextStyle(
+                  style: GoogleFonts.poppins(
                     fontSize: 12,
                     color: isSelected ? AppColors.primary.withValues(alpha: 0.7) : AppColors.textLight,
                   ),
                 ),
                 trailing: isSelected
-                    ? const Icon(Icons.check_circle, color: AppColors.primary)
+                    ? Icon(Icons.check_circle, color: AppColors.primary)
                     : null,
                 onTap: () {
                   setState(() => _selectedUnit = entry.key);
@@ -749,10 +746,11 @@ class _EditProductScreenState extends State<EditProductScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textMedium)),
+            child: Text('Cancel', style: GoogleFonts.poppins(color: AppColors.textMedium)),
           ),
         ],
       ),
     );
   }
 }
+

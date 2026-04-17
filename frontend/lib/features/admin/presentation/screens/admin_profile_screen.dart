@@ -1,6 +1,14 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:frontend/features/auth/presentation/providers/auth_provider.dart';
+// ------------------------------------------------------------------------------
+// File: admin_profile_screen.dart
+// Purpose: PII management and credential rotation for Administrators.
+// Rationale: Handles the sensitive identity mutation flow for system admins.
+//   Ensures atomic updates of contact metadata and secure password hashing
+//   propagation to the Auth provider.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // UI: Material framework
+import 'package:provider/provider.dart'; // State: Dependency injection
+import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // State: Identity source of truth
+import 'package:frontend/shared/widgets/app_back_button.dart'; // Standardized navigation trigger
 
 class AdminProfileScreen extends StatefulWidget {
   const AdminProfileScreen({super.key});
@@ -83,9 +91,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF1E293B), size: 20),
-          onPressed: () => Navigator.pop(context),
+        leading: AppBackButton(
+          onTap: () => Navigator.pop(context),
+          margin: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
         ),
       ),
       body: SafeArea(
@@ -272,3 +280,4 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     );
   }
 }
+

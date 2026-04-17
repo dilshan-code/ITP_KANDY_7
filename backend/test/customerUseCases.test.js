@@ -14,6 +14,7 @@ describe('Customer Use Cases', () => {
             create: jest.fn().mockImplementation(data => Promise.resolve({ id: 'new-c1', ...data })),
             update: jest.fn().mockImplementation((id, data) => Promise.resolve({ id, ...data })),
             delete: jest.fn().mockResolvedValue(true),
+            findByPhone: jest.fn().mockResolvedValue(null),
         };
     });
 
@@ -53,6 +54,16 @@ describe('Customer Use Cases', () => {
         test('should throw if ownerId is missing', async () => {
             await expect(createCustomer.execute({ name: 'X' }, null))
                 .rejects.toThrow('Customer data and Owner ID are required');
+        });
+
+        test('should throw if phone number already exists', async () => {
+            const data = { name: 'Duplicate', phone: '0771234567' };
+            mockCustomerRepository.findByPhone.mockResolvedValue({ id: 'existing-c', ...data });
+            
+            await expect(createCustomer.execute(data, ownerId))
+                .rejects.toThrow('A customer with this phone number already exists in your records');
+            
+            expect(mockCustomerRepository.findByPhone).toHaveBeenCalledWith(data.phone, ownerId);
         });
     });
 

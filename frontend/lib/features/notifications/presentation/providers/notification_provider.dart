@@ -1,8 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:frontend/core/network/api_client.dart';
-import 'package:frontend/core/services/notification_service.dart';
-
-// A NotificationItem represents a single alert or message, like a "Low Stock" warning.
+﻿// ------------------------------------------------------------------------------
+// File: notification_provider.dart
+// Purpose: Multi-Channel Alert Management and System Audit Trail.
+// Rationale: Orchestrates the delivery and lifecycle of in-app alerts, including 
+//   inventory warnings and financial events. Synchronizes with system-level 
+//   push services and provides unread count tracking for badge updates.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // State: ChangeNotifier foundation
+import 'package:frontend/core/network/api_client.dart'; // Network: HTTP request dispatch
+import 'package:frontend/core/services/notification_service.dart'; // Service: Device-level push notifications
 class NotificationItem {
   final String id;
   final String type;
@@ -45,7 +50,10 @@ class NotificationProvider extends ChangeNotifier {
   // A helper that counts how many notifications haven't been opened yet.
   int get unreadCount => _notifications.where((n) => !n.isRead).length;
 
-  // Pulls the latest alerts from the backend.
+  /*
+   * Logic: Remote Synchronisation.
+   * Rationale: Pulls latest alerts from the global notification registry.
+   */
   Future<void> fetchNotifications() async {
     _isLoading = true;
     notifyListeners();
@@ -126,6 +134,10 @@ class NotificationProvider extends ChangeNotifier {
     }
   }
 
+  /*
+   * Logic: Alert Origination.
+   * Rationale: Manually triggers a new system event for logging & visibility.
+   */
   Future<void> createNotification({
     required String type,
     required String title,
@@ -144,3 +156,4 @@ class NotificationProvider extends ChangeNotifier {
     }
   }
 }
+

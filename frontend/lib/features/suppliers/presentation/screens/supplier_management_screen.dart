@@ -1,14 +1,25 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
-import 'package:frontend/core/theme/app_colors.dart';
-import 'package:frontend/core/utils/snackbar_utils.dart';
-import 'package:frontend/features/suppliers/presentation/providers/supplier_provider.dart';
-import 'package:frontend/features/suppliers/presentation/providers/purchase_provider.dart';
-import 'package:frontend/features/suppliers/presentation/screens/add_supplier_screen.dart';
-import 'package:frontend/features/suppliers/presentation/screens/supplier_purchase_record_screen.dart';
-import 'package:frontend/features/suppliers/presentation/utils/export_utils.dart';
-
+// ------------------------------------------------------------------------------
+// File: supplier_management_screen.dart
+// Purpose: Multi-Faceted Procurement Hub and Partner Logistics.
+// Rationale: Centralizes the management of business partner profiles and 
+//   restock history through a unified tabbed interface. Orchestrates 
+//   cross-domain state refreshes during settlement workflows and provides 
+//   context-aware reporting through segmented PDF export logic.
+// ------------------------------------------------------------------------------
+import 'package:flutter/material.dart'; // UI: Flutter Material widgets
+import 'package:google_fonts/google_fonts.dart'; // UI: Poppins typography
+import 'package:provider/provider.dart'; // State: Provider read/watch
+import 'package:intl/intl.dart'; // Format: Number formatting for currency
+import 'package:frontend/core/theme/app_colors.dart'; // Theme: Brand colour tokens
+import 'package:frontend/core/utils/snackbar_utils.dart'; // UX: Feedback toasts with diagnostics
+import 'package:frontend/features/suppliers/presentation/providers/supplier_provider.dart'; // State: Supplier data
+import 'package:frontend/features/suppliers/presentation/providers/purchase_provider.dart'; // State: Purchase data
+import 'package:frontend/features/suppliers/presentation/screens/add_supplier_screen.dart'; // Navigation: Add/edit partner
+import 'package:frontend/features/suppliers/presentation/screens/record_purchase_screen.dart'; // Navigation: Purchase detail/entry
+import 'package:frontend/features/suppliers/presentation/utils/export_utils.dart'; // PDF: Export supplier/purchase reports
+import 'package:frontend/shared/widgets/modern_pdf_icon.dart'; // UI: Brand-consistent PDF trigger icon
+import 'package:frontend/shared/widgets/screen_header.dart'; // UI: Reusable top-level screen header
+import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // Auth: User context
 class SupplierManagementScreen extends StatefulWidget {
   const SupplierManagementScreen({super.key});
 
@@ -33,6 +44,7 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
     _supplierScrollController.addListener(_onSupplierScroll);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Parallel fetch from different domains (Suppliers & Purchases).
       if (mounted) {
         context.read<SupplierProvider>().fetchSuppliers();
         context.read<PurchaseProvider>().fetchPurchases();
@@ -54,6 +66,14 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
     }
   }
 
+  Future<void> _handleRefresh() async {
+    // Rationale: Simultaneous sync for both partner ledger and restock history.
+    await Future.wait([
+      context.read<SupplierProvider>().fetchSuppliers(),
+      context.read<PurchaseProvider>().fetchPurchases(),
+    ]);
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -67,74 +87,78 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return [
-              SliverAppBar(
-                title: const Text('Supplier Management'),
-                floating: true,
-                pinned: true,
-                expandedHeight: 0,
-                forceElevated: innerBoxIsScrolled,
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.picture_as_pdf_outlined),
-                    onPressed: () {
+        child: RefreshIndicator(
+          onRefresh: _handleRefresh,
+          displacement: 20,
+          color: AppColors.primary,
+          child: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
+                SliverToBoxAdapter(
+                  child: ScreenHeader(
+                    title: 'Supplier Management',
+                    subtitle: 'Manage partners & purchases',
+                    showBackButton: true,
+                    action: const ModernPdfIcon(),
+                    onActionTap: () {
+                      final owner = context.read<AuthProvider>().currentOwner;
+                      // Branching export based on active tab context.
                       if (_tabController.index == 0) {
                         final suppliers =
                             context.read<SupplierProvider>().suppliers;
                         if (suppliers.isNotEmpty) {
-                          SupplierExportUtils.exportSuppliersPdf(suppliers);
+                          SupplierExportUtils.exportSuppliersPdf(suppliers, owner: owner);
                         }
                       } else {
                         final purchases =
                             context.read<PurchaseProvider>().purchases;
                         if (purchases.isNotEmpty) {
-                          SupplierExportUtils.exportPurchasesPdf(purchases);
+                          SupplierExportUtils.exportPurchasesPdf(purchases, owner: owner);
                         }
                       }
                     },
-                    tooltip: 'Download PDF',
                   ),
-                ],
-              ),
-              SliverToBoxAdapter(
-                child: Consumer<SupplierProvider>(
-                  builder: (context, provider, _) => _buildSummaryCards(provider),
                 ),
-              ),
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _SliverAppBarDelegate(
-                  TabBar(
-                    controller: _tabController,
-                    dividerColor: Colors.transparent,
-                    indicatorColor: AppColors.primary,
-                    indicatorWeight: 3,
-                    labelColor: AppColors.primary,
-                    unselectedLabelColor: AppColors.textLight,
-                    labelStyle: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
+                SliverToBoxAdapter(
+                  child: Consumer<SupplierProvider>(
+                    builder: (context, provider, _) => _buildSummaryCards(provider),
+                  ),
+                ),
+                SliverPersistentHeader(
+                  pinned: true, // Keep the tabs visible while scrolling
+                  delegate: _SliverAppBarDelegate(
+                    TabBar(
+                      controller: _tabController,
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      indicatorColor: AppColors.primary,
+                      indicatorWeight: 3,
+                      labelColor: AppColors.primary,
+                      unselectedLabelColor: AppColors.textLight,
+                      dividerColor: Colors.transparent,
+                      labelStyle: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                      tabs: [
+                        Tab(text: 'Suppliers'), // Navigation to partner directory
+                        Tab(text: 'Purchase Records'), // Navigation to historical invoices
+                      ],
                     ),
-                    tabs: const [
-                      Tab(text: 'Suppliers'),
-                      Tab(text: 'Purchase Records'),
-                    ],
                   ),
                 ),
-              ),
-            ];
-          },
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildSuppliersTab(),
-              _buildPurchaseRecordsTab(),
-            ],
+              ];
+            },
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildSuppliersTab(), // List of business contacts
+                _buildPurchaseRecordsTab(), // List of stock acquisitions
+              ],
+            ),
           ),
         ),
       ),
+      // Dynamic FAB: Changes function based on the currently active tab
       floatingActionButton: _tabController.index == 0
           ? FloatingActionButton.extended(
               heroTag: 'fab_supplier_prod_id_unique_1',
@@ -142,12 +166,13 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                 context,
                 MaterialPageRoute(builder: (_) => const AddSupplierScreen()),
               ).then((_) {
+                // Refresh list to show new/updated partner
                 if (context.mounted) {
                   context.read<SupplierProvider>().fetchSuppliers();
                 }
               }),
-              icon: const Icon(Icons.person_add_outlined),
-              label: const Text('Add Supplier'),
+              icon: Icon(Icons.person_add_outlined),
+              label: Text('Add Supplier'), // Create logic for new partner registration
               backgroundColor: AppColors.primary,
             )
           : FloatingActionButton.extended(
@@ -155,16 +180,17 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const SupplierPurchaseRecordScreen(),
+                  builder: (_) => const RecordPurchaseScreen(),
                 ),
               ).then((_) {
+                // Dual refresh: Update records and the resulting payable balance
                 if (context.mounted) {
                   context.read<PurchaseProvider>().fetchPurchases();
                   context.read<SupplierProvider>().fetchSuppliers();
                 }
               }),
-              icon: const Icon(Icons.add_shopping_cart_outlined),
-              label: const Text('Record New Purchase'),
+              icon: Icon(Icons.add_shopping_cart_outlined),
+              label: Text('Record New Purchase'), // Logic for inventory intake
               backgroundColor: AppColors.primary,
             ),
     );
@@ -180,7 +206,8 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
               'Active Suppliers',
               provider.suppliers.length.toString(),
               Icons.people_outline,
-              [AppColors.primary, AppColors.primaryDark],
+              [const Color(0xFF1E293B), const Color(0xFF334155)],
+              isLoading: provider.isLoading,
             ),
           ),
           const SizedBox(width: 12),
@@ -189,7 +216,8 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
               'Total Payable',
               'Rs ${NumberFormat('#,###').format(provider.totalPayable)}',
               Icons.account_balance_wallet_outlined,
-              [Colors.green.shade600, Colors.green.shade400],
+              [const Color(0xFF059669), const Color(0xFF10B981)],
+              isLoading: provider.isLoading,
             ),
           ),
         ],
@@ -201,8 +229,9 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
     String title,
     String value,
     IconData icon,
-    List<Color> colors,
-  ) {
+    List<Color> colors, {
+    bool isLoading = false,
+  }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -224,21 +253,35 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 24),
-          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(icon, color: Colors.white, size: 24),
+              if (isLoading)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                ),
+            ],
+          ),
+          SizedBox(height: 12),
           Text(
             title,
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               color: Colors.white.withValues(alpha: 0.9),
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4),
           FittedBox(
             child: Text(
               value,
-              style: const TextStyle(
+              style: GoogleFonts.poppins(
                 color: Colors.white,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -253,8 +296,8 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
   Widget _buildSuppliersTab() {
     return Consumer<SupplierProvider>(
       builder: (context, provider, _) {
-        if (provider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+        if (provider.isLoading && provider.suppliers.isEmpty) {
+          return Center(child: CircularProgressIndicator());
         }
         if (provider.suppliers.isEmpty) {
           return _buildEmptyState(
@@ -265,12 +308,12 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
         }
         return ListView.builder(
           controller: _supplierScrollController,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           itemCount: provider.suppliers.length + (provider.hasMore ? 1 : 0),
           itemBuilder: (context, index) {
             if (index == provider.suppliers.length) {
               return provider.isFetchingMore
-                  ? const Padding(
+                  ? Padding(
                       padding: EdgeInsets.all(16.0),
                       child: Center(child: CircularProgressIndicator()),
                     )
@@ -283,13 +326,14 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                 borderRadius: BorderRadius.circular(16),
               ),
               elevation: 4,
-              shadowColor: Colors.black.withValues(alpha: 0.05),
+              shadowColor: AppColors.textDark.withValues(alpha: 0.05),
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
                   children: [
                     Row(
                       children: [
+                        // Supplier Avatar: Visual anchor for the card
                         Container(
                           width: 48,
                           height: 48,
@@ -297,22 +341,23 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                             color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.person_outline,
+                          child: Icon(Icons.person_outline,
                               color: AppColors.primary),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
+                        // Supplier Identity: Name and reachability info
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                supplier.name,
+                                supplier.name, // The registered trade name
                                 style:
-                                    const TextStyle(fontWeight: FontWeight.w700),
+                                    GoogleFonts.poppins(fontWeight: FontWeight.w700),
                               ),
                               Text(
-                                supplier.phone,
-                                style: TextStyle(
+                                supplier.phone, // Primary contact number
+                                style: GoogleFonts.poppins(
                                   color: AppColors.textLight,
                                   fontSize: 12,
                                 ),
@@ -322,7 +367,7 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
@@ -340,18 +385,44 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                               }
                             });
                           },
-                          icon: const Icon(Icons.edit_outlined, size: 18),
-                          label: const Text('Edit'),
+                          icon: Icon(Icons.edit_rounded, size: 18),
+                          label: Text(
+                            'Edit',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                           style: TextButton.styleFrom(
-                              foregroundColor: Colors.green),
+                            foregroundColor: Colors.green.shade700,
+                            backgroundColor: Colors.green.shade50,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         TextButton.icon(
                           onPressed: () => _confirmDeleteSupplier(supplier),
-                          icon: const Icon(Icons.delete_outline, size: 18),
-                          label: const Text('Delete'),
-                          style:
-                              TextButton.styleFrom(foregroundColor: Colors.red),
+                          icon: Icon(Icons.delete_outline_rounded, size: 18),
+                          label: Text(
+                            'Delete',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.red.shade700,
+                            backgroundColor: Colors.red.shade50,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -368,8 +439,8 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
   Widget _buildPurchaseRecordsTab() {
     return Consumer<PurchaseProvider>(
       builder: (context, provider, _) {
-        if (provider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+        if (provider.isLoading && provider.purchases.isEmpty) {
+          return Center(child: CircularProgressIndicator());
         }
         if (provider.purchases.isEmpty) {
           return _buildEmptyState(
@@ -380,12 +451,12 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
         }
         return ListView.builder(
           controller: _purchaseScrollController,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           itemCount: provider.purchases.length + (provider.hasMore ? 1 : 0),
           itemBuilder: (context, index) {
             if (index == provider.purchases.length) {
               return provider.isFetchingMore
-                  ? const Padding(
+                  ? Padding(
                       padding: EdgeInsets.all(16.0),
                       child: Center(child: CircularProgressIndicator()),
                     )
@@ -398,7 +469,7 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                 borderRadius: BorderRadius.circular(16),
               ),
               elevation: 4,
-              shadowColor: Colors.black.withValues(alpha: 0.05),
+              shadowColor: AppColors.textDark.withValues(alpha: 0.05),
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -412,17 +483,17 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                             color: Colors.blue.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.add_shopping_cart_outlined,
+                          child: Icon(Icons.add_shopping_cart_outlined,
                               color: Colors.blue, size: 20),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 purchase.supplierName,
-                                style: const TextStyle(
+                                style: GoogleFonts.poppins(
                                     fontWeight: FontWeight.w700),
                               ),
                               Text(
@@ -430,7 +501,7 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                                     (DateTime.tryParse(purchase.purchaseDate) ??
                                             DateTime.now())
                                         .toLocal()),
-                                style: TextStyle(
+                                style: GoogleFonts.poppins(
                                   color: AppColors.textLight,
                                   fontSize: 12,
                                 ),
@@ -438,39 +509,117 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                             ],
                           ),
                         ),
-                        Text(
-                          'Rs ${NumberFormat('#,###').format(purchase.totalAmount)}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.primary,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Rs ${NumberFormat('#,###').format(purchase.totalAmount)}',
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            _buildStatusBadge(purchase.status),
+                          ],
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         TextButton.icon(
                           onPressed: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => SupplierPurchaseRecordScreen(
+                              builder: (_) => RecordPurchaseScreen(
                                   purchase: purchase),
                             ),
                           ),
-                          icon: const Icon(Icons.edit_outlined, size: 18),
-                          label: const Text('Edit'),
+                          icon: const Icon(Icons.visibility_outlined, size: 18),
+                          label: Text(
+                            'View Items',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                           style: TextButton.styleFrom(
-                              foregroundColor: Colors.green),
+                            foregroundColor: AppColors.primary,
+                            backgroundColor: AppColors.primary.withValues(alpha: 0.05),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        TextButton.icon(
-                          onPressed: () => _confirmDeletePurchase(purchase),
-                          icon: const Icon(Icons.delete_outline, size: 18),
-                          label: const Text('Delete'),
-                          style:
-                              TextButton.styleFrom(foregroundColor: Colors.red),
+                        Row(
+                          children: [
+                            if (purchase.status == 'paid')
+                              TextButton.icon(
+                                onPressed: () {
+                                  final owner = context.read<AuthProvider>().currentOwner;
+                                  SupplierExportUtils.exportPaymentReceiptPdf(purchase, owner: owner);
+                                },
+                                icon: const Icon(Icons.receipt_long_rounded, size: 18),
+                                label: Text(
+                                  'Receipt',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.blue.shade700,
+                                  backgroundColor: Colors.blue.shade50,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              )
+                            else
+                              TextButton.icon(
+                                onPressed: () => _handleSettlePayment(purchase),
+                                icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                                label: Text(
+                                  'Settle',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.green.shade700,
+                                  backgroundColor: Colors.green.shade50,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            const SizedBox(width: 8),
+                            TextButton.icon(
+                              onPressed: () => _confirmDeletePurchase(purchase),
+                              icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                              label: Text(
+                                'Delete',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.red.shade700,
+                                backgroundColor: Colors.red.shade50,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -490,20 +639,84 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 64, color: AppColors.textLight.withValues(alpha: 0.3)),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             title,
-            style: TextStyle(
+            style: GoogleFonts.poppins(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: AppColors.textMedium,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.textLight),
+            style: GoogleFonts.poppins(color: AppColors.textLight),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String status) {
+    Color color;
+    String label;
+    
+    switch (status.toLowerCase()) {
+      case 'paid':
+        color = Colors.green;
+        label = 'PAID';
+        break;
+      case 'partial':
+        color = Colors.orange;
+        label = 'PARTIAL';
+        break;
+      default:
+        color = Colors.red;
+        label = 'UNPAID';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.poppins(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  void _handleSettlePayment(dynamic purchase) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Settle Payment'),
+        content: Text('Mark this purchase as fully PAID? This will generate a payment receipt.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+            onPressed: () async {
+              Navigator.pop(context);
+              // Multi-step settlement: Remote status update followed by local export.
+              final updated = await context.read<PurchaseProvider>().settlePurchase(purchase.id);
+              if (updated != null && context.mounted) {
+                SnackBarUtils.showSnackBar(context, 'Payment settled successfully');
+                final owner = context.read<AuthProvider>().currentOwner;
+                SupplierExportUtils.exportPaymentReceiptPdf(updated, owner: owner);
+                context.read<SupplierProvider>().fetchSuppliers(); // Balance reconciliation
+              }
+            },
+            child: Text('Settle Now'),
           ),
         ],
       ),
@@ -514,12 +727,12 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Supplier'),
+        title: Text('Delete Supplier'),
         content: Text('Are you sure you want to delete ${supplier.name}?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
+              child: Text('Cancel')),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
@@ -530,16 +743,17 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                 if (success) {
                   SnackBarUtils.showSnackBar(context, 'Supplier removed');
                 } else {
+                  final supplierProvider = context.read<SupplierProvider>();
                   SnackBarUtils.showSnackBar(
                     context,
-                    context.read<SupplierProvider>().error ??
-                        'Failed to remove supplier',
+                    supplierProvider.error ?? 'Failed to remove supplier',
                     isError: true,
+                    technicalDetails: supplierProvider.technicalDetails,
                   );
                 }
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text('Delete', style: GoogleFonts.poppins(color: Colors.red)),
           ),
         ],
       ),
@@ -550,12 +764,12 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Record'),
-        content: const Text('Are you sure you want to delete this purchase record?'),
+        title: Text('Delete Record'),
+        content: Text('Are you sure you want to delete this purchase record?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel')),
+              child: Text('Cancel')),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
@@ -567,16 +781,18 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                   SnackBarUtils.showSnackBar(context, 'Record deleted');
                   context.read<SupplierProvider>().fetchSuppliers();
                 } else {
+                  final purchaseProvider = context.read<PurchaseProvider>();
                   SnackBarUtils.showSnackBar(
                     context,
-                    context.read<PurchaseProvider>().error ??
-                        'Failed to delete record',
+                    purchaseProvider.error ?? 'Failed to delete record',
                     isError: true,
+                    // Note: PurchaseProvider doesn't have technicalDetails yet, but we'll add it if needed
+                    // For now, using the message context
                   );
                 }
               }
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text('Delete', style: GoogleFonts.poppins(color: Colors.red)),
           ),
         ],
       ),
@@ -608,4 +824,5 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     return false;
   }
 }
+
 

@@ -1,16 +1,24 @@
-// The Supplier entity represents a business that provides products to the shop.
+/**
+ * Domain Layer: Supplier Entity.
+ * Represents a business partner providing goods to the merchant.
+ * Encapsulates contact details and the current balance of accounts payable.
+ */
 class Supplier {
+    /**
+     * Logic: Entity Initialization.
+     * Maps partner metadata into a structured business object for supply chain management.
+     */
     constructor({ 
-        id, 
-        name, 
-        phone, 
-        address, 
-        email, 
-        notes, 
-        status, 
-        totalPayable, // The total amount of money the shop owner currently owes this supplier
-        createdAt, 
-        updatedAt 
+        id, // Unique identity (UUID)
+        name, // Official business or person name
+        phone, // Primary contact number
+        address, // Physical location for deliveries
+        email, // Digital contact address
+        notes, // Optional merchant annotations
+        status, // State: 'active' or 'inactive'
+        totalPayable, // Aggregate debt: The total amount currently owed to this supplier
+        createdAt, // Audit: Genesis date
+        updatedAt // Audit: Last modification timestamp
     }) {
         this.id = id;
         this.name = name || '';
@@ -19,11 +27,15 @@ class Supplier {
         this.email = email || '';
         this.notes = notes || '';
         this.status = status || 'active';
-        this.totalPayable = totalPayable || 0;
+        this.totalPayable = totalPayable || 0; // Logic: Incremented on purchases, decremented on payments
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
+    /**
+     * Logic: Data Serialization.
+     * Converts the entity into a JSON object for API transmission to the Flutter frontend.
+     */
     toJSON() {
         return {
             id: this.id,
@@ -33,11 +45,12 @@ class Supplier {
             email: this.email,
             notes: this.notes,
             status: this.status,
-            totalPayable: this.totalPayable,
+            totalPayable: this.totalPayable, // Critical: Used for dashboard debt totals
             createdAt: this.createdAt,
             updatedAt: this.updatedAt,
         };
     }
 }
 
+// Module Export: Business logic representation of a supply partner.
 module.exports = Supplier;

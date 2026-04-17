@@ -1,5 +1,9 @@
-// This class holds the central list of product categories used throughout the app.
-// It simplifies updating the list in one place instead of across multiple screens.
+﻿/**
+ * Configuration: Product Taxonomy Constants.
+ * Centralizes the list of product categories used across Add, Edit, and Filter UIs.
+ * Rationale: Single source of truth prevents category drift between screens
+ * and simplifies future category additions without multi-file changes.
+ */
 class ProductCategories {
   static const List<String> list = [
     'Grains & Staples',
@@ -10,3 +14,4 @@ class ProductCategories {
     'Household / Personal Care',
   ];
 }
+

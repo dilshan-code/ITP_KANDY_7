@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const { RegisterOwner, LoginOwner, GetOwnerProfile, UpdateOwnerProfile, ChangeOwnerPassword, GetAllOwners } = require('../src/usecases/authUseCases');
+const { RegisterOwner, LoginOwner, GetOwnerProfile, UpdateOwnerProfile, ChangeOwnerPassword, GetAllOwners, CheckAvailability } = require('../src/usecases/authUseCases');
 
 describe('Auth Use Cases', () => {
     let mockOwnerRepository;
@@ -165,6 +165,24 @@ describe('Auth Use Cases', () => {
             await expect(updateProfile.execute('o1', { phone: '12345' }))
                 .rejects.toThrow('Valid phone number is required');
         });
+
+        test('should throw if target phone is already taken by another user', async () => {
+            mockOwnerRepository.findByPhone.mockResolvedValue({ id: 'other-user', phone: '+94770000000' });
+            await expect(updateProfile.execute('o1', { phone: '0770000000' }))
+                .rejects.toThrow('Another account already uses this phone number');
+        });
+
+        test('should throw if target email is already taken by another user', async () => {
+            mockOwnerRepository.findByEmail.mockResolvedValue({ id: 'other-user', email: 'other@gmail.com' });
+            await expect(updateProfile.execute('o1', { email: 'other@gmail.com' }))
+                .rejects.toThrow('Another account already uses this email address');
+        });
+
+        test('should succeed if updated phone/email belongs to the same user', async () => {
+            mockOwnerRepository.findByPhone.mockResolvedValue({ id: 'o1', phone: '+94771234567' });
+            const result = await updateProfile.execute('o1', { phone: '0771234567' });
+            expect(result.phone).toBe('+94771234567');
+        });
     });
 
     // ========== ChangeOwnerPassword ==========
@@ -200,6 +218,36 @@ describe('Auth Use Cases', () => {
             const result = await getAllOwners.execute();
             expect(result).toHaveLength(2);
             expect(mockOwnerRepository.getAll).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    // ========== CheckAvailability ==========
+    describe('CheckAvailability', () => {
+        let checkAvailability;
+        beforeEach(() => { checkAvailability = new CheckAvailability(mockOwnerRepository); });
+
+        test('should return available true if phone and email are free', async () => {
+            const result = await checkAvailability.execute({ phone: '0779998887', email: 'free@gmail.com' });
+            expect(result.available).toBe(true);
+        });
+
+        test('should return available false if phone is taken', async () => {
+            mockOwnerRepository.findByPhone.mockResolvedValue({ id: 'existing' });
+            const result = await checkAvailability.execute({ phone: '0771234567' });
+            expect(result.available).toBe(false);
+            expect(result.message).toContain('phone number already exists');
+        });
+
+        test('should return available false if email is taken', async () => {
+            mockOwnerRepository.findByEmail.mockResolvedValue({ id: 'existing' });
+            const result = await checkAvailability.execute({ email: 'taken@gmail.com' });
+            expect(result.available).toBe(false);
+            expect(result.message).toContain('email already exists');
+        });
+
+        test('should throw if both phone and email are missing', async () => {
+            await expect(checkAvailability.execute({}))
+                .rejects.toThrow('Phone or Email is required for check');
         });
     });
 });

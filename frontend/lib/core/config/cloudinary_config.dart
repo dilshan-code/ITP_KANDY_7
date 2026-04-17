@@ -1,12 +1,23 @@
-// This file holds the configuration settings for Cloudinary image uploads.
-// To use Cloudinary, create a free account at https://cloudinary.com/
-// and replace the values below with your specific account details.
+﻿// ------------------------------------------------------------------------------
+// File: cloudinary_config.dart
+// Purpose: Multi-Media Infrastructure Configuration.
+// Rationale: Defines the credentials and presets for decentralized image 
+//   storage and optimization. Offloads binary binary data from the primary 
+//   backend to a specialized CDN, ensuring high-speed global delivery.
+// ------------------------------------------------------------------------------
 
 class CloudinaryConfig {
-  // Your Cloudinary "Cloud Name" (found on your dashboard)
-  static const String cloudName = 'danu31w3w'; // <--- ENTER YOUR CLOUD NAME HERE
+  /* 
+   * Logic: Brand Namespace Identifier.
+   * Rationale: Secure global bucket for storing application media assets.
+   */
+  static const String cloudName = 'danu31w3w';
 
-  // Your Cloudinary "Upload Preset" 
-  // You must create an "Unsigned" upload preset in your Cloudinary Settings -> Upload
-  static const String uploadPreset = 'products_preset'; // <--- ENTER YOUR UPLOAD PRESET HERE
+  /*
+   * Logic: Secure Unsigned Upload Preset.
+   * Rationale: Enables direct-to-cloud uploads from the mobile handset 
+   *   without exposing high-privilege private API vectors.
+   */
+  static const String uploadPreset = 'products_preset';
 }
+
