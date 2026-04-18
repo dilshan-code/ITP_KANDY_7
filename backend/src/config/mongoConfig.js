@@ -29,6 +29,15 @@ const connectDB = async () => {
     } catch (error) {
         // Fail-Fast: Catch network/auth errors and terminate process to prevent corrupt app states.
         console.error(`❌ MongoDB Connection Error: ${error.message}`);
+        
+        // Diagnostic Support: Provide specific advice for common Atlas connection issues.
+        if (error.message.includes('ETIMEDOUT') || error.message.includes('EADDRNOTAVAIL') || error.message.includes('selection timeout')) {
+            console.error('💡 TIP: This usually means your IP address is not whitelisted in MongoDB Atlas.');
+            console.error('👉 Run "node src/utils/checkIp.js" to find your public IP and add it to the Atlas Network Access list.');
+        } else if (error.message.includes('Authentication failed')) {
+            console.error('💡 TIP: Check your MONGODB_URI username and password in the .env file.');
+        }
+
         process.exit(1); // Security: Critical failure exit code
     }
 };
