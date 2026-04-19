@@ -1,9 +1,9 @@
-﻿// ------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // File: validation_utils.dart
 // Purpose: Deterministic Data Integrity and Business Rule Enforcement.
-// Rationale: Centrally orchestrates the logic for verifying user inputs across 
-//   all system modules. Ensures that only sanitized and valid data is 
-//   persisted to local state or transmitted to the backend, preventing 
+// Rationale: Centrally orchestrates the logic for verifying user inputs across
+//   all system modules. Ensures that only sanitized and valid data is
+//   persisted to local state or transmitted to the backend, preventing
 //   runtime inconsistencies and financial data corruption.
 // ------------------------------------------------------------------------------
 class ValidationUtils {
@@ -50,7 +50,7 @@ class ValidationUtils {
       return 'Phone number is required'; // Constraint: Mandatory for SMS-auth
     }
     final trimmed = value.trim();
-    
+
     // RegEx: Starts with 0 and followed by 9 decimals.
     final zeroPattern = RegExp(r'^0[0-9]{9}$');
     // RegEx: Starts with +94 and followed by 9 decimals.
@@ -68,7 +68,7 @@ class ValidationUtils {
       // Constraint: Reject numbers from unsupported regions or invalid formats.
       return 'Phone number must start with 0 or +94';
     }
-    
+
     return null;
   }
 
@@ -130,4 +130,3 @@ class ValidationUtils {
     return null;
   }
 }
-

@@ -234,7 +234,7 @@ const PORT = process.env.PORT || 3000; // Environment-aware network port assignm
 
 // Utility: Automatic discovery of this server on local networks for mobile clients.
 const discoveryService = require('./utils/discoveryService');
-discoveryService.start(); // Logic: Broadcasts IP/Port via UDP for Zero-Configuration connectivity.
+discoveryService.start(PORT); // Logic: Broadcasts IP/Port via UDP for Zero-Configuration connectivity.
 
 // Infrastructure: Establish secure MongoDB connection string handshake.
 connectDB().then(() => {

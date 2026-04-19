@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Auth Domain Entity: Owner.
  * Represents the primary identity of a shop manager within the ClickBuy ecosystem.
  * Rationale: Acts as the root object for data isolation; most backend records (Products, Sales) are linked to an Owner ID.
@@ -57,6 +57,7 @@ class Owner {
    */
   Map<String, dynamic> toJson() {
     return {
+      'id': id, // Persistence: Required to restore the identity on app restart
       'name': name,
       'shopName': shopName,
       'phone': phone,

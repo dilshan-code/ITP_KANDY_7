@@ -83,7 +83,7 @@ class BackendDiscoveryImpl {
 
   static Future<bool> _isServerReachable(String ip) async {
     try {
-      final uri = Uri.parse('http://$ip:3000/health');
+      final uri = Uri.parse('http://$ip:${ApiClient.serverPort}/health');
       // Reduced timeout: 1.5s is plenty for most local network pings.
       final response = await http.get(uri).timeout(const Duration(milliseconds: 1500));
       return response.statusCode == 200;
@@ -100,8 +100,13 @@ class BackendDiscoveryImpl {
       final Map<String, dynamic> data = jsonDecode(message);
       if (data['service'] == 'clickbuy' && data['ip'] != null) {
         final String foundIp = data['ip'];
+        final int foundPort = data['port'] ?? 3000; // Handshake: Use port from heartbeat
+        
         if (foundIp != ApiClient.serverIp) {
           ApiClient.setServerIp(foundIp);
+        }
+        if (foundPort != ApiClient.serverPort) {
+          ApiClient.setServerPort(foundPort);
         }
         _hasDiscoveredBackend = true;
       }

@@ -17,7 +17,9 @@ import 'package:frontend/core/error/exceptions.dart'; // Custom domain exception
 class ApiClient {
   // --- Infrastructure Settings ---
   static String _serverIp = '10.0.2.2'; // State: Active server address
-  static const String _storageKey = 'backend_server_ip'; // Registry: Key for local persistence
+  static int _serverPort = 3000; // State: Active server port (Default: 3000)
+  static const String _storageKeyIp = 'backend_server_ip'; // Registry: Key for local persistence
+  static const String _storageKeyPort = 'backend_server_port'; // Registry: Key for port persistence
   
   // --- Multi-Tenant Context ---
   static String? ownerId; // Scope: Current logged-in shop owner ID for data isolation
@@ -31,13 +33,19 @@ class ApiClient {
   static Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance(); // Access: Local disk storage
-      final savedIp = prefs.getString(_storageKey); // Retrieval: Get the last known IP
+      final savedIp = prefs.getString(_storageKeyIp); // Retrieval: Get the last known IP
       if (savedIp != null && savedIp.isNotEmpty) {
         _serverIp = savedIp; // Update: Apply saved configuration to current session
         debugPrint('📡 [ApiClient] Loaded saved IP: $_serverIp');
       }
+      
+      final savedPort = prefs.getInt(_storageKeyPort); // Retrieval: Get the last known Port
+      if (savedPort != null) {
+        _serverPort = savedPort;
+        debugPrint('📡 [ApiClient] Loaded saved Port: $_serverPort');
+      }
     } catch (e) {
-      debugPrint('❌ [ApiClient] Failed to load saved IP: $e'); // Log: Fault in storage access
+      debugPrint('❌ [ApiClient] Failed to load saved settings: $e'); // Log: Fault in storage access
     }
   }
 
@@ -52,10 +60,26 @@ class ApiClient {
     _serverIp = ip; // State: Update active memory
     try {
       final prefs = await SharedPreferences.getInstance(); // Access: Local disk storage
-      await prefs.setString(_storageKey, ip); // Commit: Persist new IP to disk
+      await prefs.setString(_storageKeyIp, ip); // Commit: Persist new IP to disk
       debugPrint('✅ [ApiClient] Server IP updated to: $ip');
     } catch (e) {
       debugPrint('❌ [ApiClient] Failed to save IP: $e'); // Log: Persistence failure
+    }
+  }
+
+  /*
+   * Logic: Port Selection Override.
+   */
+  static Future<void> setServerPort(int port) async {
+    if (port == _serverPort) return;
+    
+    _serverPort = port;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_storageKeyPort, port);
+      debugPrint('✅ [ApiClient] Server Port updated to: $port');
+    } catch (e) {
+      debugPrint('❌ [ApiClient] Failed to save Port: $e');
     }
   }
 
@@ -72,13 +96,14 @@ class ApiClient {
     }
 
     if (kIsWeb) {
-      return 'http://localhost:3000/api'; // Dev: Browser usually runs backend on localhost
+      return 'http://localhost:$_serverPort/api'; // Dev: Use dynamic port
     } else {
-      return 'http://$_serverIp:3000/api'; // Development/Mobile: Use discovered Wi-Fi IP
+      return 'http://$_serverIp:$_serverPort/api'; // Development/Mobile: Use dynamic port
     }
   }
 
   static String get serverIp => _serverIp; // Query: Current active IP for UI displays
+  static int get serverPort => _serverPort; // Query: Current active Port
 
   /*
    * Logic: Contextual Header Injection.

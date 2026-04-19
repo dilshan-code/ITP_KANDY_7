@@ -15,11 +15,16 @@ import 'package:frontend/core/services/phone_auth_service.dart'; // Service: Fir
 import 'package:image_picker/image_picker.dart'; // Media: Local file selection
 import 'package:cloudinary_public/cloudinary_public.dart'; // Cloud: Decentralized image storage API
 import 'package:frontend/core/config/cloudinary_config.dart'; // Config: Cloud storage credentials
+import 'package:shared_preferences/shared_preferences.dart'; // Logic: Local persistence
+import 'dart:convert'; // Utility: JSON serialization
 
 class AuthProvider extends ChangeNotifier {
   // --- Services & Dependencies ---
   final AuthRepositoryImpl _repository = AuthRepositoryImpl(); // Logic: Backend API adapter
   final PhoneAuthService _phoneAuthService = PhoneAuthService(); // Logic: Firebase OTP bridge
+  
+  // --- Persistence Registry ---
+  static const String _storageKeyOwner = 'current_owner_data'; // Registry: Key for local disk
 
   // --- Reactive State ---
   Owner? _currentOwner; // Identity: The currently authenticated shop manager
@@ -180,6 +185,10 @@ class AuthProvider extends ChangeNotifier {
         // Trace: Update global singleton to ensure all future API calls are correctly scoped.
         ApiClient.ownerId = _currentOwner!.id;
         ApiClient.ownerName = _currentOwner!.name;
+
+        // Persistence: Commit the owner data to local disk to enable auto-login.
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_storageKeyOwner, jsonEncode(_currentOwner!.toJson()));
       }
       
       _isLoggedIn = true; // State: Unlock protected routes
@@ -213,6 +222,10 @@ class AuthProvider extends ChangeNotifier {
       if (_currentOwner != null) {
         ApiClient.ownerId = _currentOwner!.id;
         ApiClient.ownerName = _currentOwner!.name;
+
+        // Persistence: Commit the owner data to local disk to enable auto-login.
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_storageKeyOwner, jsonEncode(_currentOwner!.toJson()));
       }
       _isLoggedIn = true;
       _isLoading = false;
@@ -272,14 +285,55 @@ class AuthProvider extends ChangeNotifier {
 
   /*
    * Logic: Session Termination.
-   * Rationale: Wipes all sensitive credentials from memory and resets the route guard.
+   * Rationale: Wipes all sensitive credentials from memory, clears disk storage, and resets the route guard.
    */
-  void logout() {
+  Future<void> logout() async {
     _currentOwner = null;
     _isLoggedIn = false;
+    _verificationId = null; // Security: Clear active SMS session ID
+    _resendToken = null; // Security: Clear resend link token
+    
     // Safety: Clear global singleton identifiers to prevent cross-account API leakage.
     ApiClient.ownerId = null;
     ApiClient.ownerName = null;
+
+    // Persistence: Purge the saved session from disk.
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_storageKeyOwner);
+    } catch (e) {
+      debugPrint('❌ [AuthProvider] Cleanup error: $e');
+    }
+
+    notifyListeners();
+  }
+
+  /**
+   * Logic: Foundation Restoration.
+   * Rationale: Attempts to recover a previously saved session from local storage 
+   *   to enable immediate auto-login without user interaction.
+   */
+  Future<void> loadSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? ownerData = prefs.getString(_storageKeyOwner);
+
+      if (ownerData != null && ownerData.isNotEmpty) {
+        final Map<String, dynamic> data = jsonDecode(ownerData);
+        _currentOwner = Owner.fromJson(data);
+        
+        if (_currentOwner != null) {
+          // Re-inject the session context into the network layer.
+          ApiClient.ownerId = _currentOwner!.id;
+          ApiClient.ownerName = _currentOwner!.name;
+          _isLoggedIn = true;
+          debugPrint('✅ [AuthProvider] Session restored: ${_currentOwner!.name}');
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ [AuthProvider] Session restoration failed: $e');
+      // Strategy: Silently fail and force the user to re-login if data is corrupt.
+    }
     notifyListeners();
   }
 

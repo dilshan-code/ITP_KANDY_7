@@ -59,8 +59,12 @@ class DiscoveryService {
 
     /**
      * Logic: Starts the UDP transmission engine.
+     * @param {number} apiPort - The port the main Express server is listening on.
      */
-    start() {
+    start(apiPort) {
+        if (apiPort) {
+            this.port = apiPort; // Update the port to match the actual server configuration
+        }
         // Handle unexpected socket crashes (e.g., port already in use).
         this.socket.on('error', (err) => {
             console.error(`[Discovery] Socket error:\n${err.stack}`);
@@ -81,7 +85,7 @@ class DiscoveryService {
                 const message = JSON.stringify({
                     service: 'clickbuy', // Signature for the mobile app to recognize us
                     ip: ip, // Our reachable address
-                    port: this.port, // Port 5001
+                    port: this.port, // Logic: Tell the phone which port we are listening on
                     timestamp: Date.now() // For health tracking
                 });
 
