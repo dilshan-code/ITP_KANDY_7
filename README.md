@@ -109,6 +109,13 @@ ClickBuy features an intelligent backend discovery system that automatically swi
 
 ## 📖 Documentation & Maintenance
 
+### Design & Architecture Diagrams
+- **[System Architecture](./diagrams/system_architecture.md)**: High-level overview of tiers and tech stack.
+- **[Data Flow Diagram (DFD)](./diagrams/dfd_diagram.md)**: Visual mapping of data movement and processes.
+- **[ER Diagram](./diagrams/er_diagram.md)**: Database schema and entity relationships.
+- **[Use Case Diagram](./diagrams/use_case_diagram.md)**: Functional requirements and user interactions.
+
+### Maintenance Logs
 - **[bugs_and_fixes.md](./bugs_and_fixes.md)**: A chronological log of every technical challenge resolved.
 - **[system_improvements.md](./system_improvements.md)**: A roadmap of architectural evolution and feature updates.
 
