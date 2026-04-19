@@ -57,6 +57,9 @@ small_store_app/
     > [!IMPORTANT]
     > Create a `.env` file in the `backend/` directory. You can use `.env.example` as a template.
     > Example: `MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/clickbuy`
+    > 
+    > **Blocked by Atlas?**: If the server exits immediately, your IP may not be whitelisted. 
+    > Run `node src/utils/checkIp.js` in the `backend` folder to find your IP and add it to the Atlas console.
 
 - **Cloudinary Account**:
     > [!IMPORTANT]

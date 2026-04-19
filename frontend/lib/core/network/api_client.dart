@@ -1,4 +1,4 @@
-﻿// ------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // File: api_client.dart
 // Purpose: Deterministic Network Gateway for Multi-Tenant Data.
 // Rationale: Orchestrates all HTTP communication between the Flutter app and 
@@ -10,7 +10,7 @@ import 'dart:convert'; // Library for JSON encoding/decoding and UTF-8 handling
 import 'dart:io'; // Library for core networking (SocketException, HttpClient)
 import 'dart:async'; // Library for asynchronous control (Futures, Timers, Timeouts)
 import 'package:http/http.dart' as http; // Primary external HTTP client for Dart
-import 'package:flutter/foundation.dart' show kIsWeb, debugPrint; // Utility flags and console logging
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint, kReleaseMode; // Utility flags, console logging, and mode detection
 import 'package:shared_preferences/shared_preferences.dart'; // Local persistence for server configuration
 import 'package:frontend/core/error/exceptions.dart'; // Custom domain exceptions for ClickBuy
 
@@ -65,10 +65,16 @@ class ApiClient {
    *   platform and utilizing the discovered network registry.
    */
   static String get baseUrl {
+    // Strategy: Use the live Replit production server for the final APK (Release mode).
+    // This removes the dependency on local Wi-Fi for actual users.
+    if (kReleaseMode) {
+      return 'https://itp-kandy-7.sadin-s-workspace.repl.co/api';
+    }
+
     if (kIsWeb) {
       return 'http://localhost:5001/api'; // Dev: Browser usually runs backend on localhost
     } else {
-      return 'http://$_serverIp:5001/api'; // Production/Mobile: Use discovered Wi-Fi IP
+      return 'http://$_serverIp:5001/api'; // Development/Mobile: Use discovered Wi-Fi IP
     }
   }
 
