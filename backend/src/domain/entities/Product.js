@@ -51,10 +51,11 @@ class Product {
 
   /**
    * Logic: Inventory Valuation KPI.
-   * Calculates the total projected revenue value for the current stock of this specific product.
+   * Calculates the total physical asset value currently sitting in the warehouse.
+   * Business Rule: Inventory Value = Procurement Cost (purchasePrice) * Units on hand.
    */
   get inventoryValue() {
-    return this.sellingPrice * this.stockQuantity;
+    return this.purchasePrice * this.stockQuantity;
   }
 
   /**

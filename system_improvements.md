@@ -11,10 +11,10 @@ A roadmap of architectural enhancements and user experience updates implemented 
 - **Description**: Successfully migrated the Node.js API to Replit, configuring the production environment to support persistent MongoDB and Firebase connections.
 - **Benefit**: Removes reliance on local development machines, providing 24/7 API availability for the mobile application.
 
-### `[DEVOPS]` Automated GitHub-to-Replit CI/CD Pipeline
-- **Feature**: Continuous synchronization between source control and hosting.
-- **Description**: Established a robust automated deployment flow where changes pushed to the `Beta` branch are automatically mirrored to the Replit production environment.
-- **Benefit**: Ensures that the latest features and fixes are deployed instantly without manual FTP or SSH overhead.
+### `[UX]` Hidden Server Connection Settings & Developer Access
+- **Feature**: Discretely hidden network configuration for production environments.
+- **Description**: Migrated the "Server Connection" gear icon to a hidden state on all pre-login screens. Implemented a secret long-press gesture on the ClickBuy logo (Login Screen) to trigger the configuration dialog.
+- **Benefit**: Ensures a cleaner, "user-facing" look for customers while maintaining critical diagnostic access for developers. Prevents accidental server misconfiguration by regular shop owners.
 
 ---
 

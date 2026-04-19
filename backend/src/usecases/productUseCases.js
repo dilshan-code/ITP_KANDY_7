@@ -128,7 +128,7 @@ class UpdateProduct {
             if (updatedProduct.stockQuantity === 0) {
                 await this.notificationRepository.create({
                     ownerId,
-                    type: 'warning',
+                    type: 'alert',
                     title: 'Product Out of Stock', // Alert Header
                     message: `The product "${updatedProduct.name}" is now out of stock.`, // Explanatory body
                 });
@@ -137,7 +137,7 @@ class UpdateProduct {
             else if (updatedProduct.isLowStock) {
                 await this.notificationRepository.create({
                     ownerId,
-                    type: 'info',
+                    type: 'warning',
                     title: 'Low Stock Alert',
                     message: `The product "${updatedProduct.name}" is running low (${updatedProduct.stockQuantity} ${updatedProduct.unit || 'units'} remaining).`,
                 });

@@ -89,7 +89,7 @@ class DiscoveryService {
                 this.socket.send(message, 0, message.length, this.broadcastPort, '255.255.255.255', (err) => {
                     if (err) console.error('[Discovery] Broadcast error:', err);
                 });
-            }, 5000); // Pulse every 5 seconds to minimize battery drain on phone listeners
+            }, 2000); // Pulse every 2 seconds to minimize battery drain on phone listeners
         });
     }
 

@@ -230,7 +230,7 @@ const productController = new ProductController({
 
 // --- Express Application Boot Routine ---
 const app = express(); // Initialize the Express instance
-const PORT = process.env.PORT || 5001; // Environment-aware network port assignment
+const PORT = process.env.PORT || 3000; // Environment-aware network port assignment
 
 // Utility: Automatic discovery of this server on local networks for mobile clients.
 const discoveryService = require('./utils/discoveryService');

@@ -255,11 +255,12 @@ class _NotificationListTile extends StatelessWidget {
           // Read/Unread visualization: Using subtle background shifts and borders to denote message priority.
           color: notification.isRead
               ? Colors.white
-              : AppColors.primary.withValues(alpha: 0.04),
+              : _getIconColor(notification.type).withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(20),
           border: notification.isRead
               ? Border.all(color: Colors.grey.shade100)
-              : Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+              : Border.all(
+                  color: _getIconColor(notification.type).withValues(alpha: 0.15)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.02),
@@ -324,8 +325,8 @@ class _NotificationListTile extends StatelessWidget {
                 margin: const EdgeInsets.only(top: 4, left: 8),
                 width: 8,
                 height: 8,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
+                decoration: BoxDecoration(
+                  color: _getIconColor(notification.type),
                   shape: BoxShape.circle,
                 ),
               ),
@@ -345,6 +346,8 @@ class _NotificationListTile extends StatelessWidget {
         return Icons.error_outline;
       case 'delivery':
         return Icons.local_shipping_outlined;
+      case 'credit':
+        return Icons.account_balance_wallet_outlined;
       default:
         return Icons.info_outline;
     }
@@ -360,6 +363,8 @@ class _NotificationListTile extends StatelessWidget {
         return AppColors.error;
       case 'delivery':
         return Colors.blue;
+      case 'credit':
+        return Colors.indigo;
       default:
         return AppColors.primary;
     }

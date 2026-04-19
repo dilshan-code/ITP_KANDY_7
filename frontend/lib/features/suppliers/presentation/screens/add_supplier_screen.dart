@@ -88,7 +88,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
       if (widget.supplier == null) {
         // Log entry in the internal notification system for administrative tracking.
         context.read<NotificationProvider>().createNotification(
-          type: 'info',
+          type: 'delivery',
           title: 'New Supplier Added',
           message:
               'Supplier "${_nameController.text}" has been successfully added to your contact list.',

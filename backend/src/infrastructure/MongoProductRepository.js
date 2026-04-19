@@ -33,8 +33,9 @@ class MongoProductRepository extends IProductRepository {
         console.log(`[DB] Fetching products for owner: ${ownerId}, query:`, JSON.stringify(query));
 
         // Create the query with alphabetical sorting and secondary ID sorting for stability.
-        // Optimization: Use .lean() for plain JS objects and project only necessary list fields.
-        let mongoQuery = this.model.find(query, 'name category sellingPrice stockQuantity minimumStockLevel unit imageUrl')
+        // Optimization: Use .lean() for plain JS objects and project ONLY necessary list fields.
+        // BUGFIX: Explicitly include 'purchasePrice', 'description', and 'notifyOutOfStock' to prevent data loss during frontend edits.
+        let mongoQuery = this.model.find(query, 'name category sellingPrice purchasePrice stockQuantity minimumStockLevel unit imageUrl description notifyOutOfStock')
             .sort({ name: 1, _id: 1 })
             .lean();
 

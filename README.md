@@ -101,7 +101,11 @@ ClickBuy features an intelligent backend discovery system that automatically swi
    - `https://itp-kandy-7.sadin-s-workspace.repl.co/api`
 
 > [!TIP]
-> **Dynamic Backend Discovery**: ClickBuy now features an automated UDP discovery service. When you launch the app on your local network, it will automatically attempt to identify the backend server's IP address. If it fails, you can manually configure the IP in the "Backend Settings" dialog available on the Login screen.
+> **Dynamic Backend Discovery**: ClickBuy features an automated UDP discovery service that identifies the backend server's IP address on your local network. 
+> 
+> **Developer Note (Server Connection)**: To ensure a premium user experience, the server connection settings icon is hidden by default from pre-login screens. 
+> - **To access settings**: Long-press (hold) the **ClickBuy Logo** on the Login screen for **10 seconds**.
+> - **Re-activation**: Developers can re-activate the visible gear icon by toggling the `showSettingsIcon` flag in `login_screen.dart` and setting `visible: true` in other auth screens.
 
 ## 📖 Documentation & Maintenance
 
