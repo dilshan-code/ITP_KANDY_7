@@ -338,6 +338,20 @@ app.use(cors()); // Privacy: Allow front-end to bypass Same-Origin Policy
 app.use(express.json()); // Parsing: Automatically convert string bodies into JSON objects
 
 // --- Routing Table ---
+// Root Health Check (Human readable)
+app.get('/', (req, res) => {
+    res.send(`
+        <div style="font-family: sans-serif; text-align: center; padding-top: 50px;">
+            <h1 style="color: #4CAF50;">✅ ClickBuy Backend is Online</h1>
+            <p>Infrastructure: Node.js / Express / MongoDB / Firebase</p>
+            <p>API Endpoint: <code>/api</code></p>
+            <p>Health Check: <code>/health</code></p>
+            <hr style="width: 50%; margin: 20px auto;">
+            <p style="color: #666;">Version 1.0.0 (Production)</p>
+        </div>
+    `);
+});
+
 // A. Public & Hybrid Access Endpoints (Auth, Support)
 app.use('/api', createAuthRoutes(authController, authMiddleware)); // Mix: Public signup / private session mgmt
 app.use('/api', createFeedbackRoutes(feedbackController, authMiddleware)); // Mix: Public submission / private retrieval
