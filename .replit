@@ -20,3 +20,6 @@ author = "user"
 task = "shell.exec"
 args = "cd backend && npm start"
 waitForPort = 3000
+
+[agent]
+expertMode = true
