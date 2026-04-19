@@ -7,10 +7,20 @@ on:
       - main
     tags:
       - 'v*'
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.replit'
+      - '.github/workflows/**'
   pull_request:
     branches:
       - Beta
       - main
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.replit'
+      - '.github/workflows/**'
 
 jobs:
   backend-qa:
@@ -88,18 +98,21 @@ jobs:
           name: clickbuy-app-v${{ github.run_number }}
           path: frontend/build/app/outputs/flutter-apk/app-release.apk
 
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v1
+      - name: Create or Update GitHub Release
+        if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/Beta')
+        uses: softprops/action-gh-release@v2
         with:
           files: frontend/build/app/outputs/flutter-apk/app-release.apk
-          name: ClickBuy Release ${{ github.ref_name }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || (github.ref == 'refs/heads/main' && 'stable-latest' || 'beta-latest') }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || (github.ref == 'refs/heads/main' && 'Latest Stable Build' || 'Beta Development Build') }}
           body: |
-            Automated Build for version ${{ github.ref_name }}
+            Automated Build for ${{ github.ref_name }}
             
+            **Branch/Tag:** ${{ github.ref_name }}
             **Build Number:** ${{ github.run_number }}
             **Date:** ${{ github.event.head_commit.timestamp }}
           draft: false
-          prerelease: false
+          prerelease: ${{ github.ref == 'refs/heads/Beta' }}
+          make_latest: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
