@@ -7,7 +7,7 @@ const os = require('os'); // Core module for interacting with the host operating
  * This allows mobile devices to automatically handshake with the backend without manual IP entry.
  */
 class DiscoveryService {
-    constructor(port = 5001, broadcastPort = 5555) {
+    constructor(port = 3000, broadcastPort = 5555) {
         this.port = port; // The target API port the mobile app should connect to
         this.broadcastPort = broadcastPort; // The standard UDP port for the discovery listener
         this.socket = dgram.createSocket('udp4'); // Create an IPv4 UDP socket

@@ -68,13 +68,13 @@ class ApiClient {
     // Strategy: Use the live Replit production server for the final APK (Release mode).
     // This removes the dependency on local Wi-Fi for actual users.
     if (kReleaseMode) {
-      return 'https://itp-kandy-7.sadin-s-workspace.repl.co/api';
+      return 'https://ba408787-5deb-46ee-bb7e-679a94333377-00-3jxj82plhfdn2.sisko.replit.dev/api';
     }
 
     if (kIsWeb) {
-      return 'http://localhost:5001/api'; // Dev: Browser usually runs backend on localhost
+      return 'http://localhost:3000/api'; // Dev: Browser usually runs backend on localhost
     } else {
-      return 'http://$_serverIp:5001/api'; // Development/Mobile: Use discovered Wi-Fi IP
+      return 'http://$_serverIp:3000/api'; // Development/Mobile: Use discovered Wi-Fi IP
     }
   }
 

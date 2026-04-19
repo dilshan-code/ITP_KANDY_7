@@ -83,7 +83,7 @@ class BackendDiscoveryImpl {
 
   static Future<bool> _isServerReachable(String ip) async {
     try {
-      final uri = Uri.parse('http://$ip:5001/health');
+      final uri = Uri.parse('http://$ip:3000/health');
       // Reduced timeout: 1.5s is plenty for most local network pings.
       final response = await http.get(uri).timeout(const Duration(milliseconds: 1500));
       return response.statusCode == 200;

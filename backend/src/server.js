@@ -380,6 +380,11 @@ app.get('/health', (req, res) => {
  */
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ ClickBuy API Gateway active at http://0.0.0.0:${PORT}`);
+    if (process.env.REPL_ID) {
+        console.log(`🚀 [SYSTEM] ClickBuy Backend successfully deployed on Replit (Production)`);
+    } else {
+        console.log(`💻 [SYSTEM] running in local development mode.`);
+    }
     console.log(`📦 Domain Services: Products, Sales, Partners, Purchases active.`);
 });
 

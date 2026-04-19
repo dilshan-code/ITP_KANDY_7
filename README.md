@@ -98,7 +98,7 @@ ClickBuy features an intelligent backend discovery system that automatically swi
 
 3. **Production (Release Mode)**:
    - In release mode, the app automatically connects to the production backend:
-   - `https://itp-kandy-7.sadin-s-workspace.repl.co/api`
+   - `https://ba408787-5deb-46ee-bb7e-679a94333377-00-3jxj82plhfdn2.sisko.replit.dev/api`
 
 > [!TIP]
 > **Dynamic Backend Discovery**: ClickBuy features an automated UDP discovery service that identifies the backend server's IP address on your local network. 

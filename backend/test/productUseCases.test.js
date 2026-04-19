@@ -123,7 +123,7 @@ describe('Product Use Cases', () => {
             expect(mockNotificationRepository.create).toHaveBeenCalledWith(
                 expect.objectContaining({
                     ownerId,
-                    type: 'warning',
+                    type: 'alert',
                     title: 'Product Out of Stock',
                 })
             );
