@@ -4,7 +4,36 @@ A professional record of technical challenges encountered and resolved during th
 
 ---
 
-## 📅 April 17, 2026
+## 📅 April 19, 2026
+> *Focus: Replit Deployment Stability and Git Synchronization*
+
+### `[FIXED]` Backend Deployment Errors on Replit
+- **Issue**: The Node.js backend failed to start on Replit due to root route (`/`) conflicts and missing dependency paths in the production environment.
+- **Fix**: Refactored the main router to handle the root path gracefully and ensured all environment variables (MONGODB_URI, Firebase Creds) are correctly synced via Replit Secrets.
+- **Context**: Moving to a cloud environment (Replit) required hardening the server entry point to prevent 404 errors during health checks.
+
+### `[RESOLVED]` Beta-to-Main Branch Synchronization
+- **Issue**: Significant drift between the `Beta` and `main` branches after the Replit configuration switch led to potential data loss during merges.
+- **Fix**: Conducted a careful rebase and merge operation to bring the production-ready Replit configurations into the main synchronization flow.
+- **Context**: Maintaining branch parity is crucial for CI/CD pipelines to function without manual intervention.
+
+---
+
+## 📅 April 18, 2026
+> *Focus: Firebase Integration and Identity Security*
+
+### `[FIXED]` Firebase Phone Auth (SMS Region Policy)
+- **Issue**: Users in Sri Lanka were unable to receive OTPs, triggering "Blocked" errors.
+- **Fix**: Updated the Firebase SMS Region Policy to explicitly whitelist Sri Lanka (+94) and synchronized the SHA-1/SHA-256 fingerprints with the project settings.
+- **Context**: Regional policies can often block SMS traffic by default; explicit configuration is required for international deployment.
+
+### `[RESOLVED]` Account Uniqueness Enforcement
+- **Issue**: Questions arose regarding whether the system allowed duplicate accounts with the same email or phone number.
+- **Fix**: Audited the `RegisterOwner` use case to ensure it strictly performs dual-identifier checks (`findByEmail` and `findByPhone`) before allowing registration.
+- **Context**: Preventing duplicate accounts is a fundamental security requirement to maintain data integrity and prevent account takeover attempts.
+
+---
+
 > *Focus: Reporting Standardization, Administrative Stability, and UX Polish*
 
 ### `[FIXED]` Web Image Cropper Layout Overflow

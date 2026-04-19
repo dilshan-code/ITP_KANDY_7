@@ -8,11 +8,11 @@ The Context Diagram shows the system as a single process and its interactions wi
 ```mermaid
 graph TD
     Manager((Store Manager))
-    System[ClickBuy System]
+    System[ClickBuy System \n (Replit Hosted)]
     DB[(MongoDB Atlas)]
     CDN[Cloudinary Media]
     Auth[Firebase Phone Auth]
-    FS[Local File System]
+    CI[GitHub CI/CD]
 
     Manager -- "Login Credentials / OTP" --> System
     Manager -- "Product & Sale Entries" --> System
@@ -20,7 +20,7 @@ graph TD
     
     System -- "Auth Status / Token" --> Manager
     System -- "Reports & Notifications" --> Manager
-    System -- "Backup ZIP Archive" --> Manager
+    System -- "Backup Archive (via API)" --> Manager
 
     System -- "CRUD Operations" --> DB
     DB -- "Data Stream" --> System
@@ -30,6 +30,8 @@ graph TD
 
     System -- "Verify Code" --> Auth
     Auth -- "Auth Success" --> System
+
+    CI -- "Auto-Deployment" --> System
 ```
 
 ---

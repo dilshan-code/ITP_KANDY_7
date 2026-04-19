@@ -12,8 +12,10 @@ erDiagram
         string name
         string shopName
         string phone "Unique Identifier"
-        string email
+        string email "Unique Identifier"
         string password "Hashed"
+        string role "e.g., owner"
+        string status "e.g., approved"
         boolean isSuspended
         string profilePic
         string createdAt
@@ -56,11 +58,11 @@ erDiagram
         number purchasePrice
         number stockQuantity
         number minimumStockLevel
+        boolean isLowStock "Persisted Flag"
         string description
         string imageUrl
         string unit
         boolean notifyOutOfStock
-        boolean isLowStock "Calculated"
         number inventoryValue "Calculated"
         string createdAt
         string updatedAt
@@ -73,6 +75,8 @@ erDiagram
         string customerName
         number subtotal
         number totalAmount
+        number amountPaid
+        number remaining "Debt"
         string paymentMethod
         string status
         string createdAt
@@ -91,6 +95,7 @@ erDiagram
         number totalAmount
         number amountPaid
         number remaining "Actual Debt"
+        string paymentMethod
         string status
         string notes
         string createdAt
@@ -169,7 +174,7 @@ erDiagram
 
 - **Primary Architecture:** ClickBuy utilizing a MongoDB Atlas document database. Relationships like `SALE <-> SALE_ITEM` and `PURCHASE <-> PURCHASE_ITEM` are implemented using **Embedded Document Arrays** in the NoSQL schema. This ensures high read performance and historical invoice integrity (snapshots).
 - **Multi-tenancy:** The lynchpin of the system is the `ownerId` field present in all core entities. This ensures strict data isolation; a merchant only ever interacts with data where `ownerId` matches their unique session ID.
-- **Calculated Fields:** Fields such as `isLowStock` and `inventoryValue` are denoted as "Calculated". While not strictly stored as distinct columns in every database write, they are critical for the business logic and UI representation.
+- **Calculated Fields:** Fields such as `inventoryValue` are denoted as "Calculated". These are computed on-the-fly to ensure the most up-to-date business metrics. In contrast, `isLowStock` is a **Persisted Flag** updated during inventory operations for rapid filtering and dashboard alerts.
 - **Data Types:** All timestamp fields (`createdAt`, `updatedAt`, `date`) are stored as **ISO Strings**. This provides maximum cross-platform compatibility between the Node.js backend and the Flutter mobile client.
 - **Security:** The `OWNER` password is never stored in plain text (Hashed) and is excluded from standard API responses to the mobile client.
 

@@ -28,6 +28,7 @@ ClickBuy is a modern, full-stack application designed to streamline inventory ma
 ### Backend
 - **Core**: Node.js & [Express](https://expressjs.com/)
 - **Database**: [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) (via [Mongoose](https://mongoosejs.com/))
+- **Hosting**: [Replit](https://replit.com/) (Production)
 - **Architecture**: Clean architecture with Use Cases, Interfaces, and Infrastructure layers (Repositories).
 
 ## 📂 Project Structure
@@ -68,21 +69,36 @@ small_store_app/
     > 2. Create an **Unsigned** upload preset in Cloudinary Settings -> Upload.
     > 3. Update the configuration in `frontend/lib/core/config/cloudinary_config.dart` with your `cloudName` and `uploadPreset`.
 
-### Setup
+- **Firebase Phone Authentication**:
+    > [!IMPORTANT]
+    > To enable SMS login for Sri Lankan mobile numbers:
+    > 1. Ensure the **SMS Region Policy** in Firebase Console allows Sri Lanka (+94).
+    > 2. Add your Android **SHA-1** and **SHA-256** certificates to the Firebase Project settings.
+    > 3. Verify that `google-services.json` is present in `frontend/android/app/`.
 
-1. **Backend Setup**:
+### Setup & URL Switching
+
+ClickBuy features an intelligent backend discovery system that automatically switches between local development and production environments.
+
+1. **Backend (Local)**:
    ```bash
    cd backend
    npm install
    npm start
    ```
 
-2. **Frontend Setup**:
+2. **Frontend (Local/Debug)**:
+   - For local testing, ensure the backend is running.
+   - Use the **UDP Auto-Discovery** service or manually set the IP on the Login screen.
    ```bash
    cd frontend
    flutter pub get
    flutter run
    ```
+
+3. **Production (Release Mode)**:
+   - In release mode, the app automatically connects to the production backend:
+   - `https://itp-kandy-7.sadin-s-workspace.repl.co/api`
 
 > [!TIP]
 > **Dynamic Backend Discovery**: ClickBuy now features an automated UDP discovery service. When you launch the app on your local network, it will automatically attempt to identify the backend server's IP address. If it fails, you can manually configure the IP in the "Backend Settings" dialog available on the Login screen.

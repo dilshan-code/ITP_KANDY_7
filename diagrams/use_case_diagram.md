@@ -58,9 +58,10 @@ flowchart LR
         end
         
         %% Global Utilities
-        subgraph Globals ["Global Utilities"]
-            notifications([Manage Push Notifications]):::usecase
+        subgraph Globals ["Global Connectivity"]
             discovery([Auto-Discover Local Backend]):::highlight
+            toggle([Toggle Production/Local Mode]):::highlight
+            notifications([Manage Push Notifications]):::usecase
         end
     end
 
@@ -80,6 +81,7 @@ flowchart LR
     Admin --> notifications
     Admin --> backup
     Admin --> discovery
+    Admin --> toggle
 
     %% Inclusions / Extensions (Internal Logic Flow)
     lowStock -.->|<< extends >>| inv
@@ -120,8 +122,9 @@ The diagram above translates into the following key actionable use cases designe
    - **Universal PDF Export**: One-tap professional PDF generation for Credit Customers, Suppliers, and Receipts. 
    - **Database Backup**: Trigger a server-side routine to archive all MongoDB collections into a portable ZIP format.
 
-7. **Global Utilities**
-   - **Auto-Discovery**: Dynamically identify the backend server IP on the local network (UDP Protocol).
+7. **Global Connectivity & Utilities**
+   - **Auto-Discovery**: Dynamically identify the backend server IP on the local network (UDP Protocol) for development.
+   - **Switch Environments**: Seamlessly toggle between Localhost (for rapid iteration) and the Replit Cloud production environment (for live distribution).
    - **Push Notifications**: Unified status updates across the merchant dashboard.
 
 ---

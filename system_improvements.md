@@ -3,7 +3,36 @@
 A roadmap of architectural enhancements and user experience updates implemented to make **ClickBuy** a more robust and scalable platform.
 
 ---
-## 📅 April 17, 2026
+## 📅 April 19, 2026
+> *Focus: Production Hosting and Deployment Integrity*
+
+### `[DEVOPS]` Replit Product Deployment & Hosting
+- **Feature**: Cloud-native hosting for the ClickBuy Backend.
+- **Description**: Successfully migrated the Node.js API to Replit, configuring the production environment to support persistent MongoDB and Firebase connections.
+- **Benefit**: Removes reliance on local development machines, providing 24/7 API availability for the mobile application.
+
+### `[DEVOPS]` Automated GitHub-to-Replit CI/CD Pipeline
+- **Feature**: Continuous synchronization between source control and hosting.
+- **Description**: Established a robust automated deployment flow where changes pushed to the `Beta` branch are automatically mirrored to the Replit production environment.
+- **Benefit**: Ensures that the latest features and fixes are deployed instantly without manual FTP or SSH overhead.
+
+---
+
+## 📅 April 18, 2026
+> *Focus: Secure Onboarding and Infrastructure Resilience*
+
+### `[FEAT]` Integrated Firebase Phone Authentication
+- **Feature**: Secure SMS-based merchant verification.
+- **Description**: Configured and integrated Firebase Phone Auth to support Sri Lankan mobile numbers. This includes setting up the regional SMS policy and synchronizing application fingerprints.
+- **Benefit**: Provides a high-security, low-friction onboarding experience for merchants, reducing the risk of fraudulent account creation.
+
+### `[ARCH]` Smart Backend URL Switching Architecture
+- **Feature**: Adaptive network connectivity in `ApiClient`.
+- **Description**: Implemented a dynamic resolution strategy that automatically toggles between `localhost/IP` for development (Debug mode) and the Replit production URL for user distribution (Release mode).
+- **Benefit**: Dramatically simplifies the build process, as developers no longer need to manually change URLs when generating different versions of the app.
+
+---
+
 > *Focus: Reporting Architecture and Navigation Intelligence*
 
 ### `[ARCH]` Business-First PDF Reporting Engine
