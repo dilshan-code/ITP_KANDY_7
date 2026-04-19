@@ -15,7 +15,7 @@ flowchart LR
     classDef highlight fill:#ebf8ff,stroke:#3182ce,stroke-width:2px,color:#2b6cb0,rx:20,ry:20;
 
     %% Primary Actor
-    Admin((Shop Owner /\n Manager)):::actor
+    Admin(("Shop Owner <br/> Manager")):::actor
 
     %% System Boundary
     subgraph ClickBuy ["ClickBuy Application Boundary"]

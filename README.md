@@ -98,13 +98,24 @@ ClickBuy features an intelligent backend discovery system that automatically swi
 
 3. **Production (Release Mode)**:
    - In release mode, the app automatically connects to the production backend:
-   - `https://itp-kandy-7.sadin-s-workspace.repl.co/api`
+   - `https://ba408787-5deb-46ee-bb7e-679a94333377-00-3jxj82plhfdn2.sisko.replit.dev/api`
 
 > [!TIP]
-> **Dynamic Backend Discovery**: ClickBuy now features an automated UDP discovery service. When you launch the app on your local network, it will automatically attempt to identify the backend server's IP address. If it fails, you can manually configure the IP in the "Backend Settings" dialog available on the Login screen.
+> **Dynamic Backend Discovery**: ClickBuy features an automated UDP discovery service that identifies the backend server's IP address on your local network. 
+> 
+> **Developer Note (Server Connection)**: To ensure a premium user experience, the server connection settings icon is hidden by default from pre-login screens. 
+> - **To access settings**: Long-press (hold) the **ClickBuy Logo** on the Login screen for **10 seconds**.
+> - **Re-activation**: Developers can re-activate the visible gear icon by toggling the `showSettingsIcon` flag in `login_screen.dart` and setting `visible: true` in other auth screens.
 
 ## 📖 Documentation & Maintenance
 
+### Design & Architecture Diagrams
+- **[System Architecture](./diagrams/system_architecture.md)**: High-level overview of tiers and tech stack.
+- **[Data Flow Diagram (DFD)](./diagrams/dfd_diagram.md)**: Visual mapping of data movement and processes.
+- **[ER Diagram](./diagrams/er_diagram.md)**: Database schema and entity relationships.
+- **[Use Case Diagram](./diagrams/use_case_diagram.md)**: Functional requirements and user interactions.
+
+### Maintenance Logs
 - **[bugs_and_fixes.md](./bugs_and_fixes.md)**: A chronological log of every technical challenge resolved.
 - **[system_improvements.md](./system_improvements.md)**: A roadmap of architectural evolution and feature updates.
 

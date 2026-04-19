@@ -230,11 +230,11 @@ const productController = new ProductController({
 
 // --- Express Application Boot Routine ---
 const app = express(); // Initialize the Express instance
-const PORT = process.env.PORT || 5001; // Environment-aware network port assignment
+const PORT = process.env.PORT || 3000; // Environment-aware network port assignment
 
 // Utility: Automatic discovery of this server on local networks for mobile clients.
 const discoveryService = require('./utils/discoveryService');
-discoveryService.start(); // Logic: Broadcasts IP/Port via UDP for Zero-Configuration connectivity.
+discoveryService.start(PORT); // Logic: Broadcasts IP/Port via UDP for Zero-Configuration connectivity.
 
 // Infrastructure: Establish secure MongoDB connection string handshake.
 connectDB().then(() => {
@@ -380,6 +380,11 @@ app.get('/health', (req, res) => {
  */
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ ClickBuy API Gateway active at http://0.0.0.0:${PORT}`);
+    if (process.env.REPL_ID) {
+        console.log(`🚀 [SYSTEM] ClickBuy Backend successfully deployed on Replit (Production)`);
+    } else {
+        console.log(`💻 [SYSTEM] running in local development mode.`);
+    }
     console.log(`📦 Domain Services: Products, Sales, Partners, Purchases active.`);
 });
 

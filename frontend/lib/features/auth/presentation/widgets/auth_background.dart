@@ -6,6 +6,7 @@
 //   continuity across all identity-related screens.
 // ------------------------------------------------------------------------------
 import 'dart:ui'; // UI: Rendering primitives and blur filters
+import 'dart:async'; // Async: Timer functionality for secret hold
 import 'package:flutter/material.dart'; // Core: Flutter UI framework
 import 'package:frontend/core/theme/app_colors.dart'; // Styling: Design system tokens
 
@@ -14,6 +15,7 @@ class AuthBackground extends StatelessWidget {
   final bool showLogo;
   final Widget? leading;
   final Widget? trailing;
+  final VoidCallback? onLogoLongPress;
 
   const AuthBackground({
     super.key,
@@ -21,6 +23,7 @@ class AuthBackground extends StatelessWidget {
     this.showLogo = true,
     this.leading,
     this.trailing,
+    this.onLogoLongPress,
   });
 
   @override
@@ -88,7 +91,13 @@ class AuthBackground extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 if (showLogo) ...[
-                                  const _AuthLogo(), // Central branding component
+                                  if (onLogoLongPress != null)
+                                    _SecretLogoListener(
+                                      onTrigger: onLogoLongPress!,
+                                      child: const _AuthLogo(),
+                                    )
+                                  else
+                                    const _AuthLogo(), // Central branding component
                                   const SizedBox(height: 24),
                                 ],
                                 // Specialized auth content (Login, Register, etc.)
@@ -231,3 +240,54 @@ class GlassCard extends StatelessWidget {
   }
 }
 
+// Custom gesture handler for "Secret" high-duration holds
+class _SecretLogoListener extends StatefulWidget {
+  final VoidCallback onTrigger;
+  final Widget child;
+
+  const _SecretLogoListener({
+    required this.onTrigger,
+    required this.child,
+  });
+
+  @override
+  State<_SecretLogoListener> createState() => _SecretLogoListenerState();
+}
+
+class _SecretLogoListenerState extends State<_SecretLogoListener> {
+  Timer? _timer;
+  
+  // Strategy: 10-second hold required for developer menu.
+  // Rationale: Prevents any accidental triggers by end users while 
+  //   remaining discoverable for authorized personnel via README.
+  static const Duration _secretHoldDuration = Duration(seconds: 10);
+
+  void _startTimer() {
+    _stopTimer(); // Guard: Clear any existing timers
+    _timer = Timer(_secretHoldDuration, () {
+      debugPrint('📡 [Secret] 10-second hold threshold met. Opening settings.');
+      widget.onTrigger();
+    });
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  @override
+  void dispose() {
+    _stopTimer();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _startTimer(),
+      onTapUp: (_) => _stopTimer(),
+      onTapCancel: () => _stopTimer(),
+      child: widget.child,
+    );
+  }
+}

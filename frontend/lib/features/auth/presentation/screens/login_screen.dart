@@ -1,4 +1,4 @@
-﻿// ------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // File: login_screen.dart
 // Purpose: Primary entry gate for authenticated system access.
 // Rationale: Implements a high-security authentication interface with proactive 
@@ -130,18 +130,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // --- Configuration: Icon Visibility Control ---
+    // Change this to 'true' to re-activate the server connection settings icon.
+    const bool showSettingsIcon = false;
+
     return AuthBackground(
+      // --- Secret Developer Access ---
+      // Rationale: Allows developers to configure the server via long-press on the logo.
+      onLogoLongPress: () => showDialog(
+        context: context,
+        builder: (_) => const BackendSettingsDialog(),
+      ),
       // --- Auxiliary Actions ---
-      trailing: IconButton(
-        onPressed: () => showDialog(
-          context: context,
-          builder: (_) => const BackendSettingsDialog(),
+      trailing: Visibility(
+        visible: showSettingsIcon,
+        child: IconButton(
+          onPressed: () => showDialog(
+            context: context,
+            builder: (_) => const BackendSettingsDialog(),
+          ),
+          icon: Icon(
+            Icons.settings_outlined, // Icon: Direct access to network config
+            color: AppColors.textMedium.withValues(alpha: 0.5),
+          ),
+          tooltip: 'Connection Settings',
         ),
-        icon: Icon(
-          Icons.settings_outlined, // Icon: Direct access to network config
-          color: AppColors.textMedium.withValues(alpha: 0.5),
-        ),
-        tooltip: 'Connection Settings',
       ),
       child: Column(
         children: [

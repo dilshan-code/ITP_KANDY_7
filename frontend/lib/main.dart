@@ -1,4 +1,4 @@
-﻿// ------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // File: main.dart
 // Purpose: Application Entry Point and Dependency Injection Root.
 // Rationale: Initializes the Flutter framework, cloud services (Firebase), 
@@ -19,17 +19,11 @@ import 'package:frontend/features/notifications/presentation/providers/notificat
 import 'package:frontend/features/auth/presentation/screens/splash_screen.dart';
 import 'package:frontend/features/admin/presentation/providers/admin_provider.dart';
 import 'package:frontend/features/account/presentation/providers/feedback_provider.dart';
-import 'package:frontend/core/services/notification_service.dart';
 import 'package:frontend/core/utils/restart_widget.dart';
 import 'package:frontend/shared/widgets/global_error_widget.dart';
-import 'package:frontend/core/network/api_client.dart';
-import 'package:frontend/core/network/backend_discovery.dart';
-
-import 'package:firebase_core/firebase_core.dart';
-import 'package:frontend/firebase_options.dart';
 
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized(); // Required by Flutter to run async code in main()
   
   // Register a global error builder to provide a premium error design.
@@ -38,23 +32,17 @@ void main() async {
     return GlobalErrorWidget(errorDetails: errorDetails); // Use our custom premium error UI
   };
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform, // Initialize Firebase for the correct OS
-  );
-  
-  // Initialize dynamic API client and start local network discovery
-  await ApiClient.init(); // Setup base URL from local storage or defaults
-  BackendDiscovery.startDiscovery(); // Begin listening for server heatbeats (UDP)
-  
-  await NotificationService().initialize(); // Setup local notifications for Android/iOS
-  
-  // Wrap the entire application in a RestartWidget to allow for full app reloads.
+  // Logic: Optimization - We call runApp immediately to ensure the framework starts 
+  //   listening to system channels (like Lifecycle). This prevents "channel discarded" errors.
+  //   The actual service bootstrapping (Firebase, API, Ports) is now handled 
+  //   synchronously via the SplashScreen's bootstrap logic.
   runApp(
     const RestartWidget(
       child: ClickBuyApp(), // The main application entry widget
     ),
   );
 }
+
 
 class ClickBuyApp extends StatelessWidget {
   const ClickBuyApp({super.key});

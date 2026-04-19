@@ -147,16 +147,21 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         onTap: () => Navigator.pop(context),
         margin: const EdgeInsets.only(left: 12, top: 4, bottom: 4),
       ),
-      trailing: IconButton(
-        onPressed: () => showDialog(
-          context: context,
-          builder: (_) => const BackendSettingsDialog(),
+      // --- Configuration: Icon Visibility Control ---
+      // Toggle 'visible' to true to re-activate the server connection settings.
+      trailing: Visibility(
+        visible: false,
+        child: IconButton(
+          onPressed: () => showDialog(
+            context: context,
+            builder: (_) => const BackendSettingsDialog(),
+          ),
+          icon: Icon(
+            Icons.settings_outlined,
+            color: AppColors.textMedium.withValues(alpha: 0.5),
+          ),
+          tooltip: 'Connection Settings',
         ),
-        icon: Icon(
-          Icons.settings_outlined,
-          color: AppColors.textMedium.withValues(alpha: 0.5),
-        ),
-        tooltip: 'Connection Settings',
       ),
       child: Column(
         children: [

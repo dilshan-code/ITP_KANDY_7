@@ -112,14 +112,14 @@ class CreateSale {
                             if (newStock === 0) {
                                 await this.notificationRepository.create({
                                     ownerId,
-                                    type: 'warning',
+                                    type: 'alert',
                                     title: 'Product Out of Stock',
                                     message: `The product "${product.name}" is now out of stock.`,
                                 }, session);
                             } else if (newStock <= (product.minimumStockLevel || 0)) {
                                 await this.notificationRepository.create({
                                     ownerId,
-                                    type: 'info',
+                                    type: 'warning',
                                     title: 'Low Stock Alert',
                                     message: `The product "${product.name}" is running low (${newStock} remaining).`,
                                 }, session);
@@ -147,7 +147,7 @@ class CreateSale {
                             if (newOutstanding >= (customerDoc.creditLimit || 0)) {
                                 await this.notificationRepository.create({
                                     ownerId,
-                                    type: 'alert',
+                                    type: 'credit',
                                     title: 'Credit Limit Exceeded',
                                     message: `${customerDoc.name} has exceeded their credit limit. Current debt: Rs ${newOutstanding}.`,
                                 }, session);

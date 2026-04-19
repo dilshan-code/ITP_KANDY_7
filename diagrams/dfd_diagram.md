@@ -8,7 +8,7 @@ The Context Diagram shows the system as a single process and its interactions wi
 ```mermaid
 graph TD
     Manager((Store Manager))
-    System[ClickBuy System \n (Replit Hosted)]
+    System["ClickBuy System <br/> (Replit Hosted)"]
     DB[(MongoDB Atlas)]
     CDN[Cloudinary Media]
     Auth[Firebase Phone Auth]

@@ -5,7 +5,12 @@ A professional record of technical challenges encountered and resolved during th
 ---
 
 ## 📅 April 19, 2026
-> *Focus: Replit Deployment Stability and Git Synchronization*
+> *Focus: Startup Optimization, Replit Deployment Stability, and Git Synchronization*
+
+### `[FIXED]` App Startup Optimization & Lifecycle Sync
+- **Issue**: The application took too long to load (black screen) and discarded system lifecycle messages because the framework was blocked by heavy `await` calls in `main()`.
+- **Fix**: Implemented the **"Light-Main Pattern"**. Refactored `main.dart` to be non-blocking and moved all service initializations (Firebase, API, Notifications) to an asynchronous bootstrap process in the `SplashScreen`.
+- **Context**: Ensuring `runApp()` is called immediately allows the Flutter engine to register native listeners instantly, preventing boot-time errors and providing a snappier user experience.
 
 ### `[FIXED]` Backend Deployment Errors on Replit
 - **Issue**: The Node.js backend failed to start on Replit due to root route (`/`) conflicts and missing dependency paths in the production environment.

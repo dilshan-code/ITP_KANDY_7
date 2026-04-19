@@ -7,7 +7,7 @@ const os = require('os'); // Core module for interacting with the host operating
  * This allows mobile devices to automatically handshake with the backend without manual IP entry.
  */
 class DiscoveryService {
-    constructor(port = 5001, broadcastPort = 5555) {
+    constructor(port = 3000, broadcastPort = 5555) {
         this.port = port; // The target API port the mobile app should connect to
         this.broadcastPort = broadcastPort; // The standard UDP port for the discovery listener
         this.socket = dgram.createSocket('udp4'); // Create an IPv4 UDP socket
@@ -59,8 +59,12 @@ class DiscoveryService {
 
     /**
      * Logic: Starts the UDP transmission engine.
+     * @param {number} apiPort - The port the main Express server is listening on.
      */
-    start() {
+    start(apiPort) {
+        if (apiPort) {
+            this.port = apiPort; // Update the port to match the actual server configuration
+        }
         // Handle unexpected socket crashes (e.g., port already in use).
         this.socket.on('error', (err) => {
             console.error(`[Discovery] Socket error:\n${err.stack}`);
@@ -81,7 +85,7 @@ class DiscoveryService {
                 const message = JSON.stringify({
                     service: 'clickbuy', // Signature for the mobile app to recognize us
                     ip: ip, // Our reachable address
-                    port: this.port, // Port 5001
+                    port: this.port, // Logic: Tell the phone which port we are listening on
                     timestamp: Date.now() // For health tracking
                 });
 
@@ -89,7 +93,7 @@ class DiscoveryService {
                 this.socket.send(message, 0, message.length, this.broadcastPort, '255.255.255.255', (err) => {
                     if (err) console.error('[Discovery] Broadcast error:', err);
                 });
-            }, 5000); // Pulse every 5 seconds to minimize battery drain on phone listeners
+            }, 2000); // Pulse every 2 seconds to minimize battery drain on phone listeners
         });
     }
 

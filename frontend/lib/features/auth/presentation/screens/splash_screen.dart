@@ -1,4 +1,4 @@
-﻿// ------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // File: splash_screen.dart
 // Purpose: Application Entry and Foundational Bootstrap.
 // Rationale: Orchestrates the application's initial visual handover and 
@@ -14,6 +14,13 @@ import 'package:shared_preferences/shared_preferences.dart'; // Logic: Local per
 import 'package:frontend/features/auth/presentation/widgets/auth_background.dart'; // Shared UI: Branded background wrapper
 import 'package:frontend/core/network/backend_discovery.dart'; // Logic: UDP server heartbeat scanner
 import 'package:flutter/foundation.dart'; // Utility: Environment checks (kIsWeb)
+import 'package:firebase_core/firebase_core.dart'; // Infrastructure: Cloud connectivity
+import 'package:frontend/firebase_options.dart'; // Config: Platform-specific Firebase keys
+import 'package:frontend/core/network/api_client.dart'; // Logic: Network configuration
+import 'package:frontend/core/services/notification_service.dart'; // Service: Alert engine
+import 'package:provider/provider.dart'; // State: Dependency access
+import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // State: Identity context
+import 'package:frontend/shared/main_shell.dart'; // Navigation: Primary authenticated shell
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -28,13 +35,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   late Animation<double> _fadeAnimation; // Smoothness: Linear opacity increase
   late Animation<double> _scaleAnimation; // Impact: Elastic bounce effect for and logo pop
 
+  bool _isInitialized = false; // Internal: Tracks if background services are ready
+
   @override
   void initState() {
     super.initState();
     
-    // Initializer: Set a 1.5s duration for the total branding sequence.
+    // Initializer: Set a 1s duration for the total branding sequence (optimized from 1.5s).
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
 
@@ -49,40 +58,85 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     );
 
     _controller.forward(); // Activation: Trigger animations immediately on mount.
-    _navigateToNext(); // Sequence: Trigger background logic concurrently with visuals.
+    _bootstrap(); // Trigger the service initialization sequence.
+  }
+
+  /**
+   * Logic: Foundation Bootstrap.
+   * Rationale: Initializes core services (Firebase, API, Notifications) while 
+   *   the user views the splash branding.
+   */
+  Future<void> _bootstrap() async {
+    try {
+      // Step 1: Initialize Cloud Services
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+
+      // Step 2: Setup Network and API Identifiers
+      await ApiClient.init(); // Load saved IPs from SharedPreferences
+      BackendDiscovery.startDiscovery(); // Listen for local network heartbeats
+
+      // Step 3: Register Local Notification Channels
+      await NotificationService().initialize();
+
+      // Step 4: Detect and Restore Local Session (Auto-Login)
+      if (mounted) {
+        await context.read<AuthProvider>().loadSession();
+      }
+
+      setState(() => _isInitialized = true); // Mark readiness
+      _navigateToNext(); // Proceed to navigation logic
+    } catch (e) {
+      debugPrint('❌ [Bootstrap] Critical failure: $e');
+      // Recovery: Attempt to proceed anyway or show an error state if needed
+      _navigateToNext(); 
+    }
   }
 
   /**
    * Logic: Entry-Route Decision Tree.
-   * Rationale: Determines if the user is a newcomer (shos GetStarted) or a returning owner (show Login).
-   * Also ensures the backend IP is discovered before the user starts interacting.
+   * Rationale: Determines if the user is a newcomer (shows GetStarted) or a returning owner (show Login).
    */
   Future<void> _navigateToNext() async {
+    if (!_isInitialized) return; // Guard: Wait for bootstrap to finish first
+
     final prefs = await SharedPreferences.getInstance(); // Protocol: Access internal storage
     final bool hasSeenGetStarted = prefs.getBool('has_seen_get_started') ?? false; // Check: Binary onboarding flag
 
-    // Synchronization: Wait for BOTH minimum branding time (2s) AND the UDP heartbeat (if applicable).
+    // Synchronization: Wait for minimum branding time (1.2s) to prevent jarring immediate transitions.
     await Future.wait([
-      Future.delayed(const Duration(milliseconds: 2000)), // Minimum: Prevent jarring immediate transitions
+      Future.delayed(const Duration(milliseconds: 1200)), 
       // Network: Discover local laptop IP automatically on mobile networks.
-      if (!kIsWeb) BackendDiscovery.waitForDiscovery(timeout: const Duration(seconds: 6)),
+      if (!kIsWeb) BackendDiscovery.waitForDiscovery(timeout: const Duration(seconds: 4)),
     ]);
 
     if (!mounted) return; // Guard: Prevent navigation if the widget was unmounted fast
 
     // Outcome: Forward the user to the appropriate security context.
-    if (!hasSeenGetStarted) {
+    final authProvider = context.read<AuthProvider>();
+
+    if (authProvider.isLoggedIn) {
+      // Logic: Returning user with a valid persistent session.
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainShell()),
+      );
+    } else if (!hasSeenGetStarted) {
+      // Logic: First-time visitor.
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const GetStartedScreen()),
       );
     } else {
+      // Logic: Returning visitor who is logged out.
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const LoginScreen()),
       );
     }
   }
+
 
   @override
   void dispose() {

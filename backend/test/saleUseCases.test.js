@@ -174,7 +174,7 @@ describe('Sale Use Cases', () => {
             await createSale.execute(saleData, ownerId);
             expect(mockNotificationRepository.create).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    type: 'alert',
+                    type: 'credit',
                     title: 'Credit Limit Exceeded',
                 }),
                 expect.anything()
@@ -216,7 +216,7 @@ describe('Sale Use Cases', () => {
             await createSale.execute(saleData, ownerId);
             expect(mockNotificationRepository.create).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    type: 'warning',
+                    type: 'alert',
                     title: 'Product Out of Stock',
                 }),
                 expect.anything()
