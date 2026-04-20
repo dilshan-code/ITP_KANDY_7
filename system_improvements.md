@@ -3,6 +3,25 @@
 A roadmap of architectural enhancements and user experience updates implemented to make **ClickBuy** a more robust and scalable platform.
 
 ---
+## 📅 April 20, 2026
+> *Focus: Zero-Config Connectivity and Deployment Hardening*
+
+### `[ARCH]` Replit-First Connectivity Architecture
+- **Feature**: Smart Hostname Detection & Environment-Agnostic Routing.
+- **Description**: Re-engineered the core network layer (`ApiClient`) to distinguish between bare IP addresses and domain hostnames. It now automatically enforces HTTPS and suppresses port suffixes for Replit-style URLs, even in development mode.
+- **Benefit**: Provides a "Production-First" development experience where the app behaves exactly like a released product while still offering debugging flexibility.
+
+### `[UX]` Zero-Config Onboarding for Real Devices
+- **Feature**: Out-of-the-box Replit Auto-Connection.
+- **Description**: Changed the default internal server identifier from the emulator-only `10.0.2.2` to the project's permanent Replit hostname.
+- **Benefit**: Allows any store owner or stakeholder to install the mobile app and log in immediately without ever seeing a "Server Connection" screen or needing to know technical IP details.
+
+### `[UX]` Developer-Only Configuration Guard
+- **Feature**: Proactive removal of diagnostic interruptions.
+- **Description**: Disabled the automated popup of network settings during authentication failures. Standard user errors are now handled via non-intrusive Snackbar notifications.
+- **Benefit**: Protects the application's premium "look and feel" by ensuring technical configuration tools stay hidden from the end-user, while remaining accessible to developers via the secondary logo long-press.
+
+---
 ## 📅 April 19, 2026
 > *Focus: Production Hosting and Deployment Integrity*
 

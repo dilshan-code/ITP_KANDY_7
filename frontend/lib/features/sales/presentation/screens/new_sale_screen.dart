@@ -19,6 +19,7 @@ import 'package:frontend/features/sales/presentation/screens/payment_confirmatio
 import 'package:frontend/features/sales/presentation/screens/payment_success_screen.dart'; // UI: Post-payment celebration
 import 'package:frontend/features/credit/presentation/providers/credit_provider.dart'; // State: Debt sync
 import 'package:frontend/shared/main_shell.dart'; // Navigation: Dashboard return point
+import 'package:frontend/shared/widgets/screen_header.dart'; // UI: Reusable page header
 import 'package:frontend/shared/widgets/counter_text.dart'; // UI: Animated number display
 import 'package:frontend/shared/widgets/tactile_scale.dart'; // UI: Haptic tap wrapper
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; // Animation: Staggered list entry
@@ -33,408 +34,394 @@ class NewSaleScreen extends StatefulWidget {
 
 class _NewSaleScreenState extends State<NewSaleScreen> {
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(
-          'Checkout',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: null,
-        actions: [
-          Consumer<SaleProvider>(
-            builder: (context, provider, _) {
-              if (provider.cartItems.isEmpty) return const SizedBox.shrink();
-              return TextButton.icon(
-                onPressed: () => provider.clearCart(),
-                icon: Icon(
-                  Icons.delete_outline,
-                  color: AppColors.error,
-                  size: 20,
-                ),
-                label: Text(
-                  'Clear Cart',
-                  style: GoogleFonts.poppins(
-                    color: AppColors.error,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
       body: SafeArea(
         child: Consumer<SaleProvider>(
-        builder: (context, provider, _) {
-          if (provider.isLoading) {
-            return Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
-          }
-
-          if (provider.cartItems.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.textDark.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.shopping_cart_outlined,
-                      size: 60,
-                      color: AppColors.textLight,
-                    ),
-                  ),
-                  SizedBox(height: 24),
-                  Text(
-                    'Your cart is empty',
-                    style: GoogleFonts.poppins(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Add products from the Inventory to begin a sale.',
-                    style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textMedium),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return AnimationLimiter(
-            child: Column(
+          builder: (context, provider, _) {
+            return Column(
               children: [
-                // Cart items list: Displays current selections from inventory
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: provider.cartItems.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final item = provider.cartItems[index];
-                      return AnimationConfiguration.staggeredList(
-                        position: index,
-                        duration: const Duration(milliseconds: 375),
-                        child: SlideAnimation(
-                          horizontalOffset: 50.0,
-                          child: FadeInAnimation(
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.03),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: ScreenHeader(
+                    title: 'Checkout',
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    action: provider.cartItems.isEmpty
+                        ? null
+                        : TextButton.icon(
+                            onPressed: () => provider.clearCart(),
+                            icon: Icon(
+                              Icons.delete_outline,
+                              color: AppColors.error,
+                              size: 20,
+                            ),
+                            label: Text(
+                              'Clear',
+                              style: GoogleFonts.poppins(
+                                color: AppColors.error,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
                               ),
-                              child: Row(
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              backgroundColor: AppColors.error.withValues(alpha: 0.1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+                Expanded(
+                  child: provider.isLoading
+                      ? Center(
+                          child: CircularProgressIndicator(color: AppColors.primary),
+                        )
+                      : provider.cartItems.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.all(12),
+                                    padding: const EdgeInsets.all(24),
                                     decoration: BoxDecoration(
-                                      color: Colors.grey.shade50,
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: Icon(
-                                      Icons.shopping_bag_outlined,
-                                      color: AppColors.primary,
-                                      size: 24,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item['name'], // Product identifier
-                                          style: GoogleFonts.poppins(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 16,
-                                            color: AppColors.textDark,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Rs. ${(item['price'] as num).toDouble().toStringAsFixed(2)}', // Unit price
-                                          style: GoogleFonts.poppins(
-                                            fontWeight: FontWeight.w700,
-                                            color: AppColors.primary,
-                                            fontSize: 15,
-                                          ),
+                                      color: AppColors.surface,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.textDark.withValues(alpha: 0.05),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
                                         ),
                                       ],
                                     ),
+                                    child: Icon(
+                                      Icons.shopping_cart_outlined,
+                                      size: 60,
+                                      color: AppColors.textLight,
+                                    ),
                                   ),
-                                  // Quantity Management: Tactile controls for cart adjustments
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      TactileScale(
-                                        onTap: () => provider.updateQuantity(
-                                          index,
-                                          (item['quantity'] as int) - 1,
+                                  const SizedBox(height: 24),
+                                  Text(
+                                    'Your cart is empty',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Add products from the Inventory to begin a sale.',
+                                    style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textMedium),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            )
+                          : AnimationLimiter(
+                              child: Column(
+                                children: [
+                                  // Cart items list: Displays current selections from inventory
+                                  Expanded(
+                                    child: ListView.separated(
+                                      padding: const EdgeInsets.all(16),
+                                      itemCount: provider.cartItems.length,
+                                      separatorBuilder: (context, index) =>
+                                          const SizedBox(height: 12),
+                                      itemBuilder: (context, index) {
+                                        final item = provider.cartItems[index];
+                                        return AnimationConfiguration.staggeredList(
+                                          position: index,
+                                          duration: const Duration(milliseconds: 375),
+                                          child: SlideAnimation(
+                                            horizontalOffset: 50.0,
+                                            child: FadeInAnimation(
+                                              child: Container(
+                                                padding: const EdgeInsets.all(16),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius: BorderRadius.circular(16),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.black.withValues(alpha: 0.03),
+                                                      blurRadius: 8,
+                                                      offset: const Offset(0, 2),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    Container(
+                                                      padding: const EdgeInsets.all(12),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.grey.shade50,
+                                                        borderRadius: BorderRadius.circular(16),
+                                                      ),
+                                                      child: Icon(
+                                                        Icons.shopping_bag_outlined,
+                                                        color: AppColors.primary,
+                                                        size: 24,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 16),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(
+                                                            item['name'], // Product identifier
+                                                            style: GoogleFonts.poppins(
+                                                              fontWeight: FontWeight.w600,
+                                                              fontSize: 16,
+                                                              color: AppColors.textDark,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(height: 4),
+                                                          Text(
+                                                            'Rs. ${(item['price'] as num).toDouble().toStringAsFixed(2)}', // Unit price
+                                                            style: GoogleFonts.poppins(
+                                                              fontWeight: FontWeight.w700,
+                                                              color: AppColors.primary,
+                                                              fontSize: 15,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    // Quantity Management: Tactile controls for cart adjustments
+                                                    Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        TactileScale(
+                                                          onTap: () => provider.updateQuantity(
+                                                            index,
+                                                            (item['quantity'] as int) - 1,
+                                                          ),
+                                                          child: _buildQuantityButtonWidget(
+                                                            icon: Icons.remove,
+                                                            color: AppColors.textMedium,
+                                                          ),
+                                                        ),
+                                                        Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                                                          constraints: const BoxConstraints(minWidth: 40),
+                                                          alignment: Alignment.center,
+                                                          child: Column(
+                                                            mainAxisSize: MainAxisSize.min,
+                                                            children: [
+                                                              Text(
+                                                                '${item['quantity']}', // Target checkout amount
+                                                                style: GoogleFonts.poppins(
+                                                                  fontWeight: FontWeight.w700,
+                                                                  fontSize: 16,
+                                                                ),
+                                                              ),
+                                                              Text(
+                                                                '${item['unit']}', // Measurement unit (e.g. Kg, Pcs)
+                                                                style: GoogleFonts.poppins(
+                                                                  fontSize: 10,
+                                                                  color: AppColors.textMedium,
+                                                                  fontWeight: FontWeight.w500,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        TactileScale(
+                                                          onTap: () {
+                                                            if ((item['quantity'] as int) <
+                                                                (item['stockQuantity'] as int)) {
+                                                              // Increment within available inventory bounds
+                                                              provider.updateQuantity(
+                                                                index,
+                                                                (item['quantity'] as int) + 1,
+                                                              );
+                                                            } else {
+                                                              // Guard against over-selling
+                                                              SnackBarUtils.showSnackBar(
+                                                                context,
+                                                                'Stock limit reached for ${item['name']}',
+                                                                isError: true,
+                                                              );
+                                                            }
+                                                          },
+                                                          child: _buildQuantityButtonWidget(
+                                                            icon: Icons.add,
+                                                            color: (item['quantity'] as int) < (item['stockQuantity'] as int)
+                                                                ? AppColors.primary
+                                                                : Colors.grey, // Visual disabled state
+                                                            isEnabled: (item['quantity'] as int) < (item['stockQuantity'] as int),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+
+                                  // Sticky Checkout Footer: Provides totalization and payment calls-to-action
+                                  FadeInUp(
+                                    duration: const Duration(milliseconds: 600),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(20),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: const BorderRadius.vertical(
+                                          top: Radius.circular(24),
                                         ),
-                                        child: _buildQuantityButtonWidget(
-                                          icon: Icons.remove,
-                                          color: AppColors.textMedium,
-                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.08),
+                                            blurRadius: 16,
+                                            offset: const Offset(0, -4),
+                                          ),
+                                        ],
                                       ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                                        constraints: const BoxConstraints(minWidth: 40),
-                                        alignment: Alignment.center,
+                                      child: SafeArea(
                                         child: Column(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Text(
-                                              '${item['quantity']}', // Target checkout amount
-                                              style: GoogleFonts.poppins(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 16,
-                                              ),
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'Total Summary',
+                                                      style: GoogleFonts.poppins(
+                                                        fontSize: 14,
+                                                        color: AppColors.textMedium,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      '${provider.totalItems} Items', // Total unit count
+                                                      style: GoogleFonts.poppins(
+                                                        fontWeight: FontWeight.w600,
+                                                        fontSize: 16,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                                  children: [
+                                                    Text(
+                                                      'Total Amount',
+                                                      style: GoogleFonts.poppins(
+                                                        fontSize: 14,
+                                                        color: AppColors.textMedium,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    // Live animated total amount display
+                                                    CounterText(
+                                                      value: provider.totalAmount,
+                                                      prefix: 'Rs. ',
+                                                      style: GoogleFonts.poppins(
+                                                        fontWeight: FontWeight.w800,
+                                                        fontSize: 22,
+                                                        color: AppColors.primary,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
                                             ),
-                                            Text(
-                                              '${item['unit']}', // Measurement unit (e.g. Kg, Pcs)
-                                              style: GoogleFonts.poppins(
-                                                fontSize: 10,
-                                                color: AppColors.textMedium,
-                                                fontWeight: FontWeight.w500,
-                                              ),
+                                            const SizedBox(height: 20),
+                                            Row(
+                                              children: [
+                                                // Credit Path: For trusted regular customers
+                                                Expanded(
+                                                  child: TactileScale(
+                                                    onTap: () => _showConfirmation(
+                                                      context,
+                                                      provider,
+                                                      'credit',
+                                                    ),
+                                                    child: OutlinedButton(
+                                                      onPressed: null, // Tap handled by TactileScale wrapper
+                                                      style: OutlinedButton.styleFrom(
+                                                        padding: const EdgeInsets.symmetric(
+                                                          vertical: 16,
+                                                        ),
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(20),
+                                                        ),
+                                                        side: const BorderSide(
+                                                          color: AppColors.primary,
+                                                          width: 2,
+                                                        ),
+                                                        disabledForegroundColor: AppColors.primary,
+                                                      ),
+                                                      child: Text(
+                                                        'Credit Loan',
+                                                        style: GoogleFonts.poppins(
+                                                          fontWeight: FontWeight.w700,
+                                                          fontSize: 16,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                // Immediate Settlement Path
+                                                Expanded(
+                                                  flex: 2,
+                                                  child: TactileScale(
+                                                    onTap: () => _showConfirmation(context, provider, 'cash'),
+                                                    child: ElevatedButton(
+                                                      onPressed: null, // Tap handled by TactileScale wrapper
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor: AppColors.primary,
+                                                        disabledBackgroundColor: AppColors.primary,
+                                                        disabledForegroundColor: Colors.white,
+                                                        foregroundColor: Colors.white,
+                                                        padding: const EdgeInsets.symmetric(
+                                                          vertical: 16,
+                                                        ),
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius: BorderRadius.circular(20),
+                                                        ),
+                                                        elevation: 0,
+                                                      ),
+                                                      child: Text(
+                                                        'Pay Cash',
+                                                        style: GoogleFonts.poppins(
+                                                          fontWeight: FontWeight.w700,
+                                                          fontSize: 16,
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ],
                                         ),
                                       ),
-                                      TactileScale(
-                                        onTap: () {
-                                          if ((item['quantity'] as int) <
-                                              (item['stockQuantity'] as int)) {
-                                            // Increment within available inventory bounds
-                                            provider.updateQuantity(
-                                              index,
-                                              (item['quantity'] as int) + 1,
-                                            );
-                                          } else {
-                                            // Guard against over-selling
-                                            SnackBarUtils.showSnackBar(
-                                              context,
-                                              'Stock limit reached for ${item['name']}',
-                                              isError: true,
-                                            );
-                                          }
-                                        },
-                                        child: _buildQuantityButtonWidget(
-                                          icon: Icons.add,
-                                          color:
-                                              (item['quantity'] as int) <
-                                                  (item['stockQuantity'] as int)
-                                              ? AppColors.primary
-                                              : Colors.grey, // Visual disabled state
-                                          isEnabled:
-                                              (item['quantity'] as int) <
-                                              (item['stockQuantity'] as int),
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                
-                // Sticky Checkout Footer: Provides totalization and payment calls-to-action
-                FadeInUp(
-                  duration: const Duration(milliseconds: 600),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(24),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 16,
-                          offset: const Offset(0, -4),
-                        ),
-                      ],
-                    ),
-                    child: SafeArea(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Total Summary',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      color: AppColors.textMedium,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${provider.totalItems} Items', // Total unit count
-                                    style: GoogleFonts.poppins(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    'Total Amount',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 14,
-                                      color: AppColors.textMedium,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  // Live animated total amount display
-                                  CounterText(
-                                    value: provider.totalAmount,
-                                    prefix: 'Rs. ',
-                                    style: GoogleFonts.poppins(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 22,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          Row(
-                            children: [
-                              // Credit Path: For trusted regular customers
-                              Expanded(
-                                child: TactileScale(
-                                  onTap: () => _showConfirmation(
-                                    context,
-                                    provider,
-                                    'credit',
-                                  ),
-                                  child: OutlinedButton(
-                                    onPressed: null, // Tap handled by TactileScale wrapper
-                                    style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 16,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      side: const BorderSide(
-                                        color: AppColors.primary,
-                                        width: 2,
-                                      ),
-                                      disabledForegroundColor: AppColors.primary,
-                                    ),
-                                    child: Text(
-                                      'Credit Loan',
-                                      style: GoogleFonts.poppins(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              // Immediate Settlement Path
-                              Expanded(
-                                flex: 2,
-                                child: TactileScale(
-                                  onTap: () =>
-                                      _showConfirmation(context, provider, 'cash'),
-                                  child: ElevatedButton(
-                                    onPressed: null, // Tap handled by TactileScale wrapper
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.primary,
-                                      disabledBackgroundColor: AppColors.primary,
-                                      disabledForegroundColor: Colors.white,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 16,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      elevation: 0,
-                                    ),
-                                    child: Text(
-                                      'Pay Cash',
-                                      style: GoogleFonts.poppins(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 ),
               ],
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
-    ),
       bottomNavigationBar: const SizedBox(height: 110), // Buffer to clear the floating navbar in MainShell
     );
   }

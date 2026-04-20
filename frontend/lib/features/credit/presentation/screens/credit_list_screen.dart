@@ -16,8 +16,8 @@ import 'package:frontend/features/credit/domain/entities/customer.dart'; // Doma
 import 'package:frontend/features/credit/presentation/screens/credit_detail_screen.dart'; // Navigation: Customer ledger
 import 'package:frontend/features/credit/presentation/utils/export_utils.dart'; // PDF: Batch credit export
 import 'package:frontend/shared/widgets/modern_pdf_icon.dart'; // UI: Brand-consistent PDF trigger icon
-import 'package:frontend/shared/widgets/app_back_button.dart'; // Standardized navigation trigger
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // State: Identity management
+import 'package:frontend/shared/widgets/screen_header.dart'; // UI: Reusable page header
 
 /// CreditListScreen: A dual-purpose screen for managing customer credit.
 /// Works as both a standalone CRM view and a selection picker for the checkout flow.
@@ -71,128 +71,127 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
     super.dispose();
   }
 
+  void _handlePdfExport(BuildContext context) {
+    final provider = context.read<CreditProvider>();
+    final owner = context.read<AuthProvider>().currentOwner;
+    // Branching export logic based on active tab view.
+    if (_tabController.index == 0) {
+      final outstanding = provider.outstandingCustomers;
+      if (outstanding.isNotEmpty) {
+        CreditExportUtils.exportActiveCreditsPdf(outstanding, owner: owner);
+      } else {
+        SnackBarUtils.showSnackBar(context, 'No active credit users to export');
+      }
+    } else {
+      final settled = provider.settledCustomers;
+      if (settled.isNotEmpty) {
+        CreditExportUtils.exportSettledCreditsPdf(settled, owner: owner);
+      } else {
+        SnackBarUtils.showSnackBar(context, 'No settled customers to export');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
-          title: Text('Customer Credit'),
-          leading: (widget.isSelectionMode || Navigator.canPop(context))
-              ? AppBackButton(
-                  onTap: () => Navigator.pop(context),
-                  margin: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
-                )
-              : null,
-          automaticallyImplyLeading: false,
-          actions: [
-            IconButton(
-              icon: const ModernPdfIcon(),
-              onPressed: () {
-                final provider = context.read<CreditProvider>();
-                final owner = context.read<AuthProvider>().currentOwner;
-                // Branching export logic based on active tab view.
-                if (_tabController.index == 0) {
-                  final outstanding = provider.outstandingCustomers;
-                  if (outstanding.isNotEmpty) {
-                    CreditExportUtils.exportActiveCreditsPdf(outstanding, owner: owner);
-                  } else {
-                    SnackBarUtils.showSnackBar(context, 'No active credit users to export');
-                  }
-                } else {
-                  final settled = provider.settledCustomers;
-                  if (settled.isNotEmpty) {
-                    CreditExportUtils.exportSettledCreditsPdf(settled, owner: owner);
-                  } else {
-                    SnackBarUtils.showSnackBar(context, 'No settled customers to export');
-                  }
-                }
-              },
-              tooltip: 'Download PDF',
-            ),
-          ],
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(48),
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: ScreenHeader(
+                  title: 'Customer Credit',
+                  showBackButton: widget.isSelectionMode || Navigator.canPop(context),
+                  onBack: () => Navigator.pop(context),
+                  action: const ModernPdfIcon(),
+                  onActionTap: () => _handlePdfExport(context),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
               ),
-              child: TabBar(
-                controller: _tabController,
-                dividerColor: Colors.transparent,
-                indicatorSize: TabBarIndicatorSize.tab,
-                indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.textDark.withValues(alpha: 0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  dividerColor: Colors.transparent,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.textDark.withValues(alpha: 0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: AppColors.textMedium,
+                  labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                  tabs: [
+                    Tab(text: 'Credit Users'), // Displaying customers with active liabilities
+                    Tab(text: 'Settled / Paid'), // Displaying customers with zero balances
                   ],
                 ),
-                labelColor: AppColors.primary,
-                unselectedLabelColor: AppColors.textMedium,
-                labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w700),
-                tabs: [
-                  Tab(text: 'Credit Users'), // Displaying customers with active liabilities
-                  Tab(text: 'Settled / Paid'), // Displaying customers with zero balances
-                ],
               ),
-            ),
+              Expanded(
+                child: Consumer<CreditProvider>(
+                  builder: (context, provider, _) {
+                    // Auto-trigger: Opens the "Add New Customer" dialog if signaled from the Home screen.
+                    if (provider.shouldOpenAddCustomer) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          _showAddCustomerDialog(context);
+                          provider.setShouldOpenAddCustomer(false);
+                        }
+                      });
+                    }
+                    // Guard: Initial data retrieval state
+                    if (provider.isLoading && provider.customers.isEmpty) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    // Filtering Logic: Dynamic search across name and phone fields
+                    final outstanding = provider.outstandingCustomers.where((c) {
+                      return c.name.toLowerCase().contains(_searchQuery) ||
+                          c.phone.toLowerCase().contains(_searchQuery);
+                    }).toList();
+
+                    final settled = provider.settledCustomers.where((c) {
+                      return c.name.toLowerCase().contains(_searchQuery) ||
+                          c.phone.toLowerCase().contains(_searchQuery);
+                    }).toList();
+
+                    return TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildCustomerList(
+                          context,
+                          provider,
+                          outstanding,
+                          'No active credit users',
+                        ),
+                        _buildCustomerList(
+                          context,
+                          provider,
+                          settled,
+                          'No settled customers yet',
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
-        body: SafeArea(
-          child: Consumer<CreditProvider>(
-          builder: (context, provider, _) {
-            // Auto-trigger: Opens the "Add New Customer" dialog if signaled from the Home screen.
-            if (provider.shouldOpenAddCustomer) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  _showAddCustomerDialog(context);
-                  provider.setShouldOpenAddCustomer(false);
-                }
-              });
-            }
-            // Guard: Initial data retrieval state
-            if (provider.isLoading && provider.customers.isEmpty) {
-              return Center(child: CircularProgressIndicator());
-            }
-
-            // Filtering Logic: Dynamic search across name and phone fields
-            final outstanding = provider.outstandingCustomers.where((c) {
-              return c.name.toLowerCase().contains(_searchQuery) ||
-                  c.phone.toLowerCase().contains(_searchQuery);
-            }).toList();
-
-            final settled = provider.settledCustomers.where((c) {
-              return c.name.toLowerCase().contains(_searchQuery) ||
-                  c.phone.toLowerCase().contains(_searchQuery);
-            }).toList();
-
-            return TabBarView(
-              controller: _tabController,
-              children: [
-                _buildCustomerList(
-                  context,
-                  provider,
-                  outstanding,
-                  'No active credit users',
-                ),
-                _buildCustomerList(
-                  context,
-                  provider,
-                  settled,
-                  'No settled customers yet',
-                ),
-              ],
-            );
-          },
-        ),
-      ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'credit_add_customer_btn',
         onPressed: () => _showAddCustomerDialog(context), // Registration entry point

@@ -385,11 +385,11 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                               }
                             });
                           },
-                          icon: Icon(Icons.edit_rounded, size: 18),
+                          icon: Icon(Icons.edit_rounded, size: 16),
                           label: Text(
                             'Edit',
                             style: GoogleFonts.poppins(
-                              fontSize: 13,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -397,7 +397,7 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                             foregroundColor: Colors.green.shade700,
                             backgroundColor: Colors.green.shade50,
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
+                                horizontal: 10, vertical: 8),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -406,11 +406,11 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                         SizedBox(width: 8),
                         TextButton.icon(
                           onPressed: () => _confirmDeleteSupplier(supplier),
-                          icon: Icon(Icons.delete_outline_rounded, size: 18),
+                          icon: Icon(Icons.delete_outline_rounded, size: 16),
                           label: Text(
                             'Delete',
                             style: GoogleFonts.poppins(
-                              fontSize: 13,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -418,7 +418,7 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                             foregroundColor: Colors.red.shade700,
                             backgroundColor: Colors.red.shade50,
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
+                                horizontal: 10, vertical: 8),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -537,18 +537,18 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                                   purchase: purchase),
                             ),
                           ),
-                          icon: const Icon(Icons.visibility_outlined, size: 18),
+                          icon: const Icon(Icons.visibility_outlined, size: 16),
                           label: Text(
                             'View Items',
                             style: GoogleFonts.poppins(
-                              fontSize: 13,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                           style: TextButton.styleFrom(
                             foregroundColor: AppColors.primary,
                             backgroundColor: AppColors.primary.withValues(alpha: 0.05),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -562,18 +562,18 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                                   final owner = context.read<AuthProvider>().currentOwner;
                                   SupplierExportUtils.exportPaymentReceiptPdf(purchase, owner: owner);
                                 },
-                                icon: const Icon(Icons.receipt_long_rounded, size: 18),
+                                icon: const Icon(Icons.receipt_long_rounded, size: 16),
                                 label: Text(
                                   'Receipt',
                                   style: GoogleFonts.poppins(
-                                    fontSize: 13,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 style: TextButton.styleFrom(
                                   foregroundColor: Colors.blue.shade700,
                                   backgroundColor: Colors.blue.shade50,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -582,18 +582,18 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                             else
                               TextButton.icon(
                                 onPressed: () => _handleSettlePayment(purchase),
-                                icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                                icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
                                 label: Text(
                                   'Settle',
                                   style: GoogleFonts.poppins(
-                                    fontSize: 13,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 style: TextButton.styleFrom(
                                   foregroundColor: Colors.green.shade700,
                                   backgroundColor: Colors.green.shade50,
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -602,18 +602,18 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                             const SizedBox(width: 8),
                             TextButton.icon(
                               onPressed: () => _confirmDeletePurchase(purchase),
-                              icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                              icon: const Icon(Icons.delete_outline_rounded, size: 16),
                               label: Text(
                                 'Delete',
                                 style: GoogleFonts.poppins(
-                                  fontSize: 13,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                               style: TextButton.styleFrom(
                                 foregroundColor: Colors.red.shade700,
                                 backgroundColor: Colors.red.shade50,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
