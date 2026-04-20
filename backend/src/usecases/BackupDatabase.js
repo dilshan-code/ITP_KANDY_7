@@ -23,16 +23,27 @@ class BackupDatabase {
             
             // 3. Archiver Initialization: Configure the ZIP engine with maximum compression (Level 9).
             const archive = archiver('zip', {
-                zlib: { level: 9 } // Trade CPU time for a smaller download size
+                zlib: { level: 6 } // Balanced speed vs size (default is 6)
             });
 
-            // 4. Error Boundary: Ensure we handle any streaming failures during the archiving process.
+            // 4. Error & Warning Boundaries: Ensure we handle any streaming failures.
+            archive.on('warning', (err) => {
+                if (err.code === 'ENOENT') {
+                    console.warn('[BACKUP] Minor archive warning:', err);
+                } else {
+                    throw err;
+                }
+            });
+
             archive.on('error', (err) => {
-                throw err; // Stop and report if compression fails
+                console.error('[BACKUP] Archiver error:', err);
+                // After an error, the stream might be in a bad state. 
+                // We don't throw here to avoid crashing the process, but we let 
+                // the finalize step or the outer try/catch handle the cleanup.
+                res.end(); 
             });
 
-            // 5. Pipe Integration: Connect the archiver's output directly to the client's download stream.
-            // This is memory-efficient as it doesn't store the full ZIP in RAM before sending.
+            // 5. Pipe Integration: Connect the archiver's output directly to the client.
             archive.pipe(res);
 
             // 6. Data Extraction Loop: Iterate through every identified collection in the store.
@@ -46,7 +57,7 @@ class BackupDatabase {
                 
                 // 6.2 Serialization: Convert binary BSON documents into human-readable JSON.
                 // We use 'null, 2' for pretty-printing, making individual records auditable by hand.
-                const content = JSON.stringify(documents, null, 2);
+                const content = JSON.stringify(documents);
                 
                 // 6.3 Append to Archive: Insert the JSON file into the root of the ZIP.
                 archive.append(content, { name: `${collectionName}.json` });
