@@ -79,10 +79,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'Cannot reach the server. Please check your connection settings.',
           isError: true,
         );
-        showDialog(
-          context: context,
-          builder: (_) => const BackendSettingsDialog(),
-        );
+        // Disabled: Dialog should only open via 10-second logo long-press.
+        // showDialog(
+        //   context: context,
+        //   builder: (_) => const BackendSettingsDialog(),
+        // );
         return;
       }
     }

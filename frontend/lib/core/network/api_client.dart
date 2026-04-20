@@ -16,7 +16,9 @@ import 'package:frontend/core/error/exceptions.dart'; // Custom domain exception
 
 class ApiClient {
   // --- Infrastructure Settings ---
-  static String _serverIp = '10.0.2.2'; // State: Active server address
+  // Default: Replit production hostname for real devices.
+  // Developers can override to a local IP via the Server Connection dialog (10s logo hold).
+  static String _serverIp = 'ba408787-5deb-46ee-bb7e-679a94333377-00-3jxj82plhfdn2.sisko.replit.dev';
   static int _serverPort = 3000; // State: Active server port (Default: 3000)
   static const String _storageKeyIp = 'backend_server_ip'; // Registry: Key for local persistence
   static const String _storageKeyPort = 'backend_server_port'; // Registry: Key for port persistence
@@ -95,11 +97,23 @@ class ApiClient {
       return 'https://ba408787-5deb-46ee-bb7e-679a94333377-00-3jxj82plhfdn2.sisko.replit.dev/api';
     }
 
+    // Strategy: Detect if the configured server address is a hostname (e.g. Replit domain)
+    // rather than a bare IP address. Hostnames use HTTPS and don't need a port suffix.
+    if (_isHostname(_serverIp)) {
+      return 'https://$_serverIp/api';
+    }
+
     if (kIsWeb) {
       return 'http://localhost:$_serverPort/api'; // Dev: Use dynamic port
     } else {
       return 'http://$_serverIp:$_serverPort/api'; // Development/Mobile: Use dynamic port
     }
+  }
+
+  /// Detects if the given address is a hostname (e.g. `xyz.replit.dev`) vs a bare IP (e.g. `192.168.1.5`).
+  static bool _isHostname(String address) {
+    // A bare IPv4 address is all digits and dots. Anything else is a hostname.
+    return address.contains('.') && !RegExp(r'^[\d.]+$').hasMatch(address);
   }
 
   static String get serverIp => _serverIp; // Query: Current active IP for UI displays
