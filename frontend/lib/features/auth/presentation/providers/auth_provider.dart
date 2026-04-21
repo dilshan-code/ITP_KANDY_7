@@ -60,9 +60,11 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      debugPrint('📱 [OTP] Initiating SMS verification for: $phoneNumber');
       await _phoneAuthService.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         onCodeSent: (verificationId, resendToken) {
+          debugPrint('✅ [OTP] Code sent successfully. Verification ID received.');
           _verificationId = verificationId; // Persistence: Store the ID for the 'verify' step
           _resendToken = resendToken; // Recovery: Store for 'resend' attempts
           _isLoading = false;
@@ -70,23 +72,28 @@ class AuthProvider extends ChangeNotifier {
           onCodeSent(); // Navigation: Tell UI to show the OTP entry field
         },
         onVerificationFailed: (e) {
+          debugPrint('❌ [OTP] Verification FAILED: code=${e.code}, message=${e.message}');
+          debugPrint('❌ [OTP] Full error: $e');
           _error = e.message ?? 'Verification failed'; // Strategy: Parse Firebase specific error
           _isLoading = false;
           notifyListeners();
           onVerificationFailed(_error!); // Notify: UI should show an alert
         },
         onVerificationCompleted: (credential) async {
+          debugPrint('✅ [OTP] Auto-verification completed.');
           // Automatic: Triggered if Android detects the SMS code automatically.
           if (credential.smsCode != null) {
             onVerificationCompleted(credential.smsCode!);
           }
         },
         onCodeAutoRetrievalTimeout: (verificationId) {
+          debugPrint('⏰ [OTP] Auto-retrieval timeout. Manual entry required.');
           _verificationId = verificationId; // Persistence: Ensure we can still verify manually after timeout
           notifyListeners();
         },
       );
     } catch (e) {
+      debugPrint('❌ [OTP] Exception during sendOtp: $e');
       _error = e.toString();
       _isLoading = false;
       notifyListeners();

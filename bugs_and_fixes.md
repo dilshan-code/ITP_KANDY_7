@@ -4,6 +4,17 @@ A professional record of technical challenges encountered and resolved during th
 
 ---
 
+## 📅 April 21, 2026
+> *Focus: Firebase Phone Auth OTP Fix*
+
+### `[FIXED]` Firebase Phone Auth OTP Not Sending SMS
+- **Issue**: Users were unable to receive OTP SMS codes during registration and password reset. The `google-services.json` file showed empty `oauth_client: []` arrays, leading to suspicion of missing SHA fingerprints.
+- **Root Cause**: A **Firebase App ID mismatch** in `firebase_options.dart`. The `appId` was set to `1:...99b3bd66b194fb65e4f026`, which mapped to the old package `com.example.notification` in `google-services.json`. The actual app (`com.smallstore.app.frontend`) had a different App ID (`1:...85a6a6fa471f66fde4f026`). Firebase was verifying the wrong app identity and silently rejecting the SMS request.
+- **Fix**: Updated the Android `appId` in `firebase_options.dart` to `1:792079455443:android:85a6a6fa471f66fde4f026` to match the correct `com.smallstore.app.frontend` entry. Added enhanced `debugPrint` logging to the `sendOtp` flow in `AuthProvider` for future diagnostics.
+- **Context**: The `oauth_client: []` being empty is **normal** for Firebase Phone Auth — it only populates when Google Sign-In is enabled. The SHA-1/SHA-256 fingerprints were correctly added to the Firebase Console but were being checked against the wrong app due to the ID mismatch.
+
+---
+
 ## 📅 April 20, 2026
 > *Focus: User UX Polish and Production Connectivity Resilience*
 
