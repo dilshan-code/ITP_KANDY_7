@@ -23,7 +23,10 @@ class AuthController {
             const owner = await this.registerOwner.execute({ name: ownerName, shopName: shopName || '', phone, email: email || '', password });
             res.status(201).json({ success: true, data: owner });
         } catch (error) {
-            const statusCode = error.message.includes('already exists') ? 409 : 500;
+            let statusCode = 500;
+            if (error.message.includes('already exists')) statusCode = 409;
+            if (error.message.includes('verification required')) statusCode = 401;
+            
             res.status(statusCode).json({ success: false, error: error.message });
         }
     }

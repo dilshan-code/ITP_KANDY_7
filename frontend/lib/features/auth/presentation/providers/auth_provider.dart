@@ -74,7 +74,14 @@ class AuthProvider extends ChangeNotifier {
         onVerificationFailed: (e) {
           debugPrint('❌ [OTP] Verification FAILED: code=${e.code}, message=${e.message}');
           debugPrint('❌ [OTP] Full error: $e');
-          _error = e.message ?? 'Verification failed'; // Strategy: Parse Firebase specific error
+
+          // Logic: Map technical Firebase restrictions to actionable user instructions.
+          if (e.code == 'billing-not-enabled') {
+            _error = 'SMS service restricted.';
+          } else {
+            _error = e.message ?? 'Verification failed';
+          }
+
           _isLoading = false;
           notifyListeners();
           onVerificationFailed(_error!); // Notify: UI should show an alert
@@ -171,6 +178,83 @@ class AuthProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       _error = 'Invalid OTP code. Please try again.'; // User UX: Simple, actionable error
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /*
+   * Logic: Backend-Driven OTP Request.
+   * Rationale: Triggers the Node.js backend to generate a PIN and send via Email or Preview in Terminal.
+   */
+  Future<void> requestBackendOtp({
+    required String target,
+    required String method,
+    required VoidCallback onCodeSent,
+    required Function(String error) onFailed,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      debugPrint('🛡️ [BACKEND OTP] Requesting code for: $target via $method');
+      final response = await ApiClient.post('/otp/request', {
+        'target': target,
+        'method': method,
+      });
+
+      if (response['success'] == true) {
+        debugPrint('✅ [BACKEND OTP] Request successful.');
+        _isLoading = false;
+        notifyListeners();
+        onCodeSent();
+      } else {
+        throw Exception(response['message'] ?? 'Failed to request code');
+      }
+    } catch (e) {
+      debugPrint('❌ [BACKEND OTP] Error: $e');
+      _error = e.toString().replaceFirst('Exception: ', '');
+      _isLoading = false;
+      notifyListeners();
+      onFailed(_error!);
+    }
+  }
+
+  /*
+   * Logic: Backend-Driven OTP Verification.
+   * Rationale: Validates the PIN against the backend session.
+   */
+  Future<bool> verifyBackendOtp({
+    required String target,
+    required String pin,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      debugPrint('🛡️ [BACKEND OTP] Verifying code for: $target');
+      final response = await ApiClient.post('/otp/verify', {
+        'target': target,
+        'pin': pin,
+      });
+
+      if (response['success'] == true) {
+        debugPrint('✅ [BACKEND OTP] Identity verified.');
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _error = response['message'] ?? 'Invalid code';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      debugPrint('❌ [BACKEND OTP] Verification Error: $e');
+      _error = e.toString().contains('401') ? 'Invalid or expired code.' : 'Verification failed.';
       _isLoading = false;
       notifyListeners();
       return false;

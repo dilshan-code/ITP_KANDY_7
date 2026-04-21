@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs'); // Industry-standard library for secure password hashing and comparison
 const { isValidEmail, isValidPhone, isValidPassword } = require('../utils/validationUtils'); // Native verification suite
+const otpStoreService = require('../services/otpStoreService'); // Security: Shared verification gateway
 
 /**
  * Identity Normalization: Sri Lankan Phone Number Standardizer.
@@ -73,12 +74,23 @@ class RegisterOwner {
             }
         }
 
-        // --- Phase 4: Security Transformation ---
+        // --- Phase 4.1: Security Handshake ---
+        // Verify that the user has successfully completed a multi-factor OTP challenge.
+        // We check either phone or email, depending on what the user provided/verified.
+        const isVerified = otpStoreService.isVerified(normalizedPhone) || 
+                           (normalizedEmail && otpStoreService.isVerified(normalizedEmail));
+        
+        if (!isVerified) {
+            console.error(`[SECURITY] Registration blocked: Target not verified. (Phone: ${normalizedPhone}, Email: ${normalizedEmail})`);
+            throw new Error('Identity verification required. Please request and verify an OTP first.');
+        }
+
+        // --- Phase 5: Security Transformation ---
         // We never store plain-text passwords. 10 salt rounds provides a balanced security/performance ratio.
         const hashedPassword = await bcrypt.hash(ownerData.password, 10);
         
         // Finalize storage with default active flags.
-        return this.ownerRepository.create({ 
+        const newOwner = await this.ownerRepository.create({ 
             ...ownerData, 
             phone: normalizedPhone, 
             email: normalizedEmail, 
@@ -86,6 +98,13 @@ class RegisterOwner {
             status: 'approved', // Default state for new registrations
             isSuspended: false
         });
+
+        // --- Phase 6: Proof Consumption ---
+        // Invalidate the verification flags to prevent registration replay attacks.
+        otpStoreService.consumeProof(normalizedPhone);
+        if (normalizedEmail) otpStoreService.consumeProof(normalizedEmail);
+
+        return newOwner;
     }
 }
 
@@ -252,13 +271,25 @@ class ResetPassword {
             throw new Error('User not found with this email/phone');
         }
 
+        // --- Security Boundary: OTP Proof Verification ---
+        // Ensure the password reset is authorized by a fresh OTP handshake.
+        if (!otpStoreService.isVerified(identifier)) {
+            console.error(`[SECURITY] Password reset blocked: Identifier not verified. (${identifier})`);
+            throw new Error('Verification required. Please verify your identity via OTP before resetting password.');
+        }
+
         if (!isValidPassword(newPassword)) {
             throw new Error('Password must be at least 8 characters long');
         }
 
         // Apply new credential hash.
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-        return this.ownerRepository.update(owner.id || owner._id, { password: hashedNewPassword });
+        const updatedOwner = await this.ownerRepository.update(owner.id || owner._id, { password: hashedNewPassword });
+
+        // Cleanup: Invalidate the verification proof.
+        otpStoreService.consumeProof(identifier);
+
+        return updatedOwner;
     }
 }
 

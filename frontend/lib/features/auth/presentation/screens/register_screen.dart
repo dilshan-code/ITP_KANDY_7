@@ -12,7 +12,6 @@ import 'package:google_fonts/google_fonts.dart'; // Typography: Brand font sets
 import 'package:provider/provider.dart'; // State: Dependency injection system
 import 'package:frontend/core/theme/app_colors.dart'; // Styling: Design system tokens
 import 'package:frontend/core/utils/snackbar_utils.dart'; // Feedback: Status message system
-import 'package:frontend/shared/main_shell.dart'; // Navigation: Success target
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // State: Identity manager
 import 'package:frontend/core/utils/phone_utils.dart'; // Utility: Identifier normalization
 import 'package:frontend/core/utils/validation_utils.dart'; // Utility: Form regex engines
@@ -42,6 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController(); // Input: Access credential
   bool _obscurePassword = true; // State: Visibility toggle for security
   bool _agreedToTerms = false; // State: Legal consent flag
+  String _verificationMethod = 'phone'; // State: OTP delivery channel (phone or email)
 
   @override
   void initState() {
@@ -122,11 +122,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     // Stage E: Identity Verification (OTP).
-    // Strategy: Pass the data payload to the verification screen's callback to ensure atomic creation.
-    await authProvider.sendOtp(
-      phoneNumber: phone,
-      onVerificationCompleted: (code) {}, // Note: Automatic retrieval not forced here
-      onVerificationFailed: (error) {
+    // Rationale: Uses the backend to generate a code for the selected channel.
+    final target = _verificationMethod == 'phone' ? phone : email;
+    
+    if (_verificationMethod == 'email' && email.isEmpty) {
+      if (!mounted) return;
+      SnackBarUtils.showSnackBar(context, 'Please enter an email for verification', isError: true);
+      return;
+    }
+
+    await authProvider.requestBackendOtp(
+      target: target,
+      method: _verificationMethod,
+      onFailed: (error) {
         if (!context.mounted) return;
         SnackBarUtils.showSnackBar(
           context,
@@ -141,7 +149,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => OtpVerificationScreen(
-              phoneNumber: phone,
+              target: target, // Updated: Uses 'target' instead of 'phoneNumber'
               onVerified: () async {
                 final navigator = Navigator.of(context);
                 
@@ -160,13 +168,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   if (!context.mounted) return;
                   SnackBarUtils.showSnackBar(
                     context,
-                    'Account created successfully! Welcome to ClickBuy.',
+                    'Account created successfully! Please log in to continue.',
                   );
-                  // Sequence: Clear auth stack and enter the primary app shell.
-                  navigator.pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const MainShell()),
-                    (route) => false,
-                  );
+                  // Action: Redirect back to Login screen (Root) as requested.
+                  navigator.popUntil((route) => route.isFirst);
                 }
               },
             ),
@@ -250,6 +255,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     validator: (v) => ValidationUtils.validateRequired(v, 'Shop name'),
                   ),
                   const SizedBox(height: 20),
+
+                  // --- Verification Method Selection ---
+                  _buildLabel('Verification Method'),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(
+                          value: 'phone',
+                          label: Text('Phone'),
+                          icon: Icon(Icons.phone_android),
+                        ),
+                        ButtonSegment(
+                          value: 'email',
+                          label: Text('Email'),
+                          icon: Icon(Icons.email_outlined),
+                        ),
+                      ],
+                      selected: {_verificationMethod},
+                      onSelectionChanged: (Set<String> newSelection) {
+                        setState(() {
+                          _verificationMethod = newSelection.first;
+                        });
+                      },
+                      style: ButtonStyle(
+                        side: WidgetStateProperty.all(BorderSide(color: AppColors.primary.withValues(alpha: 0.2))),
+                        backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+                          if (states.contains(WidgetState.selected)) {
+                            return AppColors.primary.withValues(alpha: 0.1);
+                          }
+                          return Colors.transparent;
+                        }),
+                        foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+                          if (states.contains(WidgetState.selected)) {
+                            return AppColors.primary;
+                          }
+                          return AppColors.textMedium;
+                        }),
+                      ),
+                      showSelectedIcon: false,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
 
                   _buildLabel('Phone Number'), // Input: Identity anchor
                   const SizedBox(height: 8),
