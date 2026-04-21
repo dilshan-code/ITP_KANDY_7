@@ -23,7 +23,14 @@ class AdminController {
     async getOwners(req, res) {
         try {
             const owners = await this.getAllOwners.execute();
-            res.json({ success: true, data: owners });
+            
+            // Security: Sanitize output to prevent password hash leakage
+            const sanitizedOwners = owners.map(owner => {
+                const { password, ...safeOwner } = owner;
+                return safeOwner;
+            });
+
+            res.json({ success: true, data: sanitizedOwners });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
