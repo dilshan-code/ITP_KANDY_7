@@ -17,6 +17,39 @@ class OtpStoreService {
         
         // Configuration: 10-minute validity for the "Proof of Verification"
         this.PROOF_TTL_MS = 10 * 60 * 1000; 
+        
+        // Logical Guard: Background Scavenger.
+        // Runs every 10 minutes to prune expired memory objects to prevent leaks.
+        setInterval(() => this.cleanup(), 10 * 60 * 1000);
+    }
+
+    /**
+     * Periodic Maintenance: Prunes expired sessions and proofs from memory.
+     */
+    cleanup() {
+        const now = Date.now();
+        let prunedSessions = 0;
+        let prunedProofs = 0;
+
+        // Prune PIN Sessions
+        for (const [key, value] of this.otpSessions.entries()) {
+            if (value.expiresAt < now) {
+                this.otpSessions.delete(key);
+                prunedSessions++;
+            }
+        }
+
+        // Prune Verification Proofs
+        for (const [key, value] of this.verifiedIdentities.entries()) {
+            if (value.expiresAt < now) {
+                this.verifiedIdentities.delete(key);
+                prunedProofs++;
+            }
+        }
+
+        if (prunedSessions > 0 || prunedProofs > 0) {
+            console.log(`[MAINTENANCE] OTP Scavenger active: Pruned ${prunedSessions} sessions and ${prunedProofs} proofs.`);
+        }
     }
 
     // --- PIN Management ---

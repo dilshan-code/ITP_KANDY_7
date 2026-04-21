@@ -35,7 +35,11 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
   Future<void> _fetchTransactions() async {
     try {
       setState(() {
-        _isLoading = true; // Trigger visual loading state
+        // Logic: Only trigger the full-screen loading state if no data is currently cached.
+        // Rationale: Ensures a professional pull-to-refresh experience by keeping existing data visible.
+        if (_transactions == null) {
+          _isLoading = true;
+        }
         _error = null;
       });
       // Direct API fetch for broad transaction activity

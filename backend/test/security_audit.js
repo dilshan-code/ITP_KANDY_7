@@ -291,28 +291,36 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
 const BASE_URL = 'http://localhost:3000';
 
 /**
- * Security Audit Script: ClickBuy Backend.
+ * Security Audit Script: ClickBuy Backend (JWT Version).
  * Uses native fetch (Node 18+) to simulate various attack vectors.
  */
 
 async function runAudit() {
-    console.log('--- STARTING SECURITY AUDIT ---\n');
+    console.log('--- STARTING JWT SECURITY AUDIT ---\n');
 
     try {
-        // 1. Identity Spoofing (Impersonation)
-        await testIdentitySpoofing();
+        // 0. Setup: Acquire valid credentials for authenticated tests
+        console.log('[SETUP] Acquiring test session token...');
+        const token = await getAuthToken();
+        
+        // 1. Identity Spoofing & Header Isolation
+        await testIdentitySpoofing(token);
 
-        // 2. OTP Bypass (Registration)
+        // 2. Authorization Enforcement
+        await testUnauthorizedAccess();
+
+        // 3. OTP Bypass (Registration)
         await testOtpBypass();
 
-        // 3. OTP Brute Force Protection
+        // 4. OTP Brute Force Protection
         await testOtpBruteForce();
 
-        // 4. OTP Throttling (Rate Limiting)
+        // 5. OTP Throttling (Rate Limiting)
         await testOtpThrottling();
 
-        // 5. NoSQL Injection (Login)
+        // 6. NoSQL Injection (Login)
         await testNoSqlInjection();
+
     } catch (e) {
         console.error('CRITICAL AUDIT ERROR:', e.message);
     }
@@ -321,23 +329,63 @@ async function runAudit() {
 }
 
 /**
- * Test: Accessing private data by spoofing x-owner-id header.
+ * Helper: Login to get a valid JWT.
  */
-async function testIdentitySpoofing() {
-    console.log('[TEST 1] Identity Spoofing...');
+async function getAuthToken() {
+    const response = await fetch(`${BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: 'admin@gmail.com', password: 'admin1234' })
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error('Failed to login for audit setup: ' + (result.error || 'Unknown error'));
+    return result.data.token;
+}
+
+/**
+ * Test: Accessing private data by spoofing x-owner-id header without proper JWT.
+ */
+async function testIdentitySpoofing(validToken) {
+    console.log('[TEST 1] Identity Spoofing (Header Injection)...');
     try {
-        const spoofedId = 'admin_master_001';
+        const spoofedId = 'victim_user_001';
+        
+        // Strategy: Provide a valid token but attempt to "override" the ID via the old header system.
         const response = await fetch(`${BASE_URL}/api/auth/profile/${spoofedId}`, {
             headers: {
-                'x-owner-id': spoofedId,
+                'Authorization': `Bearer ${validToken}`, // Valid token for Admin
+                'x-owner-id': spoofedId, // Attempted spoof
                 'x-owner-name': 'Hacker'
             }
         });
+        
         const result = await response.json();
-        if (response.ok && result.success) {
-            console.error('❌ VULNERABILITY FOUND: Identity spoofing successful. Accessed profile without token.');
+        
+        // Logic: The server should use the ID from the TOKEN, not the HEADER.
+        // If the URL ID doesn't match the TOKEN ID, it should return 403 Forbidden.
+        if (response.status === 403) {
+            console.log('✅ PASSED: Identity spoofing blocked. Server ignored headers and used token context.');
+        } else if (response.ok && result.data && result.data.id === spoofedId) {
+            console.error('❌ VULNERABILITY FOUND: Identity spoofing successful. Header overrode token.');
         } else {
-            console.log('✅ PASSED: Identity correctly guarded.');
+            console.log(`ℹ️ Info: Returned status ${response.status} - Access controlled.`);
+        }
+    } catch (e) {
+        console.log('⚠️ Test Error:', e.message);
+    }
+}
+
+/**
+ * Test: Accessing protected routes without any token.
+ */
+async function testUnauthorizedAccess() {
+    console.log('[TEST 2] Token-less Authorization check...');
+    try {
+        const response = await fetch(`${BASE_URL}/api/products`);
+        if (response.status === 401) {
+            console.log('✅ PASSED: Request blocked without JWT.');
+        } else {
+            console.error('❌ VULNERABILITY FOUND: Access allowed without token. Status:', response.status);
         }
     } catch (e) {
         console.log('⚠️ Test Error:', e.message);
@@ -348,9 +396,8 @@ async function testIdentitySpoofing() {
  * Test: Registering without performing OTP verification.
  */
 async function testOtpBypass() {
-    console.log('[TEST 2] OTP Bypass Registration...');
+    console.log('[TEST 3] OTP Bypass Registration...');
     try {
-        // Use a random number each time to avoid "already exists" errors
         const rand = Math.floor(1000000 + Math.random() * 9000000);
         const phone = `077${rand}`;
         
@@ -368,7 +415,7 @@ async function testOtpBypass() {
         const result = await response.json();
         const errorMsg = result.error || '';
         
-        if (response.status === 401 && errorMsg.includes('verification required')) {
+        if (response.status === 401 && errorMsg.toLowerCase().includes('verification required')) {
             console.log('✅ PASSED: Registration blocked without OTP.');
         } else if (response.ok) {
             console.error('❌ VULNERABILITY FOUND: Registered without OTP verification.');
@@ -384,7 +431,7 @@ async function testOtpBypass() {
  * Test: Brute forcing the OTP PIN.
  */
 async function testOtpBruteForce() {
-    console.log('[TEST 3] OTP Brute Force...');
+    console.log('[TEST 4] OTP Brute Force...');
     try {
         const rand = Math.floor(1000000 + Math.random() * 9000000);
         const target = `077${rand}`;
@@ -406,11 +453,19 @@ async function testOtpBruteForce() {
             const result = await response.json();
             const errorMsg = result.error || '';
             
-            if (i === 6) {
-                if (errorMsg.includes('Too many invalid attempts')) {
-                    console.log('✅ PASSED: OTP locked after 5 failed attempts.');
+            if (i === 5) {
+                // The 5th attempt should trigger the block
+                if (response.status === 403 && errorMsg.includes('Too many invalid attempts')) {
+                    console.log('✅ PASSED: OTP locked on 5th failed attempt.');
                 } else {
-                    console.error('❌ VULNERABILITY FOUND: OTP still active or error unexpected:', errorMsg);
+                    console.error('❌ VULNERABILITY FOUND: OTP not locked on 5th attempt. Status:', response.status, errorMsg);
+                }
+            } else if (i === 6) {
+                // The 6th attempt should return 404 because the session was deleted
+                if (response.status === 404 && errorMsg.includes('No active')) {
+                    console.log('✅ PASSED: Lockout confirmed (Session purged).');
+                } else {
+                    console.error('❌ VULNERABILITY FOUND: Session still exists after lockout. Status:', response.status, errorMsg);
                 }
             }
         }
@@ -423,7 +478,7 @@ async function testOtpBruteForce() {
  * Test: Requesting multiple OTPs rapidly.
  */
 async function testOtpThrottling() {
-    console.log('[TEST 4] OTP Throttling...');
+    console.log('[TEST 5] OTP Throttling...');
     try {
         const rand = Math.floor(1000000 + Math.random() * 9000000);
         const target = `077${rand}`;
@@ -445,11 +500,9 @@ async function testOtpThrottling() {
         const errorMsg = result.error || '';
 
         if (response.status === 400 && errorMsg.includes('wait 60 seconds')) {
-            console.log('✅ PASSED: Rate limit applied.');
-        } else if (response.ok) {
-            console.error('❌ VULNERABILITY FOUND: No throttling detected.');
+            console.log('✅ PASSED: Rate limit correctly returned status 400.');
         } else {
-            console.log(`ℹ️ Info: Returned status ${response.status} - ${errorMsg}`);
+            console.error('❌ VULNERABILITY FOUND or WRONG STATUS:', response.status, errorMsg);
         }
     } catch (e) {
         console.log('⚠️ Test Error:', e.message);
@@ -458,10 +511,9 @@ async function testOtpThrottling() {
 
 /**
  * Test: NoSQL Operator Injection.
- * Attempt to login using an object instead of a string to bypass equality checks.
  */
 async function testNoSqlInjection() {
-    console.log('[TEST 5] NoSQL Injection (Login)...');
+    console.log('[TEST 6] NoSQL Injection (Login)...');
     try {
         const payload = {
             identifier: { "$gt": "" },
@@ -474,12 +526,10 @@ async function testNoSqlInjection() {
         });
         const result = await response.json();
         
-        // If it returns success or profile data, it's vulnerable.
-        // Even if it returns 500 but because of a DB error (indicating the object reached the DB), it's a concern.
         if (response.ok && result.success) {
             console.error('❌ VULNERABILITY FOUND: NoSQL content injection successful.');
         } else {
-            console.log('✅ PASSED: Input sanitized or rejected.');
+            console.log('✅ PASSED: Injection rejected.');
         }
     } catch (e) {
         console.log('⚠️ Test Error:', e.message);

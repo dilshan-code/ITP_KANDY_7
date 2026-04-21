@@ -1,5 +1,15 @@
+const path = require('path');
 const nodemailer = require('nodemailer');
 const otpStoreService = require('../services/otpStoreService');
+const { normalizeEmail, normalizePhone } = require('./authUseCases');
+
+/**
+ * Normalization Helper: Selects the correct standardizer based on identifier type.
+ */
+function normalizeIdentifier(identifier) {
+    if (!identifier) return identifier;
+    return identifier.includes('@') ? normalizeEmail(identifier) : normalizePhone(identifier);
+}
 
 /**
  * Logic: Dual-Mode OTP Provisioner.
@@ -8,8 +18,12 @@ const otpStoreService = require('../services/otpStoreService');
  */
 class RequestOtp {
     async execute({ target, method }) {
-        // --- Phase 0: Throttling Protection ---
-        if (otpStoreService.isThrottled(target)) {
+        // --- Phase 1: Identity Normalization ---
+        // Rationale: Ensures consistency between request, verification, and auth flows.
+        const normalizedTarget = normalizeIdentifier(target);
+
+        // --- Phase 1.1: Throttling Protection ---
+        if (otpStoreService.isThrottled(normalizedTarget)) {
             throw new Error('Please wait 60 seconds before requesting a new code.');
         }
 
@@ -18,13 +32,13 @@ class RequestOtp {
         const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minute TTL
 
         // Step 2: Persist the pin in the registry.
-        otpStoreService.setPin(target, pin, expiresAt);
+        otpStoreService.setPin(normalizedTarget, pin, expiresAt);
 
         // Step 3: Delivery Orchestration.
         if (method === 'email') {
-            await this._sendEmail(target, pin);
+            await this._sendEmail(normalizedTarget, pin);
         } else if (method === 'phone') {
-            await this._logToTerminal(target, pin);
+            await this._logToTerminal(normalizedTarget, pin);
         } else {
             throw new Error('Invalid verification method');
         }
@@ -89,7 +103,8 @@ class RequestOtp {
             `,
             attachments: [{
                 filename: 'logo.png',
-                path: 'c:\\Users\\SADINSA\\Desktop\\IT Project\\Mobile Application\\Beta\\improve\\small_store_app\\frontend\\assets\\images\\app_icon.png',
+                // Portability: Use relative path resolve instead of hardcoded Windows-specific path
+                path: path.resolve(__dirname, '../../../frontend/assets/images/app_icon.png'),
                 cid: 'logo', // Matches src="cid:logo" in HTML
                 contentType: 'image/png'
             }]
@@ -121,23 +136,24 @@ class RequestOtp {
  */
 class VerifyOtp {
     async execute({ target, pin }) {
-        const record = otpStoreService.getPin(target);
+        const normalizedTarget = normalizeIdentifier(target);
+        const record = otpStoreService.getPin(normalizedTarget);
 
         if (!record) {
             throw new Error('No active verification session found');
         }
 
         if (Date.now() > record.expiresAt) {
-            otpStoreService.deletePin(target);
+            otpStoreService.deletePin(normalizedTarget);
             throw new Error('Verification code has expired');
         }
 
         if (record.pin !== pin) {
-            const attempts = otpStoreService.incrementAttempts(target);
+            const attempts = otpStoreService.incrementAttempts(normalizedTarget);
             const MAX_ATTEMPTS = 5;
             
             if (attempts >= MAX_ATTEMPTS) {
-                otpStoreService.deletePin(target);
+                otpStoreService.deletePin(normalizedTarget);
                 throw new Error('Too many invalid attempts. This verification code has been deactivated for security. Please request a new one.');
             }
             
@@ -146,10 +162,10 @@ class VerifyOtp {
 
         // Action: Mark this identity as verified in the shared store.
         // This proof allows the Auth Use Cases to proceed with registration or reset.
-        otpStoreService.markAsVerified(target);
+        otpStoreService.markAsVerified(normalizedTarget);
         
         // Action: Cleanup the PIN record on success to prevent reuse.
-        otpStoreService.deletePin(target);
+        otpStoreService.deletePin(normalizedTarget);
         
         return { success: true, message: 'Identity verified successfully' };
     }

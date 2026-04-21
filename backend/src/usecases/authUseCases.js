@@ -50,7 +50,7 @@ class RegisterOwner {
             throw new Error('Shop name is required');
         }
         if (!isValidPhone(ownerData.phone)) {
-            throw new Error('Valid phone number is required (start with 0 or +94 and have 9 digits after)');
+            throw new Error('Valid Sri Lankan phone number is required (starts with 07 or +947)');
         }
         if (ownerData.email && !isValidEmail(ownerData.email)) {
             throw new Error('Email must end with @gmail.com');
@@ -216,7 +216,7 @@ class UpdateOwnerProfile {
         // 2. Phone Update & Uniqueness Cross-Check
         if (updateData.phone) {
             if (!isValidPhone(updateData.phone)) {
-                throw new Error('Valid phone number is required (start with 0 or +94 and have 9 digits after)');
+                throw new Error('Valid Sri Lankan phone number is required (starts with 07 or +947)');
             }
             updateData.phone = normalizePhone(updateData.phone);
             
@@ -285,13 +285,15 @@ class ResetPassword {
 
     async execute(identifier, newPassword) {
         let owner;
+        const normalizedIdentifier = identifier && identifier.includes('@') 
+            ? normalizeEmail(identifier) 
+            : normalizePhone(identifier);
+
         // Locate account by either verified channel (Email/Phone).
         if (identifier && identifier.includes('@')) {
-            const normalizedEmail = normalizeEmail(identifier);
-            owner = await this.ownerRepository.findByEmail(normalizedEmail);
+            owner = await this.ownerRepository.findByEmail(normalizedIdentifier);
         } else {
-            const normalizedPhone = normalizePhone(identifier);
-            owner = await this.ownerRepository.findByPhone(normalizedPhone);
+            owner = await this.ownerRepository.findByPhone(normalizedIdentifier);
         }
 
         if (!owner) {
@@ -300,8 +302,8 @@ class ResetPassword {
 
         // --- Security Boundary: OTP Proof Verification ---
         // Ensure the password reset is authorized by a fresh OTP handshake.
-        if (!otpStoreService.isVerified(identifier)) {
-            console.error(`[SECURITY] Password reset blocked: Identifier not verified. (${identifier})`);
+        if (!otpStoreService.isVerified(normalizedIdentifier)) {
+            console.error(`[SECURITY] Password reset blocked: Identifier not verified. (${normalizedIdentifier})`);
             throw new Error('Verification required. Please verify your identity via OTP before resetting password.');
         }
 
@@ -314,7 +316,7 @@ class ResetPassword {
         const updatedOwner = await this.ownerRepository.update(owner.id || owner._id, { password: hashedNewPassword });
 
         // Cleanup: Invalidate the verification proof.
-        otpStoreService.consumeProof(identifier);
+        otpStoreService.consumeProof(normalizedIdentifier);
 
         return updatedOwner;
     }
@@ -528,5 +530,7 @@ module.exports = {
     ResetPassword, 
     UpdateOwnerByAdmin, 
     DeleteOwner, 
-    CheckAvailability 
+    CheckAvailability,
+    normalizePhone,
+    normalizeEmail
 };

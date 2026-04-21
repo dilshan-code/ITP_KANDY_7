@@ -67,12 +67,12 @@ describe('Supplier Use Cases', () => {
 
         test('should throw if phone is invalid', async () => {
             await expect(createSupplier.execute({ name: 'X', phone: '12345' }, ownerId))
-                .rejects.toThrow('Valid phone number is required');
+                .rejects.toThrow('Valid Sri Lankan phone number is required (starts with 07 or +947)');
         });
 
         test('should throw if phone is missing', async () => {
             await expect(createSupplier.execute({ name: 'X' }, ownerId))
-                .rejects.toThrow('Valid phone number is required');
+                .rejects.toThrow('Valid Sri Lankan phone number is required (starts with 07 or +947)');
         });
 
         test('should accept valid +94 phone format', async () => {
@@ -131,7 +131,7 @@ describe('Supplier Use Cases', () => {
 
         test('should throw if phone update is invalid', async () => {
             await expect(updateSupplier.execute('s1', { phone: 'invalid' }, ownerId))
-                .rejects.toThrow('Valid phone number is required');
+                .rejects.toThrow('Valid Sri Lankan phone number is required (starts with 07 or +947)');
         });
 
         test('should throw if email update is invalid', async () => {

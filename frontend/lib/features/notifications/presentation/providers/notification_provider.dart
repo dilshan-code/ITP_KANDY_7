@@ -1,4 +1,4 @@
-﻿// ------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // File: notification_provider.dart
 // Purpose: Multi-Channel Alert Management and System Audit Trail.
 // Rationale: Orchestrates the delivery and lifecycle of in-app alerts, including 
@@ -55,7 +55,11 @@ class NotificationProvider extends ChangeNotifier {
    * Rationale: Pulls latest alerts from the global notification registry.
    */
   Future<void> fetchNotifications() async {
-    _isLoading = true;
+    // Logic: Only trigger the global loading indicator if no notifications are present.
+    // Rationale: Maintains existing notification visibility while the refresh indicator spins at the top.
+    if (_notifications.isEmpty) {
+      _isLoading = true;
+    }
     notifyListeners();
     try {
       final response = await ApiClient.get('/notifications');
