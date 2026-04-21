@@ -1,4 +1,4 @@
-﻿// ------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // File: backend_settings_dialog.dart
 // Purpose: Multi-Vector Connectivity Diagnostics and Manual Configuration.
 // Rationale: Empowers the operator to resolve network isolation issues 
@@ -189,7 +189,7 @@ class _BackendSettingsDialogState extends State<BackendSettingsDialog> {
             TextField(
               controller: _ipController,
               decoration: InputDecoration(
-                hintText: 'e.g. 192.168.1.10',
+                hintText: 'IP or hostname (e.g. 192.168.1.10)',
                 prefixIcon: const Icon(Icons.important_devices_rounded),
                 filled: true,
                 fillColor: Colors.grey[100],
@@ -213,7 +213,7 @@ class _BackendSettingsDialogState extends State<BackendSettingsDialog> {
                             ? const Icon(Icons.error_outline, color: Colors.red)
                             : null,
               ),
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.url,
               onChanged: (_) {
                 if (_testResult != null) {
                   setState(() => _testResult = null); // Strategy: Reset status while typing

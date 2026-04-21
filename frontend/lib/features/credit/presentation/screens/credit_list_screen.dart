@@ -1,9 +1,9 @@
 // ------------------------------------------------------------------------------
 // File: credit_list_screen.dart
 // Purpose: Dual-purpose CRM and Credit Selection Interface.
-// Rationale: Serves as the central repository for customer relationship 
-//   management, supporting standalone profile administration (Add/Edit/Delete) 
-//   and real-time debtor identification. Operates in 'Selection Mode' for 
+// Rationale: Serves as the central repository for customer relationship
+//   management, supporting standalone profile administration (Add/Edit/Delete)
+//   and real-time debtor identification. Operates in 'Selection Mode' for
 //   POS checkout flows and provides deep-link navigation to customer ledgers.
 // ------------------------------------------------------------------------------
 import 'package:flutter/material.dart'; // UI: Flutter Material widgets
@@ -16,8 +16,8 @@ import 'package:frontend/features/credit/domain/entities/customer.dart'; // Doma
 import 'package:frontend/features/credit/presentation/screens/credit_detail_screen.dart'; // Navigation: Customer ledger
 import 'package:frontend/features/credit/presentation/utils/export_utils.dart'; // PDF: Batch credit export
 import 'package:frontend/shared/widgets/modern_pdf_icon.dart'; // UI: Brand-consistent PDF trigger icon
-import 'package:frontend/shared/widgets/app_back_button.dart'; // Standardized navigation trigger
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // State: Identity management
+import 'package:frontend/shared/widgets/screen_header.dart'; // UI: Reusable page header
 
 /// CreditListScreen: A dual-purpose screen for managing customer credit.
 /// Works as both a standalone CRM view and a selection picker for the checkout flow.
@@ -30,7 +30,8 @@ class CreditListScreen extends StatefulWidget {
   State<CreditListScreen> createState() => _CreditListScreenState();
 }
 
-class _CreditListScreenState extends State<CreditListScreen> with SingleTickerProviderStateMixin {
+class _CreditListScreenState extends State<CreditListScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
@@ -71,138 +72,150 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
     super.dispose();
   }
 
+  void _handlePdfExport(BuildContext context) {
+    final provider = context.read<CreditProvider>();
+    final owner = context.read<AuthProvider>().currentOwner;
+    // Branching export logic based on active tab view.
+    if (_tabController.index == 0) {
+      final outstanding = provider.outstandingCustomers;
+      if (outstanding.isNotEmpty) {
+        CreditExportUtils.exportActiveCreditsPdf(outstanding, owner: owner);
+      } else {
+        SnackBarUtils.showSnackBar(context, 'No active credit users to export');
+      }
+    } else {
+      final settled = provider.settledCustomers;
+      if (settled.isNotEmpty) {
+        CreditExportUtils.exportSettledCreditsPdf(settled, owner: owner);
+      } else {
+        SnackBarUtils.showSnackBar(context, 'No settled customers to export');
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
-          title: Text('Customer Credit'),
-          leading: (widget.isSelectionMode || Navigator.canPop(context))
-              ? AppBackButton(
-                  onTap: () => Navigator.pop(context),
-                  margin: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
-                )
-              : null,
-          automaticallyImplyLeading: false,
-          actions: [
-            IconButton(
-              icon: const ModernPdfIcon(),
-              onPressed: () {
-                final provider = context.read<CreditProvider>();
-                final owner = context.read<AuthProvider>().currentOwner;
-                // Branching export logic based on active tab view.
-                if (_tabController.index == 0) {
-                  final outstanding = provider.outstandingCustomers;
-                  if (outstanding.isNotEmpty) {
-                    CreditExportUtils.exportActiveCreditsPdf(outstanding, owner: owner);
-                  } else {
-                    SnackBarUtils.showSnackBar(context, 'No active credit users to export');
-                  }
-                } else {
-                  final settled = provider.settledCustomers;
-                  if (settled.isNotEmpty) {
-                    CreditExportUtils.exportSettledCreditsPdf(settled, owner: owner);
-                  } else {
-                    SnackBarUtils.showSnackBar(context, 'No settled customers to export');
-                  }
-                }
-              },
-              tooltip: 'Download PDF',
-            ),
-          ],
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(48),
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: ScreenHeader(
+                  title: 'Customer Credit',
+                  showBackButton:
+                      widget.isSelectionMode || Navigator.canPop(context),
+                  onBack: () => Navigator.pop(context),
+                  action: const ModernPdfIcon(),
+                  onActionTap: () => _handlePdfExport(context),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
               ),
-              child: TabBar(
-                controller: _tabController,
-                dividerColor: Colors.transparent,
-                indicatorSize: TabBarIndicatorSize.tab,
-                indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.textDark.withValues(alpha: 0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  dividerColor: Colors.transparent,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.textDark.withValues(alpha: 0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: AppColors.textMedium,
+                  labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                  tabs: [
+                    Tab(
+                      text: 'Credit Users',
+                    ), // Displaying customers with active liabilities
+                    Tab(
+                      text: 'Settled / Paid',
+                    ), // Displaying customers with zero balances
                   ],
                 ),
-                labelColor: AppColors.primary,
-                unselectedLabelColor: AppColors.textMedium,
-                labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w700),
-                tabs: [
-                  Tab(text: 'Credit Users'), // Displaying customers with active liabilities
-                  Tab(text: 'Settled / Paid'), // Displaying customers with zero balances
-                ],
               ),
-            ),
+              Expanded(
+                child: Consumer<CreditProvider>(
+                  builder: (context, provider, _) {
+                    // Auto-trigger: Opens the "Add New Customer" dialog if signaled from the Home screen.
+                    if (provider.shouldOpenAddCustomer) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          _showAddCustomerDialog(context);
+                          provider.setShouldOpenAddCustomer(false);
+                        }
+                      });
+                    }
+                    // Guard: Initial data retrieval state
+                    if (provider.isLoading && provider.customers.isEmpty) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    // Filtering Logic: Dynamic search across name and phone fields
+                    final outstanding = provider.outstandingCustomers.where((
+                      c,
+                    ) {
+                      return c.name.toLowerCase().contains(_searchQuery) ||
+                          c.phone.toLowerCase().contains(_searchQuery);
+                    }).toList();
+
+                    final settled = provider.settledCustomers.where((c) {
+                      return c.name.toLowerCase().contains(_searchQuery) ||
+                          c.phone.toLowerCase().contains(_searchQuery);
+                    }).toList();
+
+                    return TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildCustomerList(
+                          context,
+                          provider,
+                          outstanding,
+                          'No active credit users',
+                        ),
+                        _buildCustomerList(
+                          context,
+                          provider,
+                          settled,
+                          'No settled customers yet',
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
-        body: SafeArea(
-          child: Consumer<CreditProvider>(
-          builder: (context, provider, _) {
-            // Auto-trigger: Opens the "Add New Customer" dialog if signaled from the Home screen.
-            if (provider.shouldOpenAddCustomer) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  _showAddCustomerDialog(context);
-                  provider.setShouldOpenAddCustomer(false);
-                }
-              });
-            }
-            // Guard: Initial data retrieval state
-            if (provider.isLoading && provider.customers.isEmpty) {
-              return Center(child: CircularProgressIndicator());
-            }
-
-            // Filtering Logic: Dynamic search across name and phone fields
-            final outstanding = provider.outstandingCustomers.where((c) {
-              return c.name.toLowerCase().contains(_searchQuery) ||
-                  c.phone.toLowerCase().contains(_searchQuery);
-            }).toList();
-
-            final settled = provider.settledCustomers.where((c) {
-              return c.name.toLowerCase().contains(_searchQuery) ||
-                  c.phone.toLowerCase().contains(_searchQuery);
-            }).toList();
-
-            return TabBarView(
-              controller: _tabController,
-              children: [
-                _buildCustomerList(
-                  context,
-                  provider,
-                  outstanding,
-                  'No active credit users',
-                ),
-                _buildCustomerList(
-                  context,
-                  provider,
-                  settled,
-                  'No settled customers yet',
-                ),
-              ],
-            );
-          },
+        floatingActionButton: FloatingActionButton(
+          heroTag: 'credit_add_customer_btn',
+          onPressed: () =>
+              _showAddCustomerDialog(context), // Registration entry point
+          backgroundColor: AppColors.primary,
+          child: Icon(Icons.person_add, color: Colors.white),
         ),
+        bottomNavigationBar: const SizedBox(
+          height: 110,
+        ), // Buffer to clear the floating navbar in MainShell
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'credit_add_customer_btn',
-        onPressed: () => _showAddCustomerDialog(context), // Registration entry point
-        backgroundColor: AppColors.primary,
-        child: Icon(Icons.person_add, color: Colors.white),
-      ),
-      bottomNavigationBar: const SizedBox(height: 110), // Buffer to clear the floating navbar in MainShell
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildCustomerList(
     BuildContext context,
@@ -237,187 +250,228 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
         ),
 
         Expanded(
-          child: customers.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.people_outline,
-                        size: 64,
-                        color: Colors.grey.shade300,
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        emptyMessage,
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          color: AppColors.textMedium,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 180),
-                  itemCount: customers.length + (provider.hasMoreCustomers ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == customers.length) {
-                      return provider.isFetchingMoreCustomers
-                          ? Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: Center(child: CircularProgressIndicator()),
-                            )
-                          : const SizedBox.shrink();
-                    }
-                    final customer = customers[index];
-                    return GestureDetector(
-                      onTap: () {
-                        // Routing logic based on app context (Sales selection vs CRM view)
-                        if (widget.isSelectionMode) {
-                          Navigator.pop(context, customer);
-                        } else {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  CreditDetailScreen(customer: customer),
+          child: RefreshIndicator(
+            onRefresh: provider.fetchCustomers,
+            color: AppColors.primary,
+            child: customers.isEmpty
+                ? SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Container(
+                      height: MediaQuery.of(context).size.height * 0.5,
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.people_outline,
+                            size: 64,
+                            color: Colors.grey.shade300,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            emptyMessage,
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              color: AppColors.textMedium,
                             ),
-                          ).then((_) {
-                            // Conditional refresh on return to ensure data consistency
-                            if (context.mounted) {
-                              context.read<CreditProvider>().fetchCustomers();
-                            }
-                          });
-                        }
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.03),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  radius: 24,
-                                  backgroundColor: customer.totalOutstanding > 0
-                                      ? AppColors.accentGreen // Alert color for debtors
-                                      : Colors.blue.shade50, // Neutral color for clear accounts
-                                  child: Text(
-                                    customer.name.isNotEmpty
-                                        ? customer.name[0].toUpperCase() // Initial-based avatar
-                                        : '?',
-                                    style: GoogleFonts.poppins(
-                                      color: customer.totalOutstanding > 0
-                                          ? AppColors.primary
-                                          : Colors.blue,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 18,
-                                    ),
-                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 180),
+                    itemCount:
+                        customers.length + (provider.hasMoreCustomers ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == customers.length) {
+                        return provider.isFetchingMoreCustomers
+                            ? Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: Center(
+                                  child: CircularProgressIndicator(),
                                 ),
-                                const SizedBox(width: 14),
-                                // Customer Identity: Displays name and real-time balance
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        customer.name, // The registered buyer name
-                                        style: GoogleFonts.poppins(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
+                              )
+                            : const SizedBox.shrink();
+                      }
+                      final customer = customers[index];
+                      return GestureDetector(
+                        onTap: () {
+                          // Routing logic based on app context (Sales selection vs CRM view)
+                          if (widget.isSelectionMode) {
+                            Navigator.pop(context, customer);
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    CreditDetailScreen(customer: customer),
+                              ),
+                            ).then((_) {
+                              // Conditional refresh on return to ensure data consistency
+                              if (context.mounted) {
+                                context.read<CreditProvider>().fetchCustomers();
+                              }
+                            });
+                          }
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 24,
+                                    backgroundColor:
                                         customer.totalOutstanding > 0
-                                            ? 'Rs ${customer.totalOutstanding.toStringAsFixed(0)} active credit'
-                                            : 'All clear / Paid', // UX: Positive reinforcement for clear accounts
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 13,
-                                          color: customer.totalOutstanding > 0
-                                              ? AppColors.textMedium
-                                              : AppColors.primary,
-                                          fontWeight: customer.totalOutstanding > 0
-                                              ? FontWeight.normal
-                                              : FontWeight.w600,
-                                        ),
+                                        ? AppColors
+                                              .accentGreen // Alert color for debtors
+                                        : Colors
+                                              .blue
+                                              .shade50, // Neutral color for clear accounts
+                                    child: Text(
+                                      customer.name.isNotEmpty
+                                          ? customer.name[0]
+                                                .toUpperCase() // Initial-based avatar
+                                          : '?',
+                                      style: GoogleFonts.poppins(
+                                        color: customer.totalOutstanding > 0
+                                            ? AppColors.primary
+                                            : Colors.blue,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 18,
                                       ),
-                                    ],
-                                  ),
-                                ),
-                                _buildStatusBadge(
-                                  customer.totalOutstanding,
-                                  customer.creditLimit,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                TextButton.icon(
-                                  onPressed: () => _showEditCustomerDialog(context, customer),
-                                  icon: const Icon(Icons.edit_rounded, size: 18),
-                                  label: Text(
-                                    'Edit',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: Colors.green.shade700,
-                                    backgroundColor: Colors.green.shade50,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                  const SizedBox(width: 14),
+                                  // Customer Identity: Displays name and real-time balance
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          customer
+                                              .name, // The registered buyer name
+                                          style: GoogleFonts.poppins(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          customer.totalOutstanding > 0
+                                              ? 'Rs ${customer.totalOutstanding.toStringAsFixed(0)} active credit'
+                                              : 'All clear / Paid', // UX: Positive reinforcement for clear accounts
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 13,
+                                            color: customer.totalOutstanding > 0
+                                                ? AppColors.textMedium
+                                                : AppColors.primary,
+                                            fontWeight:
+                                                customer.totalOutstanding > 0
+                                                ? FontWeight.normal
+                                                : FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                TextButton.icon(
-                                  onPressed: () => _showDeleteConfirmation(context, customer),
-                                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                                  label: Text(
-                                    'Delete',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
+                                  _buildStatusBadge(
+                                    customer.totalOutstanding,
+                                    customer.creditLimit,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              const Divider(
+                                height: 1,
+                                color: Color(0xFFF1F5F9),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  TextButton.icon(
+                                    onPressed: () => _showEditCustomerDialog(
+                                      context,
+                                      customer,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.edit_rounded,
+                                      size: 18,
+                                    ),
+                                    label: Text(
+                                      'Edit',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.green.shade700,
+                                      backgroundColor: Colors.green.shade50,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 8,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
                                   ),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: Colors.red.shade700,
-                                    backgroundColor: Colors.red.shade50,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
+                                  const SizedBox(width: 8),
+                                  TextButton.icon(
+                                    onPressed: () => _showDeleteConfirmation(
+                                      context,
+                                      customer,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.delete_outline_rounded,
+                                      size: 18,
+                                    ),
+                                    label: Text(
+                                      'Delete',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.red.shade700,
+                                      backgroundColor: Colors.red.shade50,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 8,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
+          ),
         ),
       ],
     );
@@ -467,8 +521,8 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
                 final double? limit = double.tryParse(limitController.text);
                 final success =
                     await Provider.of<CreditProvider>(
-                       context,
-                       listen: false,
+                      context,
+                      listen: false,
                     ).updateCustomer(customer.id, {
                       'name': nameController.text.trim(),
                       'phone': phoneController.text.trim(),
@@ -541,7 +595,10 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
                 }
               }
             },
-            child: Text('Delete', style: GoogleFonts.poppins(color: Colors.white)),
+            child: Text(
+              'Delete',
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -727,4 +784,3 @@ class _CreditListScreenState extends State<CreditListScreen> with SingleTickerPr
     );
   }
 }
-

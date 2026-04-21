@@ -74,11 +74,11 @@ class _PublicSupportScreenState extends State<PublicSupportScreen> {
     final normalizedPhone = normalizePhoneNumber(contact); // Sanitize: Strip spaces/hyphens
     final authProvider = context.read<AuthProvider>();
 
-    // Step: Trigger the Firebase SMS verification handshake.
-    await authProvider.sendOtp(
-      phoneNumber: normalizedPhone,
-      onVerificationCompleted: (code) {},
-      onVerificationFailed: (error) {
+    // Step: Trigger the backend OTP verification handshake.
+    await authProvider.requestBackendOtp(
+      target: normalizedPhone,
+      method: 'phone',
+      onFailed: (error) {
         SnackBarUtils.showSnackBar(context, error, isError: true);
       },
       onCodeSent: () {
@@ -87,7 +87,7 @@ class _PublicSupportScreenState extends State<PublicSupportScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => OtpVerificationScreen(
-              phoneNumber: normalizedPhone,
+              target: normalizedPhone,
               onVerified: () {
                 setState(() => _isVerified = true); // Strategy: Escalate ticket trust level.
                 Navigator.pop(context); // Close OTP screen
@@ -118,10 +118,11 @@ class _PublicSupportScreenState extends State<PublicSupportScreen> {
           'Cannot reach the server. Please check your connection settings.',
           isError: true,
         );
-        showDialog(
-          context: context,
-          builder: (_) => const BackendSettingsDialog(),
-        );
+        // Disabled: Dialog should only open via 10-second logo long-press.
+        // showDialog(
+        //   context: context,
+        //   builder: (_) => const BackendSettingsDialog(),
+        // );
         return;
       }
     }

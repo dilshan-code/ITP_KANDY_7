@@ -52,7 +52,7 @@ class CreateSupplier {
         
         // 2. Primary Contact Check: Phone is mandatory as the primary identifier in this ecosystem.
         if (!supplierData.phone || !isValidPhone(supplierData.phone)) {
-            throw new Error('Valid phone number is required');
+            throw new Error('Valid Sri Lankan phone number is required (starts with 07 or +947)');
         }
         
         // 3. Optional Communication Check: If email is provided, it must be syntactically correct.
@@ -100,7 +100,7 @@ class UpdateSupplier {
             throw new Error('Supplier name cannot be empty');
         }
         if (supplierData.phone !== undefined && !isValidPhone(supplierData.phone)) {
-            throw new Error('Valid phone number is required');
+            throw new Error('Valid Sri Lankan phone number is required (starts with 07 or +947)');
         }
         if (supplierData.email && !isValidEmail(supplierData.email)) {
             throw new Error('Invalid email format');

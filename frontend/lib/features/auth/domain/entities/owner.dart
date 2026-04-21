@@ -17,6 +17,7 @@ class Owner {
   final String role; // Permissions: Distinguishes between 'owner' and 'admin' accounts
   final String? profilePic; // Visuals: URL to Cloudinary-stored profile image
   final String createdAt; // Traceability: Timestamp of account creation
+  final String? token; // Security: Cryptographically signed JWT session token
 
   Owner({
     required this.id,
@@ -29,6 +30,7 @@ class Owner {
     this.role = 'owner',
     this.profilePic,
     this.createdAt = '',
+    this.token,
   });
 
   /**
@@ -48,6 +50,7 @@ class Owner {
       role: json['role'] ?? 'owner',
       profilePic: json['profilePic'],
       createdAt: json['createdAt'] ?? '',
+      token: json['token'],
     );
   }
 
@@ -66,6 +69,7 @@ class Owner {
       'isSuspended': isSuspended,
       'role': role,
       'profilePic': profilePic,
+      'token': token,
     };
   }
 }

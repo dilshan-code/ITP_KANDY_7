@@ -70,7 +70,7 @@ class AccountScreen extends StatelessWidget {
                     
                     // --- Profile Narrative ---
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 44, 0, 24),
+                      padding: const EdgeInsets.fromLTRB(0, 4, 0, 24),
                       child: Column(
                       children: [
                         const ScreenHeader(

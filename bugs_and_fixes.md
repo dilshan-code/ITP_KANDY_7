@@ -4,6 +4,37 @@ A professional record of technical challenges encountered and resolved during th
 
 ---
 
+## 📅 April 21, 2026
+> *Focus: Firebase Phone Auth OTP Fix*
+
+### `[FIXED]` Firebase Phone Auth OTP Not Sending SMS
+- **Issue**: Users were unable to receive OTP SMS codes during registration and password reset. The `google-services.json` file showed empty `oauth_client: []` arrays, leading to suspicion of missing SHA fingerprints.
+- **Root Cause**: A **Firebase App ID mismatch** in `firebase_options.dart`. The `appId` was set to `1:...99b3bd66b194fb65e4f026`, which mapped to the old package `com.example.notification` in `google-services.json`. The actual app (`com.smallstore.app.frontend`) had a different App ID (`1:...85a6a6fa471f66fde4f026`). Firebase was verifying the wrong app identity and silently rejecting the SMS request.
+- **Fix**: Updated the Android `appId` in `firebase_options.dart` to `1:792079455443:android:85a6a6fa471f66fde4f026` to match the correct `com.smallstore.app.frontend` entry. Added enhanced `debugPrint` logging to the `sendOtp` flow in `AuthProvider` for future diagnostics.
+- **Context**: The `oauth_client: []` being empty is **normal** for Firebase Phone Auth — it only populates when Google Sign-In is enabled. The SHA-1/SHA-256 fingerprints were correctly added to the Firebase Console but were being checked against the wrong app due to the ID mismatch.
+
+---
+
+## 📅 April 20, 2026
+> *Focus: User UX Polish and Production Connectivity Resilience*
+
+### `[FIXED]` Sudden "Server Connection" Dialog Popups
+- **Issue**: The "Server Connection" setup dialog was automatically popping up whenever a network request failed during Login or Registration, which felt intrusive and confusing for regular users.
+- **Fix**: Disabled the auto-triggering logic in `LoginScreen`, `RegisterScreen`, `ResetPasswordScreen`, and `PublicSupportScreen`.
+- **Context**: The dialog is now strictly a developer/admin tool, accessible only via a hidden 10-second long-press on the ClickBuy logo. This ensures a cleaner, "app-like" experience for store owners.
+
+### `[FIXED]` Replit Backend Connectivity on Mobile
+- **Issue**: Mobile devices failed to connect to the Replit backend in debug mode because the `ApiClient` was biased towards `http://{IP}:{PORT}` formatting, which is incompatible with Replit's SSL hostnames.
+- **Fix**: Re-engineered `ApiClient.baseUrl` and `BackendDiscoveryImpl` to detect hostnames (e.g., `*.replit.dev`). The system now automatically switches to `https://` and omits the port suffix when a domain is detected.
+- **Context**: This allows developers to test the mobile app against a live production-like backend without needing to generate a Release APK or use local tunneling tools like Ngrok.
+
+### `[FIXED]` Numeric Keyboard Restriction in Settings
+- **Issue**: The Server Connection dialog used a numeric keyboard for the IP field, making it impossible for users to type in a Replit domain name.
+- **Fix**: Updated `BackendSettingsDialog` to use `TextInputType.url` and updated the hint text to show examples of both IP and hostname formats.
+- **Context**: Flexibility in configuration is key for hybrid development environments.
+
+---
+
 ## 📅 April 19, 2026
 > *Focus: Startup Optimization, Replit Deployment Stability, and Git Synchronization*
 

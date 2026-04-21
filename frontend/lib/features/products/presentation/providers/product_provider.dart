@@ -61,7 +61,11 @@ class ProductProvider extends ChangeNotifier {
    */
   Future<void> fetchProducts({bool refresh = true}) async {
     if (refresh) {
-      _isLoading = true;
+      // Logic: Only trigger the full-screen loading state if no products are cached.
+      // Rationale: Prevents jarring UI jumps during pull-to-refresh.
+      if (_products.isEmpty) {
+        _isLoading = true;
+      }
       _hasMore = true;
       _error = null;
       notifyListeners();

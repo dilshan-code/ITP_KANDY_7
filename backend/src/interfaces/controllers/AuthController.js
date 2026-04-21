@@ -20,10 +20,21 @@ class AuthController {
             }
             // Generate a default name from phone if not provided
             const ownerName = name || `Owner_${phone.replace(/[^0-9]/g, '').slice(-6)}`;
-            const owner = await this.registerOwner.execute({ name: ownerName, shopName: shopName || '', phone, email: email || '', password });
-            res.status(201).json({ success: true, data: owner });
+            const result = await this.registerOwner.execute({ name: ownerName, shopName: shopName || '', phone, email: email || '', password });
+            
+            // Response: Include the cryptographically signed session token.
+            res.status(201).json({ 
+                success: true, 
+                data: { 
+                    ...result.owner, 
+                    token: result.token 
+                } 
+            });
         } catch (error) {
-            const statusCode = error.message.includes('already exists') ? 409 : 500;
+            let statusCode = 500;
+            if (error.message.includes('already exists')) statusCode = 409;
+            if (error.message.includes('verification required')) statusCode = 401;
+            
             res.status(statusCode).json({ success: false, error: error.message });
         }
     }
@@ -37,8 +48,16 @@ class AuthController {
             if (!loginId || !password) {
                 return res.status(400).json({ success: false, error: 'Email/Phone and password are required' });
             }
-            const owner = await this.loginOwner.execute(loginId, password);
-            res.json({ success: true, data: owner });
+            const result = await this.loginOwner.execute(loginId, password);
+            
+            // Response: Bundle the user profile with the access token.
+            res.json({ 
+                success: true, 
+                data: { 
+                    ...result.owner, 
+                    token: result.token 
+                } 
+            });
         } catch (error) {
             res.status(401).json({ success: false, error: error.message });
         }

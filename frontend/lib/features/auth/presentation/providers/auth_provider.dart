@@ -60,9 +60,11 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      debugPrint('📱 [OTP] Initiating SMS verification for: $phoneNumber');
       await _phoneAuthService.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         onCodeSent: (verificationId, resendToken) {
+          debugPrint('✅ [OTP] Code sent successfully. Verification ID received.');
           _verificationId = verificationId; // Persistence: Store the ID for the 'verify' step
           _resendToken = resendToken; // Recovery: Store for 'resend' attempts
           _isLoading = false;
@@ -70,23 +72,35 @@ class AuthProvider extends ChangeNotifier {
           onCodeSent(); // Navigation: Tell UI to show the OTP entry field
         },
         onVerificationFailed: (e) {
-          _error = e.message ?? 'Verification failed'; // Strategy: Parse Firebase specific error
+          debugPrint('❌ [OTP] Verification FAILED: code=${e.code}, message=${e.message}');
+          debugPrint('❌ [OTP] Full error: $e');
+
+          // Logic: Map technical Firebase restrictions to actionable user instructions.
+          if (e.code == 'billing-not-enabled') {
+            _error = 'SMS service restricted.';
+          } else {
+            _error = e.message ?? 'Verification failed';
+          }
+
           _isLoading = false;
           notifyListeners();
           onVerificationFailed(_error!); // Notify: UI should show an alert
         },
         onVerificationCompleted: (credential) async {
+          debugPrint('✅ [OTP] Auto-verification completed.');
           // Automatic: Triggered if Android detects the SMS code automatically.
           if (credential.smsCode != null) {
             onVerificationCompleted(credential.smsCode!);
           }
         },
         onCodeAutoRetrievalTimeout: (verificationId) {
+          debugPrint('⏰ [OTP] Auto-retrieval timeout. Manual entry required.');
           _verificationId = verificationId; // Persistence: Ensure we can still verify manually after timeout
           notifyListeners();
         },
       );
     } catch (e) {
+      debugPrint('❌ [OTP] Exception during sendOtp: $e');
       _error = e.toString();
       _isLoading = false;
       notifyListeners();
@@ -171,6 +185,83 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /*
+   * Logic: Backend-Driven OTP Request.
+   * Rationale: Triggers the Node.js backend to generate a PIN and send via Email or Preview in Terminal.
+   */
+  Future<void> requestBackendOtp({
+    required String target,
+    required String method,
+    required VoidCallback onCodeSent,
+    required Function(String error) onFailed,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      debugPrint('🛡️ [BACKEND OTP] Requesting code for: $target via $method');
+      final response = await ApiClient.post('/otp/request', {
+        'target': target,
+        'method': method,
+      });
+
+      if (response['success'] == true) {
+        debugPrint('✅ [BACKEND OTP] Request successful.');
+        _isLoading = false;
+        notifyListeners();
+        onCodeSent();
+      } else {
+        throw Exception(response['message'] ?? 'Failed to request code');
+      }
+    } catch (e) {
+      debugPrint('❌ [BACKEND OTP] Error: $e');
+      _error = e.toString().replaceFirst('Exception: ', '');
+      _isLoading = false;
+      notifyListeners();
+      onFailed(_error!);
+    }
+  }
+
+  /*
+   * Logic: Backend-Driven OTP Verification.
+   * Rationale: Validates the PIN against the backend session.
+   */
+  Future<bool> verifyBackendOtp({
+    required String target,
+    required String pin,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      debugPrint('🛡️ [BACKEND OTP] Verifying code for: $target');
+      final response = await ApiClient.post('/otp/verify', {
+        'target': target,
+        'pin': pin,
+      });
+
+      if (response['success'] == true) {
+        debugPrint('✅ [BACKEND OTP] Identity verified.');
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _error = response['message'] ?? 'Invalid code';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      debugPrint('❌ [BACKEND OTP] Verification Error: $e');
+      _error = e.toString().contains('401') ? 'Invalid or expired code.' : 'Verification failed.';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /*
    * Logic: Session Initialization.
    * Rationale: Authenticates with the Node.js backend and injects the Owner ID into the network layer.
    */
@@ -179,12 +270,15 @@ class AuthProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
+      // Logic: Repository returns an Owner entity and since we updated the backend return
+      // structure, the 'token' field is now hydrated automatically via Owner.fromJson.
       _currentOwner = await _repository.login(identifier, password);
       
       if (_currentOwner != null) {
         // Trace: Update global singleton to ensure all future API calls are correctly scoped.
         ApiClient.ownerId = _currentOwner!.id;
         ApiClient.ownerName = _currentOwner!.name;
+        await ApiClient.setToken(_currentOwner!.token); // Security: Inject the signed session token
 
         // Persistence: Commit the owner data to local disk to enable auto-login.
         final prefs = await SharedPreferences.getInstance();
@@ -219,9 +313,11 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     try {
       _currentOwner = await _repository.register(data);
+      
       if (_currentOwner != null) {
         ApiClient.ownerId = _currentOwner!.id;
         ApiClient.ownerName = _currentOwner!.name;
+        await ApiClient.setToken(_currentOwner!.token); // Security: Inject the signed session token
 
         // Persistence: Commit the owner data to local disk to enable auto-login.
         final prefs = await SharedPreferences.getInstance();
@@ -296,6 +392,7 @@ class AuthProvider extends ChangeNotifier {
     // Safety: Clear global singleton identifiers to prevent cross-account API leakage.
     ApiClient.ownerId = null;
     ApiClient.ownerName = null;
+    await ApiClient.setToken(null); // Security: Wipe active session token
 
     // Persistence: Purge the saved session from disk.
     try {
@@ -326,6 +423,7 @@ class AuthProvider extends ChangeNotifier {
           // Re-inject the session context into the network layer.
           ApiClient.ownerId = _currentOwner!.id;
           ApiClient.ownerName = _currentOwner!.name;
+          await ApiClient.setToken(_currentOwner!.token); // Security: Restore cryptographic session
           _isLoggedIn = true;
           debugPrint('✅ [AuthProvider] Session restored: ${_currentOwner!.name}');
         }

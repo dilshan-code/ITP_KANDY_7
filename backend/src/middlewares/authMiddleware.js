@@ -1,23 +1,58 @@
-// Middleware to extract the owner's unique ID from the request headers.
-// This ID is used to filter all database operations, ensuring data isolation between different shop owners.
+const jwt = require('jsonwebtoken'); // Security: Cryptographic verification engine
+
+// Middleware to extract and verify the owner's identity from a JWT token.
+// This ensures that only authenticated users can access their specific shop data.
 const authMiddleware = (req, res, next) => {
-    const ownerId = req.headers['x-owner-id'];
-    const ownerName = req.headers['x-owner-name'];
+    // Strategy: Look for token in the Authorization header (Bearer scheme)
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
     
+    // Logic: Timezone is used for localized reports; fallback to 0 (UTC).
     const timezoneOffset = req.headers['x-timezone-offset'];
-    
-    // We only enforce ownerId for API routes that manage specific shop data (products, sales, etc.)
-    // Auth routes (login/register) and Admin routes (listing all owners) don't have an ownerId yet.
-    if (!ownerId && !req.path.includes('/auth/') && !req.path.includes('/admin/')) {
-        // In a real production app, we would verify a JWT token here and check for an 'admin' role.
-        // For this implementation, we rely on the header passed by the frontend.
-        return res.status(401).json({ success: false, error: 'Owner ID is required for this operation' });
+    req.timezoneOffset = timezoneOffset ? parseInt(timezoneOffset) : 0;
+
+    // Boundary: Skip verification ONLY for public auth-related routes (signup/login/otp)
+    // or the base health check.
+    if (req.path.includes('/auth/') || req.path.includes('/otp/') || req.path === '/' || req.path === '/health') {
+        return next();
     }
 
-    req.ownerId = ownerId;
-    req.ownerName = ownerName; // Added this line
-    req.timezoneOffset = timezoneOffset ? parseInt(timezoneOffset) : 0;
-    next();
+    if (!token) {
+        return res.status(401).json({ 
+            success: false, 
+            error: 'Authentication Required: Access token is missing.' 
+        });
+    }
+
+    try {
+        const JWT_SECRET = process.env.JWT_SECRET || 'clickbuy_fallback_secret_dont_use_in_prod';
+        
+        // Security: Cryptographically verify the token.
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // Inject identity context into the request object.
+        req.ownerId = decoded.id;
+        req.ownerName = decoded.name;
+        req.userRole = decoded.role;
+        
+        // RBAC: Role-Based Access Control Guard
+        // Security logic: If the path is for an administrative tool, strict 'admin' role check is required.
+        if (req.path.includes('/admin/') && req.userRole !== 'admin') {
+            console.warn(`🛑 [AuthMiddleware] Unauthorized Admin Access Attempt by: ${req.ownerName} (${req.ownerId})`);
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Authorization Failed: Admin privileges required for this operation.' 
+            });
+        }
+        
+        next();
+    } catch (error) {
+        console.error('❌ [AuthMiddleware] Token Verification Failed:', error.message);
+        return res.status(403).json({ 
+            success: false, 
+            error: 'Security Alert: Invalid or expired access token.' 
+        });
+    }
 };
 
 module.exports = authMiddleware;

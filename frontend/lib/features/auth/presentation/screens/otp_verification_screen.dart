@@ -15,14 +15,17 @@ import 'package:frontend/features/auth/presentation/providers/auth_provider.dart
 import 'package:frontend/features/auth/presentation/widgets/auth_background.dart'; // Shared UI: Multi-layered background
 
 class OtpVerificationScreen extends StatefulWidget {
-  final String phoneNumber; // Parameter: Target device identifier
+  final String target; // Parameter: Target device identifier or Email
   final VoidCallback onVerified; // Callback: Action to trigger on successful handshake
 
   const OtpVerificationScreen({
     super.key,
-    required this.phoneNumber,
+    required this.target,
     required this.onVerified,
   });
+
+  @Deprecated('Use target instead')
+  String get phoneNumber => target;
 
   @override
   State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -71,20 +74,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   /**
    * Logic: Identity Resend Handshake.
-   * Strategy: Re-initiates the Firebase Auth stream for the current session.
+   * Strategy: Re-initiates the Backend OTP request.
    */
   void _resendOtp() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false); 
     
-    await authProvider.resendOtp(
-      phoneNumber: widget.phoneNumber,
-      onVerificationFailed: (error) {
-        if (!context.mounted) return;
-        // Feedback: Show technical failure reason (e.g. rate limit reached).
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error), backgroundColor: Colors.red),
-        );
-      },
+    // Determine method based on target content
+    final method = widget.target.contains('@') ? 'email' : 'phone';
+
+    await authProvider.requestBackendOtp(
+      target: widget.target,
+      method: method,
       onCodeSent: () {
         if (!context.mounted) return;
         _startTimer(); // Restart: Apply a new 60s cooldown period
@@ -93,6 +93,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             content: Text('Verification code resent!'),
             backgroundColor: AppColors.primary,
           ),
+        );
+      },
+      onFailed: (error) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: Colors.red),
         );
       },
     );
@@ -143,7 +149,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           const SizedBox(height: 8),
           // Sub-header: Dynamic recipient confirmation.
           Text(
-            'Enter the code sent to ${widget.phoneNumber}',
+            'Enter the code sent to ${widget.target}',
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
               fontSize: 14,
@@ -178,12 +184,24 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     onCompleted: (pin) async {
                       final authProvider = Provider.of<AuthProvider>(context, listen: false);
                       
-                      // Logic: Trigger final Firebase code validation.
-                      final success = await authProvider.verifyOtp(pin);
+                      // Logic: Trigger backend PIN validation.
+                      final success = await authProvider.verifyBackendOtp(
+                        target: widget.target,
+                        pin: pin,
+                      );
+                      
                       if (!context.mounted) return;
 
                       if (success) {
-                        widget.onVerified(); // Action: Release the lock and proceed to home/success
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Identity Verified Successfully!'),
+                            backgroundColor: Colors.green,
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                        widget.onVerified(); // Action: Release the lock and proceed
                       } else {
                         pinController.clear(); // Safety: Wipe input on failure
                         ScaffoldMessenger.of(context).showSnackBar(

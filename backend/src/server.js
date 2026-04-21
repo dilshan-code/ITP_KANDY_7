@@ -352,9 +352,10 @@ app.get('/', (req, res) => {
     `);
 });
 
-// A. Public & Hybrid Access Endpoints (Auth, Support)
+// A. Public & Hybrid Access Endpoints (Auth, Support, OTP)
 app.use('/api', createAuthRoutes(authController, authMiddleware)); // Mix: Public signup / private session mgmt
 app.use('/api', createFeedbackRoutes(feedbackController, authMiddleware)); // Mix: Public submission / private retrieval
+app.use('/api/otp', require('./routes/otpRoutes')); // Logic: Multi-factor verification gateway
 
 // B. Secure Domain Access (Requires ownership verification)
 app.use('/api', authMiddleware); // Privacy Guard: All subsequent routes require valid JWT and ownerId context.

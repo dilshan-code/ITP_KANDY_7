@@ -55,7 +55,9 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadDashboard({bool isSilent = false}) async {
-    if (!isSilent) {
+    // Logic: Only trigger the full-screen loading state if no dashboard data is cached.
+    // Rationale: Prevents the UI from disappearing during pull-to-refresh or silent polling.
+    if (!isSilent && _dashboardData == null) {
       setState(() => _loading = true);
     }
     try {
@@ -138,7 +140,7 @@ class HomeScreenState extends State<HomeScreen> {
                       )
                     : SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                        padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -163,7 +165,7 @@ class HomeScreenState extends State<HomeScreen> {
       builder: (context, auth, _) => ScreenHeader(
         title: 'Hi, $ownerName',
         subtitle: 'CLICKBUY PARTNER',
-        padding: EdgeInsets.zero,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
         action: Row(
           children: [
             const NotificationIcon(size: 24),

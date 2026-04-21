@@ -1,5 +1,20 @@
 const bcrypt = require('bcryptjs');
-const { RegisterOwner, LoginOwner, GetOwnerProfile, UpdateOwnerProfile, ChangeOwnerPassword, GetAllOwners, CheckAvailability } = require('../src/usecases/authUseCases');
+const { 
+    RegisterOwner, 
+    LoginOwner, 
+    GetOwnerProfile, 
+    UpdateOwnerProfile, 
+    ChangeOwnerPassword, 
+    GetAllOwners, 
+    CheckAvailability,
+    ResetPassword,
+    UpdateOwnerByAdmin
+} = require('../src/usecases/authUseCases');
+
+jest.mock('../src/services/otpStoreService', () => ({
+    isVerified: jest.fn().mockReturnValue(true),
+    consumeProof: jest.fn()
+}));
 
 describe('Auth Use Cases', () => {
     let mockOwnerRepository;
@@ -33,7 +48,8 @@ describe('Auth Use Cases', () => {
 
         test('should register a new owner with valid data', async () => {
             const result = await registerOwner.execute(testOwnerData);
-            expect(result).toHaveProperty('id', 'owner1');
+            expect(result.owner).toHaveProperty('id', 'owner1');
+            expect(result).toHaveProperty('token');
             expect(mockOwnerRepository.create).toHaveBeenCalledTimes(1);
             // Password should be hashed
             const callArgs = mockOwnerRepository.create.mock.calls[0][0];
@@ -42,6 +58,13 @@ describe('Auth Use Cases', () => {
             expect(callArgs.phone).toBe('+94771234567');
             // Email should be lowercase
             expect(callArgs.email).toBe('john@gmail.com');
+        });
+
+        test('should register with non-77 Sri Lankan prefix (e.g., 074)', async () => {
+            const result = await registerOwner.execute({ ...testOwnerData, phone: '0741234567' });
+            expect(result.owner).toHaveProperty('id', 'owner1');
+            const callArgs = mockOwnerRepository.create.mock.calls[0][0];
+            expect(callArgs.phone).toBe('+94741234567');
         });
 
         test('should throw if name is missing', async () => {
@@ -56,7 +79,7 @@ describe('Auth Use Cases', () => {
 
         test('should throw if phone is invalid', async () => {
             await expect(registerOwner.execute({ ...testOwnerData, phone: '12345' }))
-                .rejects.toThrow('Valid phone number is required');
+                .rejects.toThrow('Valid Sri Lankan phone number is required (starts with 07 or +947)');
         });
 
         test('should throw if email is not @gmail.com', async () => {
@@ -83,7 +106,8 @@ describe('Auth Use Cases', () => {
 
         test('should allow registration without email', async () => {
             const noEmail = { ...testOwnerData, email: '' };
-            await registerOwner.execute(noEmail);
+            const result = await registerOwner.execute(noEmail);
+            expect(result.owner).toHaveProperty('id', 'owner1');
             expect(mockOwnerRepository.create).toHaveBeenCalledTimes(1);
         });
     });
@@ -99,15 +123,17 @@ describe('Auth Use Cases', () => {
             const hashedPwd = await bcrypt.hash('password123', 10);
             mockOwnerRepository.findByEmail.mockResolvedValue({ id: 'o1', email: 'john@gmail.com', password: hashedPwd, name: 'John' });
             const result = await loginOwner.execute('john@gmail.com', 'password123');
-            expect(result).toHaveProperty('id', 'o1');
-            expect(result).not.toHaveProperty('password');
+            expect(result.owner).toHaveProperty('id', 'o1');
+            expect(result).toHaveProperty('token');
+            expect(result.owner).not.toHaveProperty('password');
         });
 
         test('should login with valid phone and password', async () => {
             const hashedPwd = await bcrypt.hash('password123', 10);
             mockOwnerRepository.findByPhone.mockResolvedValue({ id: 'o1', phone: '+94771234567', password: hashedPwd, name: 'John' });
             const result = await loginOwner.execute('0771234567', 'password123');
-            expect(result).toHaveProperty('id', 'o1');
+            expect(result.owner).toHaveProperty('id', 'o1');
+            expect(result).toHaveProperty('token');
         });
 
         test('should throw for non-existent user', async () => {
@@ -163,7 +189,7 @@ describe('Auth Use Cases', () => {
 
         test('should throw for invalid phone on update', async () => {
             await expect(updateProfile.execute('o1', { phone: '12345' }))
-                .rejects.toThrow('Valid phone number is required');
+                .rejects.toThrow('Valid Sri Lankan phone number is required (starts with 07 or +947)');
         });
 
         test('should throw if target phone is already taken by another user', async () => {
@@ -248,6 +274,74 @@ describe('Auth Use Cases', () => {
         test('should throw if both phone and email are missing', async () => {
             await expect(checkAvailability.execute({}))
                 .rejects.toThrow('Phone or Email is required for check');
+        });
+    });
+
+    // ========== ResetPassword ==========
+    describe('ResetPassword', () => {
+        let resetPassword;
+        const otpStore = require('../src/services/otpStoreService');
+
+        beforeEach(() => {
+            resetPassword = new ResetPassword(mockOwnerRepository);
+            otpStore.isVerified.mockReturnValue(true);
+        });
+
+        test('should reset password with valid identifier and OTP', async () => {
+            mockOwnerRepository.findByEmail.mockResolvedValue({ id: 'o1', email: 'user@gmail.com' });
+            
+            await resetPassword.execute('user@gmail.com', 'newPassword123');
+            
+            expect(mockOwnerRepository.update).toHaveBeenCalledWith('o1', expect.objectContaining({
+                password: expect.any(String)
+            }));
+            expect(otpStore.consumeProof).toHaveBeenCalledWith('user@gmail.com');
+        });
+
+        test('should throw error if identifier not verified by OTP', async () => {
+            otpStore.isVerified.mockReturnValue(false);
+            mockOwnerRepository.findByEmail.mockResolvedValue({ id: 'o1', email: 'user@gmail.com' });
+            await expect(resetPassword.execute('user@gmail.com', 'newPassword123'))
+                .rejects.toThrow('Verification required');
+        });
+
+        test('should handle user not found', async () => {
+            mockOwnerRepository.findByEmail.mockResolvedValue(null);
+            await expect(resetPassword.execute('unknown@gmail.com', 'newPassword123'))
+                .rejects.toThrow('User not found');
+        });
+    });
+
+    // ========== UpdateOwnerByAdmin ==========
+    describe('UpdateOwnerByAdmin', () => {
+        let updateByAdmin;
+        beforeEach(() => {
+            updateByAdmin = new UpdateOwnerByAdmin(mockOwnerRepository);
+            mockOwnerRepository.getByIdWithPassword = jest.fn().mockResolvedValue({
+                id: 'o1', name: 'John', status: 'approved', isSuspended: false
+            });
+        });
+
+        test('should update basic profile data', async () => {
+            await updateByAdmin.execute('o1', { name: 'New Name' });
+            expect(mockOwnerRepository.update).toHaveBeenCalledWith('o1', expect.objectContaining({
+                name: 'New Name'
+            }));
+        });
+
+        test('should handle account suspension', async () => {
+            await updateByAdmin.execute('o1', { status: 'suspended' });
+            expect(mockOwnerRepository.update).toHaveBeenCalledWith('o1', expect.objectContaining({
+                status: 'suspended',
+                isSuspended: true
+            }));
+        });
+
+        test('should allow admin to reset password', async () => {
+            await updateByAdmin.execute('o1', { password: 'adminResetPassword123' });
+            const callArgs = mockOwnerRepository.update.mock.calls[0][1];
+            const matches = await bcrypt.compare('adminResetPassword123', callArgs.password);
+            expect(matches).toBe(true);
         });
     });
 });

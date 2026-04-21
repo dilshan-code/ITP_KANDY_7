@@ -107,7 +107,13 @@ class InventoryScreenState extends State<InventoryScreen> {
             final filteredProducts = _filterProducts(provider.products);
             return Column(
               children: [
-                SlideInDown(duration: const Duration(milliseconds: 400), child: _buildHeader(context)),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: SlideInDown(
+                    duration: const Duration(milliseconds: 400),
+                    child: _buildHeader(context),
+                  ),
+                ),
                 FadeInUp(duration: const Duration(milliseconds: 500), child: _buildSearchBar()),
                 FadeInUp(duration: const Duration(milliseconds: 600), delay: const Duration(milliseconds: 200), child: _buildFilterChips()),
                 const SizedBox(height: 12),
@@ -187,9 +193,7 @@ class InventoryScreenState extends State<InventoryScreen> {
                                             children: [
                                               SizedBox(height: 16),
                                               _buildInventoryValueCard(provider),
-                                              SizedBox(height: 20),
-                                              _buildProductsHeader(),
-                                              SizedBox(height: 12),
+                                              const SizedBox(height: 16),
                                             ],
                                           ),
                                         ),
@@ -266,6 +270,7 @@ class InventoryScreenState extends State<InventoryScreen> {
         return ScreenHeader(
           title: 'Inventory',
           subtitle: 'Manage products and stock levels',
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           action: const ModernPdfIcon(),
           onActionTap: provider.products.isEmpty || provider.isLoading
               ? null
@@ -442,33 +447,7 @@ class InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  Widget _buildProductsHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          'Products',
-          style: GoogleFonts.poppins(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
-          ),
-        ),
-        IconButton(
-          onPressed: () {
-            final products = context.read<ProductProvider>().products;
-            final owner = context.read<AuthProvider>().currentOwner;
-            InventoryPdfUtils.generateAndDownloadInventoryReport(
-              products: products,
-              owner: owner,
-            );
-          },
-          icon: const ModernPdfIcon(),
-          tooltip: 'Export Stock Audit',
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildCategoryFilters() {
     return Padding(

@@ -20,9 +20,9 @@ const isValidPhone = (phone) => {
     if (!phone) return false; // Constraint: Phone is a mandatory identity key.
     const trimmed = phone.trim();
     
-    // Pattern A: Standard local 10-digit (e.g., 0771234567)
-    // Pattern B: International format with +94 prefix (e.g., +94771234567)
-    return /^0[0-9]{9}$/.test(trimmed) || /^\+94[0-9]{9}$/.test(trimmed);
+    // Pattern A: Standard local 10-digit (e.g., 0771234567, 0741234567)
+    // Pattern B: International format with +94 prefix (e.g., +94771234567, +94741234567)
+    return /^07[0-9]{8}$/.test(trimmed) || /^\+947[0-9]{8}$/.test(trimmed);
 };
 
 /**

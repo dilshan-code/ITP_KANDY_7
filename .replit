@@ -18,5 +18,8 @@ author = "user"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd backend && npm start"
+args = "cd backend && npm install && npm start"
 waitForPort = 3000
+
+[agent]
+expertMode = true

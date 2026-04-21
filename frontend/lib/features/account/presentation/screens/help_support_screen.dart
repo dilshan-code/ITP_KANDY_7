@@ -8,6 +8,7 @@
 // ------------------------------------------------------------------------------
 import 'package:flutter/material.dart'; // Core: Flutter UI reactive system
 import 'package:google_fonts/google_fonts.dart'; // Typography: Brand font sets
+import 'package:url_launcher/url_launcher.dart'; // Deep Linking: Multi-app communication logic
 import 'package:frontend/core/theme/app_colors.dart'; // Styling: Design system tokens
 import 'package:provider/provider.dart'; // State: Dependency injection system
 import 'package:frontend/features/account/presentation/providers/feedback_provider.dart'; // State: Support ticket manager
@@ -27,6 +28,48 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
   final TextEditingController _feedbackController = TextEditingController(); // Input: Message body
   String _selectedCategory = 'Feedback'; // State: Ticket classification
   final List<String> _categories = ['Feedback', 'Error', 'Improvement']; // Enum: Support taxonomy
+
+  /*
+   * Logic: External Communication Launchers.
+   * Rationale: Redirects the user to specialized communication apps (Email/WhatsApp)
+   * to ensure high-fidelity support interactions.
+   */
+  Future<void> _launchEmail() async {
+    final Uri emailLaunchUri = Uri(
+      scheme: 'mailto',
+      path: 'clickbuy.grocery.lk@gmail.com',
+      query: _encodeQueryParameters(<String, String>{
+        'subject': 'ClickBuy Support Request',
+      }),
+    );
+
+    if (await canLaunchUrl(emailLaunchUri)) {
+      await launchUrl(emailLaunchUri);
+    } else {
+      if (mounted) {
+        SnackBarUtils.showSnackBar(context, 'Could not launch email app', isError: true);
+      }
+    }
+  }
+
+  Future<void> _launchWhatsApp() async {
+    final Uri whatsappUri = Uri.parse('https://wa.me/94701234567'); 
+
+    if (await canLaunchUrl(whatsappUri)) {
+      await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        SnackBarUtils.showSnackBar(context, 'Could not launch WhatsApp', isError: true);
+      }
+    }
+  }
+
+  String? _encodeQueryParameters(Map<String, String> params) {
+    return params.entries
+        .map((MapEntry<String, String> e) =>
+            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+  }
 
   @override
   void dispose() {
@@ -126,9 +169,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                             icon: Icons.chat_outlined,
                             title: 'WhatsApp',
                             color: const Color(0xFF25D366),
-                            onTap: () {
-                              // Workflow: External deep-link to support handle.
-                            },
+                            onTap: _launchWhatsApp,
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -138,9 +179,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                             icon: Icons.email_outlined,
                             title: 'Email',
                             color: const Color(0xFFEA4335),
-                            onTap: () {
-                              // Workflow: Launch system mail composer.
-                            },
+                            onTap: _launchEmail,
                           ),
                         ),
                       ],

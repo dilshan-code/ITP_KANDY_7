@@ -63,10 +63,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           'Cannot reach the server. Please check your connection settings.',
           isError: true,
         );
-        showDialog(
-          context: context,
-          builder: (_) => const BackendSettingsDialog(),
-        );
+        // Disabled: Dialog should only open via 10-second logo long-press.
+        // showDialog(
+        //   context: context,
+        //   builder: (_) => const BackendSettingsDialog(),
+        // );
         return;
       }
     }
@@ -100,10 +101,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     }
 
     // Stage E: Identity Verification (OTP).
-    await authProvider.sendOtp(
-      phoneNumber: phone,
-      onVerificationCompleted: (code) {},
-      onVerificationFailed: (error) {
+    // Rationale: Migrated to backend-driven OTP for consistency and cost optimization.
+    await authProvider.requestBackendOtp(
+      target: phone,
+      method: 'phone', // Defaulting to phone for now in this screen
+      onFailed: (error) {
         SnackBarUtils.showSnackBar(context, error, isError: true);
       },
       onCodeSent: () {
@@ -112,7 +114,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => OtpVerificationScreen(
-              phoneNumber: phone,
+              target: phone, // Updated: Uses 'target' instead of 'phoneNumber'
               onVerified: () async {
                 // Stage F: Atomic Password Update.
                 final success = await authProvider.resetPassword(

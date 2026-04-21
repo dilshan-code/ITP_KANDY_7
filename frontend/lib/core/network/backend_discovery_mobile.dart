@@ -81,11 +81,19 @@ class BackendDiscoveryImpl {
     return completer.future;
   }
 
-  static Future<bool> _isServerReachable(String ip) async {
+  static Future<bool> _isServerReachable(String address) async {
     try {
-      final uri = Uri.parse('http://$ip:${ApiClient.serverPort}/health');
-      // Reduced timeout: 1.5s is plenty for most local network pings.
-      final response = await http.get(uri).timeout(const Duration(milliseconds: 1500));
+      // Strategy: Detect if the address is a hostname (e.g. Replit domain) vs a bare IP.
+      // Hostnames use HTTPS and don't need a port suffix.
+      final bool isHostname = address.contains('.') && !RegExp(r'^[\d.]+$').hasMatch(address);
+      final Uri uri;
+      if (isHostname) {
+        uri = Uri.parse('https://$address/health');
+      } else {
+        uri = Uri.parse('http://$address:${ApiClient.serverPort}/health');
+      }
+      // Reduced timeout: 3s for remote servers, 1.5s is too short for Replit cold-starts.
+      final response = await http.get(uri).timeout(const Duration(milliseconds: 3000));
       return response.statusCode == 200;
     } catch (_) {
       return false;

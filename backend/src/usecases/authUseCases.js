@@ -1,5 +1,10 @@
 const bcrypt = require('bcryptjs'); // Industry-standard library for secure password hashing and comparison
+const jwt = require('jsonwebtoken'); // Security: Cryptographic token generation for session management
 const { isValidEmail, isValidPhone, isValidPassword } = require('../utils/validationUtils'); // Native verification suite
+const otpStoreService = require('../services/otpStoreService'); // Security: Shared verification gateway
+
+const JWT_SECRET = process.env.JWT_SECRET || 'clickbuy_fallback_secret_dont_use_in_prod';
+const JWT_EXPIRES_IN = '30d'; // Logic: Long-lived mobile session profile
 
 /**
  * Identity Normalization: Sri Lankan Phone Number Standardizer.
@@ -45,7 +50,7 @@ class RegisterOwner {
             throw new Error('Shop name is required');
         }
         if (!isValidPhone(ownerData.phone)) {
-            throw new Error('Valid phone number is required (start with 0 or +94 and have 9 digits after)');
+            throw new Error('Valid Sri Lankan phone number is required (starts with 07 or +947)');
         }
         if (ownerData.email && !isValidEmail(ownerData.email)) {
             throw new Error('Email must end with @gmail.com');
@@ -73,12 +78,23 @@ class RegisterOwner {
             }
         }
 
-        // --- Phase 4: Security Transformation ---
+        // --- Phase 4.1: Security Handshake ---
+        // Verify that the user has successfully completed a multi-factor OTP challenge.
+        // We check either phone or email, depending on what the user provided/verified.
+        const isVerified = otpStoreService.isVerified(normalizedPhone) || 
+                           (normalizedEmail && otpStoreService.isVerified(normalizedEmail));
+        
+        if (!isVerified) {
+            console.error(`[SECURITY] Registration blocked: Target not verified. (Phone: ${normalizedPhone}, Email: ${normalizedEmail})`);
+            throw new Error('Identity verification required. Please request and verify an OTP first.');
+        }
+
+        // --- Phase 5: Security Transformation ---
         // We never store plain-text passwords. 10 salt rounds provides a balanced security/performance ratio.
         const hashedPassword = await bcrypt.hash(ownerData.password, 10);
         
         // Finalize storage with default active flags.
-        return this.ownerRepository.create({ 
+        const newOwner = await this.ownerRepository.create({ 
             ...ownerData, 
             phone: normalizedPhone, 
             email: normalizedEmail, 
@@ -86,6 +102,24 @@ class RegisterOwner {
             status: 'approved', // Default state for new registrations
             isSuspended: false
         });
+
+        // --- Phase 6: Proof Consumption ---
+        // Invalidate the verification flags to prevent registration replay attacks.
+        otpStoreService.consumeProof(normalizedPhone);
+        if (normalizedEmail) otpStoreService.consumeProof(normalizedEmail);
+
+        // --- Phase 7: Session Issuance ---
+        // Automatically sign a JWT so the user is immediately logged in after registration.
+        const token = jwt.sign(
+            { id: newOwner.id, name: newOwner.name, role: newOwner.role },
+            JWT_SECRET,
+            { expiresIn: JWT_EXPIRES_IN }
+        );
+
+        return { 
+            owner: newOwner, 
+            token 
+        };
     }
 }
 
@@ -141,7 +175,19 @@ class LoginOwner {
         // --- Data Projection ---
         // Strip the password hash before sending the object to the frontend/session.
         const { password: _, ...ownerData } = owner;
-        return ownerData;
+
+        // --- Phase 4: Token Generation ---
+        // Generate a cryptographically signed token for secure identity propagation.
+        const token = jwt.sign(
+            { id: ownerData.id, name: ownerData.name, role: ownerData.role },
+            JWT_SECRET,
+            { expiresIn: JWT_EXPIRES_IN }
+        );
+
+        return { 
+            owner: ownerData, 
+            token 
+        };
     }
 }
 
@@ -170,7 +216,7 @@ class UpdateOwnerProfile {
         // 2. Phone Update & Uniqueness Cross-Check
         if (updateData.phone) {
             if (!isValidPhone(updateData.phone)) {
-                throw new Error('Valid phone number is required (start with 0 or +94 and have 9 digits after)');
+                throw new Error('Valid Sri Lankan phone number is required (starts with 07 or +947)');
             }
             updateData.phone = normalizePhone(updateData.phone);
             
@@ -239,17 +285,26 @@ class ResetPassword {
 
     async execute(identifier, newPassword) {
         let owner;
+        const normalizedIdentifier = identifier && identifier.includes('@') 
+            ? normalizeEmail(identifier) 
+            : normalizePhone(identifier);
+
         // Locate account by either verified channel (Email/Phone).
         if (identifier && identifier.includes('@')) {
-            const normalizedEmail = normalizeEmail(identifier);
-            owner = await this.ownerRepository.findByEmail(normalizedEmail);
+            owner = await this.ownerRepository.findByEmail(normalizedIdentifier);
         } else {
-            const normalizedPhone = normalizePhone(identifier);
-            owner = await this.ownerRepository.findByPhone(normalizedPhone);
+            owner = await this.ownerRepository.findByPhone(normalizedIdentifier);
         }
 
         if (!owner) {
             throw new Error('User not found with this email/phone');
+        }
+
+        // --- Security Boundary: OTP Proof Verification ---
+        // Ensure the password reset is authorized by a fresh OTP handshake.
+        if (!otpStoreService.isVerified(normalizedIdentifier)) {
+            console.error(`[SECURITY] Password reset blocked: Identifier not verified. (${normalizedIdentifier})`);
+            throw new Error('Verification required. Please verify your identity via OTP before resetting password.');
         }
 
         if (!isValidPassword(newPassword)) {
@@ -258,7 +313,12 @@ class ResetPassword {
 
         // Apply new credential hash.
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-        return this.ownerRepository.update(owner.id || owner._id, { password: hashedNewPassword });
+        const updatedOwner = await this.ownerRepository.update(owner.id || owner._id, { password: hashedNewPassword });
+
+        // Cleanup: Invalidate the verification proof.
+        otpStoreService.consumeProof(normalizedIdentifier);
+
+        return updatedOwner;
     }
 }
 
@@ -470,5 +530,7 @@ module.exports = {
     ResetPassword, 
     UpdateOwnerByAdmin, 
     DeleteOwner, 
-    CheckAvailability 
+    CheckAvailability,
+    normalizePhone,
+    normalizeEmail
 };

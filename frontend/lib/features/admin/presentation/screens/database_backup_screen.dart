@@ -27,6 +27,7 @@ class DatabaseBackupScreen extends StatefulWidget {
 class _DatabaseBackupScreenState extends State<DatabaseBackupScreen> {
   bool _isDownloading = false;
   double _progress = 0.0;
+  int? _totalSize;
   String _lastBackupTime = 'Never';
   final String _prefKey = 'last_database_backup_time';
 
@@ -79,22 +80,25 @@ class _DatabaseBackupScreenState extends State<DatabaseBackupScreen> {
 
       // 3. Stream bytes and update progress
       int downloaded = 0;
-      final total = response.contentLength ?? 0;
+      final total = response.contentLength;
+      setState(() => _totalSize = total);
 
       await response.stream.listen(
         (chunk) {
           // Streaming IO: Appending received bytes to a temporary local file to avoid RAM spikes.
           sink.add(chunk);
           downloaded += chunk.length;
-          if (total > 0) {
+          if (total != null && total > 0) {
             setState(() {
               _progress = downloaded / total;
             });
           } else {
-            // Fallback animation if Content-Length is missing (streaming zip usually is)
-            setState(() {
-              _progress = (_progress + 0.05).clamp(0.0, 0.99);
-            });
+            // Streaming ZIPs often lack Content-Length.
+            // We set _progress to a small non-zero value to trigger the indeterminate 
+            // state in the UI safely without showing a fake percentage.
+            if (_progress == 0) {
+              setState(() => _progress = 0.01);
+            }
           }
         },
         onDone: () async {
@@ -264,7 +268,9 @@ class _DatabaseBackupScreenState extends State<DatabaseBackupScreen> {
                   child: Column(
                     children: [
                       LinearProgressIndicator(
-                        value: _progress <= 0 ? null : _progress, // Shows indeterminate if 0
+                        value: (_progress > 0 && _progress < 1.0 && _totalSize == null) 
+                            ? null // Indeterminate for unknown stream size
+                            : _progress, 
                         backgroundColor: Colors.indigo.withValues(alpha: 0.1),
                         valueColor: const AlwaysStoppedAnimation<Color>(Colors.indigo),
                         minHeight: 8,
@@ -272,7 +278,11 @@ class _DatabaseBackupScreenState extends State<DatabaseBackupScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Generating ZIP archive... ${(_progress * 100).toInt()}%',
+                        _progress >= 1.0 
+                            ? 'Ready!' 
+                            : (_totalSize != null && _totalSize! > 0)
+                                ? 'Downloading... ${(_progress * 100).toInt()}%'
+                                : 'Generating secure ZIP archive...',
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontWeight: FontWeight.w500,

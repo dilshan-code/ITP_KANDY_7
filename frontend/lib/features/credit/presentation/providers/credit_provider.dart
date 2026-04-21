@@ -53,7 +53,9 @@ class CreditProvider extends ChangeNotifier {
    */
   Future<void> fetchCustomers({bool refresh = true}) async {
     if (refresh) {
-      _isLoading = true;
+      if (_customers.isEmpty) {
+        _isLoading = true;
+      }
       _hasMoreCustomers = true;
       _error = null;
       notifyListeners();
