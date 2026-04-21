@@ -1,6 +1,10 @@
 const bcrypt = require('bcryptjs'); // Industry-standard library for secure password hashing and comparison
+const jwt = require('jsonwebtoken'); // Security: Cryptographic token generation for session management
 const { isValidEmail, isValidPhone, isValidPassword } = require('../utils/validationUtils'); // Native verification suite
 const otpStoreService = require('../services/otpStoreService'); // Security: Shared verification gateway
+
+const JWT_SECRET = process.env.JWT_SECRET || 'clickbuy_fallback_secret_dont_use_in_prod';
+const JWT_EXPIRES_IN = '30d'; // Logic: Long-lived mobile session profile
 
 /**
  * Identity Normalization: Sri Lankan Phone Number Standardizer.
@@ -104,7 +108,18 @@ class RegisterOwner {
         otpStoreService.consumeProof(normalizedPhone);
         if (normalizedEmail) otpStoreService.consumeProof(normalizedEmail);
 
-        return newOwner;
+        // --- Phase 7: Session Issuance ---
+        // Automatically sign a JWT so the user is immediately logged in after registration.
+        const token = jwt.sign(
+            { id: newOwner.id, name: newOwner.name, role: newOwner.role },
+            JWT_SECRET,
+            { expiresIn: JWT_EXPIRES_IN }
+        );
+
+        return { 
+            owner: newOwner, 
+            token 
+        };
     }
 }
 
@@ -160,7 +175,19 @@ class LoginOwner {
         // --- Data Projection ---
         // Strip the password hash before sending the object to the frontend/session.
         const { password: _, ...ownerData } = owner;
-        return ownerData;
+
+        // --- Phase 4: Token Generation ---
+        // Generate a cryptographically signed token for secure identity propagation.
+        const token = jwt.sign(
+            { id: ownerData.id, name: ownerData.name, role: ownerData.role },
+            JWT_SECRET,
+            { expiresIn: JWT_EXPIRES_IN }
+        );
+
+        return { 
+            owner: ownerData, 
+            token 
+        };
     }
 }
 
