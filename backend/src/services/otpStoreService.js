@@ -20,7 +20,7 @@ class OtpStoreService {
         
         // Logical Guard: Background Scavenger.
         // Runs every 10 minutes to prune expired memory objects to prevent leaks.
-        setInterval(() => this.cleanup(), 10 * 60 * 1000);
+        setInterval(() => this.cleanup(), 10 * 60 * 1000).unref();
     }
 
     /**
