@@ -270,12 +270,15 @@ class AuthProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
+      // Logic: Repository returns an Owner entity and since we updated the backend return
+      // structure, the 'token' field is now hydrated automatically via Owner.fromJson.
       _currentOwner = await _repository.login(identifier, password);
       
       if (_currentOwner != null) {
         // Trace: Update global singleton to ensure all future API calls are correctly scoped.
         ApiClient.ownerId = _currentOwner!.id;
         ApiClient.ownerName = _currentOwner!.name;
+        await ApiClient.setToken(_currentOwner!.token); // Security: Inject the signed session token
 
         // Persistence: Commit the owner data to local disk to enable auto-login.
         final prefs = await SharedPreferences.getInstance();
@@ -310,9 +313,11 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
     try {
       _currentOwner = await _repository.register(data);
+      
       if (_currentOwner != null) {
         ApiClient.ownerId = _currentOwner!.id;
         ApiClient.ownerName = _currentOwner!.name;
+        await ApiClient.setToken(_currentOwner!.token); // Security: Inject the signed session token
 
         // Persistence: Commit the owner data to local disk to enable auto-login.
         final prefs = await SharedPreferences.getInstance();
@@ -387,6 +392,7 @@ class AuthProvider extends ChangeNotifier {
     // Safety: Clear global singleton identifiers to prevent cross-account API leakage.
     ApiClient.ownerId = null;
     ApiClient.ownerName = null;
+    await ApiClient.setToken(null); // Security: Wipe active session token
 
     // Persistence: Purge the saved session from disk.
     try {
@@ -417,6 +423,7 @@ class AuthProvider extends ChangeNotifier {
           // Re-inject the session context into the network layer.
           ApiClient.ownerId = _currentOwner!.id;
           ApiClient.ownerName = _currentOwner!.name;
+          await ApiClient.setToken(_currentOwner!.token); // Security: Restore cryptographic session
           _isLoggedIn = true;
           debugPrint('✅ [AuthProvider] Session restored: ${_currentOwner!.name}');
         }
