@@ -55,7 +55,9 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadDashboard({bool isSilent = false}) async {
-    if (!isSilent) {
+    // Logic: Only trigger the full-screen loading state if no dashboard data is cached.
+    // Rationale: Prevents the UI from disappearing during pull-to-refresh or silent polling.
+    if (!isSilent && _dashboardData == null) {
       setState(() => _loading = true);
     }
     try {
