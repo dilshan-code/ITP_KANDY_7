@@ -27,9 +27,16 @@ class OtpController {
             return res.status(200).json(result);
         } catch (error) {
             console.error('❌ [OtpController] Request Error:', error.message);
-            return res.status(500).json({ 
+            
+            // Logic: Distinguish between client errors (throttling) and server faults.
+            let statusCode = 500;
+            if (error.message.includes('wait') || error.message.includes('required')) {
+                statusCode = 400; // Client-side logic error or throttling
+            }
+
+            return res.status(statusCode).json({ 
                 success: false, 
-                message: error.message || 'Internal server error during OTP request.' 
+                error: error.message || 'Internal server error during OTP request.' 
             });
         }
     }
@@ -53,10 +60,15 @@ class OtpController {
             return res.status(200).json(result);
         } catch (error) {
             console.error('❌ [OtpController] Verification Error:', error.message);
-            const statusCode = error.message.includes('No active') ? 404 : 401;
+            
+            // Logic: Align with standard HTTP patterns.
+            let statusCode = 401; // Default to Unauthorized
+            if (error.message.includes('No active')) statusCode = 404;
+            if (error.message.includes('Too many')) statusCode = 403; // Forbidden (locked out)
+
             return res.status(statusCode).json({ 
                 success: false, 
-                message: error.message || 'Verification failed.' 
+                error: error.message || 'Verification failed.' 
             });
         }
     }
