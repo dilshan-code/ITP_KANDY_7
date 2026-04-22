@@ -26,7 +26,7 @@ class AdminController {
             
             // Security: Sanitize output to prevent password hash leakage
             const sanitizedOwners = owners.map(owner => {
-                const { password, ...safeOwner } = owner;
+                const { password: _password, ...safeOwner } = owner;
                 return safeOwner;
             });
 
