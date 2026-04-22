@@ -150,17 +150,15 @@ class GetSupplierSummary {
     async execute(ownerId) {
         if (!ownerId) throw new Error('Owner ID is required');
 
-        // 1. Calculate the global amount of money owed to all vendors.
-        const totalPayable = await this.supplierRepository.getTotalPayable(ownerId);
-        
-        // 2. Tally the number of active business partnerships.
-        const suppliers = await this.supplierRepository.getAll(ownerId);
-        const activeCount = suppliers.filter(s => s.status === 'active').length;
+        // Parallelize for performance: Cumulative debt and active partner count.
+        const [totalPayable, activeCount] = await Promise.all([
+            this.supplierRepository.getTotalPayable(ownerId),
+            this.supplierRepository.countActive(ownerId)
+        ]);
 
-        // Return the consolidated report.
         return {
             totalPayable: totalPayable || 0,
-            activeCount: activeCount
+            activeCount: activeCount || 0
         };
     }
 }

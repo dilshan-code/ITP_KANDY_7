@@ -224,79 +224,159 @@ class SupplierExportUtils {
     final pdf = pw.Document();
 
     pdf.addPage(
-      pw.Page(
+      pw.MultiPage(
         theme: pw.ThemeData.withFont(base: font, bold: boldFont),
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
         build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // 1. Header
-              _buildBusinessHeader(owner, 'ELECTRONIC PAYMENT RECEIPT'),
-              pw.SizedBox(height: 24),
-              
-              // 2. Receipt Details
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text('RECEIPT NO', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.grey600)),
-                      pw.Text('#${purchase.id.substring(purchase.id.length - 8).toUpperCase()}', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                    ],
-                  ),
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.end,
-                    children: [
-                      pw.Text('DATE', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.grey600)),
-                      pw.Text(DateFormat('dd MMM yyyy').format(DateTime.now()), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                    ],
-                  ),
-                ],
-              ),
-              
-              pw.SizedBox(height: 32),
-              
-              // 3. Payment Context Card
-              pw.Container(
-                padding: const pw.EdgeInsets.all(24),
-                decoration: pw.BoxDecoration(
-                  color: PdfColor.fromInt(0xFFF8FAFC),
-                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
-                  border: pw.Border.all(color: PdfColors.grey200),
-                ),
-                child: pw.Column(
+          return [
+            // 1. Header
+            _buildBusinessHeader(owner, 'ELECTRONIC PAYMENT RECEIPT'),
+            pw.SizedBox(height: 24),
+            
+            // 2. Receipt Identity
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    _buildReceiptRow('PAID TO', purchase.supplierName, isLarge: true),
-                    pw.Divider(color: PdfColors.grey200),
-                    _buildReceiptRow('INVOICE REF', purchase.invoiceNumber.isEmpty ? 'N/A' : purchase.invoiceNumber),
-                    _buildReceiptRow('PAYMENT METHOD', purchase.paymentMethod.toUpperCase()),
-                    _buildReceiptRow('STATUS', 'CONFIRMED & SETTLED', color: PdfColor.fromInt(0xFF10B981)),
-                    pw.SizedBox(height: 20),
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text('TOTAL AMOUNT PAID', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey600)),
-                        pw.Text('Rs ${purchase.amountPaid.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF2563EB))),
-                      ],
-                    ),
+                    pw.Text('RECEIPT NO', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.grey600)),
+                    pw.Text('#${purchase.id.substring(purchase.id.length > 8 ? purchase.id.length - 8 : 0).toUpperCase()}', 
+                        style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
                   ],
                 ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text('DATE', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.grey600)),
+                    pw.Text(DateFormat('dd MMM yyyy').format(DateTime.now()), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                  ],
+                ),
+              ],
+            ),
+            
+            pw.SizedBox(height: 24),
+            
+            // 3. Partner & Transaction Summary
+            pw.Container(
+              padding: const pw.EdgeInsets.all(16),
+              decoration: pw.BoxDecoration(
+                color: PdfColor.fromInt(0xFFF8FAFC),
+                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
+                border: pw.Border.all(color: PdfColors.grey200),
               ),
+              child: pw.Column(
+                children: [
+                  _buildReceiptRow('PAID TO', purchase.supplierName, isLarge: true),
+                  pw.Divider(color: PdfColors.grey200, thickness: 0.5),
+                  _buildReceiptRow('INVOICE REF', purchase.invoiceNumber.isEmpty ? 'N/A' : purchase.invoiceNumber),
+                  _buildReceiptRow('PAYMENT METHOD', purchase.paymentMethod.toUpperCase()),
+                  _buildReceiptRow('STATUS', 'CONFIRMED & SETTLED', color: PdfColor.fromInt(0xFF10B981)),
+                ],
+              ),
+            ),
 
-              pw.Spacer(),
-              
-              // 4. Footer info
-              pw.Center(
-                child: pw.Text('This is a system-generated document. No signature required.', style: pw.TextStyle(fontSize: 8, color: PdfColors.grey500, fontStyle: pw.FontStyle.italic)),
-              ),
-              pw.SizedBox(height: 12),
-              _buildFooter(context),
-            ],
-          );
+            pw.SizedBox(height: 32),
+
+            // 4. Itemized Breakdown
+            pw.Text('ITEMIZED BREAKDOWN', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+            pw.SizedBox(height: 12),
+            
+            pw.Table(
+              columnWidths: {
+                0: const pw.FlexColumnWidth(4),
+                1: const pw.FixedColumnWidth(50),
+                2: const pw.FixedColumnWidth(80),
+                3: const pw.FixedColumnWidth(80),
+              },
+              children: [
+                // Table Header
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey100),
+                  children: [
+                    _buildCell('ITEM DESCRIPTION', isHeader: true),
+                    _buildCell('QTY', isHeader: true, align: pw.TextAlign.center),
+                    _buildCell('UNIT PRICE', isHeader: true, align: pw.TextAlign.right),
+                    _buildCell('TOTAL', isHeader: true, align: pw.TextAlign.right),
+                  ],
+                ),
+                // Item Rows
+                ...purchase.items.map((item) {
+                  final qty = (item['quantity'] ?? 0);
+                  final price = (item['costPrice'] ?? item['price'] ?? 0).toDouble();
+                  final total = (item['total'] ?? (qty * price)).toDouble();
+                  
+                  return pw.TableRow(
+                    decoration: const pw.BoxDecoration(
+                      border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey100, width: 0.5))
+                    ),
+                    children: [
+                      _buildCell(item['name'] ?? 'Unknown Item'),
+                      _buildCell('$qty', align: pw.TextAlign.center),
+                      _buildCell('Rs ${price.toStringAsFixed(2)}', align: pw.TextAlign.right),
+                      _buildCell('Rs ${total.toStringAsFixed(2)}', align: pw.TextAlign.right, isBold: true),
+                    ],
+                  );
+                }),
+              ],
+            ),
+
+            pw.SizedBox(height: 24),
+
+            // 5. Final Payment Totals
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.end,
+              children: [
+                pw.Container(
+                  width: 200,
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('SUBTOTAL', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+                          pw.Text('Rs ${purchase.subtotal.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                        ],
+                      ),
+                      if (purchase.tax > 0) ...[
+                        pw.SizedBox(height: 4),
+                        pw.Row(
+                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                          children: [
+                            pw.Text('TAX', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+                            pw.Text('Rs ${purchase.tax.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                          ],
+                        ),
+                      ],
+                      pw.SizedBox(height: 8),
+                      pw.Divider(thickness: 1, color: PdfColors.grey300),
+                      pw.SizedBox(height: 8),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('TOTAL PAID', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey600)),
+                          pw.Text('Rs ${purchase.amountPaid.toStringAsFixed(2)}', 
+                              style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF2563EB))),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            pw.SizedBox(height: 40),
+            
+            // 6. Verification Note
+            pw.Center(
+              child: pw.Text('This is a system-generated document. No signature required.', 
+                  style: pw.TextStyle(fontSize: 8, color: PdfColors.grey500, fontStyle: pw.FontStyle.italic)),
+            ),
+          ];
         },
+        footer: (pw.Context context) => _buildFooter(context),
       ),
     );
 
@@ -305,6 +385,7 @@ class SupplierExportUtils {
       name: 'receipt_${purchase.invoiceNumber}.pdf',
     );
   }
+
 
   // --- Helper Build Methods ---
 

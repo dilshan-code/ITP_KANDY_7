@@ -49,9 +49,14 @@ describe('Report Use Cases', () => {
 
         mockPurchaseRepository = {
             getAll: jest.fn().mockResolvedValue([
-                { id: 'pur1', totalAmount: 3000, items: [] }
+                { id: 'pur1', totalAmount: 3000, items: [], remaining: 1000 }
             ]),
             getTotalPurchases: jest.fn().mockResolvedValue(3000),
+            getTotalPayable: jest.fn().mockResolvedValue(1000),
+            getAllByDateRange: jest.fn().mockResolvedValue([
+                { id: 'pur1', totalAmount: 3000, supplierId: 's1', supplierName: 'Supplier A', createdAt: today },
+                { id: 'pur2', totalAmount: 2000, supplierId: 's2', supplierName: 'Supplier B', createdAt: yesterday }
+            ]),
         };
 
         mockProductRepository = {
@@ -167,6 +172,20 @@ describe('Report Use Cases', () => {
             expect(report.summary.totalPurchases).toBe(3000);
         });
 
+        test('should include total payable amount', async () => {
+            const report = await getReport.execute(ownerId);
+            expect(report.summary.totalPayable).toBe(1000);
+        });
+
+        test('should produce top suppliers sorted by spending', async () => {
+            const report = await getReport.execute(ownerId);
+            expect(report.topSuppliers).toHaveLength(2);
+            expect(report.topSuppliers[0].name).toBe('Supplier A');
+            expect(report.topSuppliers[0].spending).toBe(3000);
+            expect(report.topSuppliers[1].name).toBe('Supplier B');
+            expect(report.topSuppliers[1].spending).toBe(2000);
+        });
+
         test('should include timestamp', async () => {
             const report = await getReport.execute(ownerId);
             expect(report).toHaveProperty('timestamp');
@@ -177,6 +196,8 @@ describe('Report Use Cases', () => {
             mockSaleRepository.getTotalRevenue.mockResolvedValue(0);
             mockSaleRepository.getTotalRevenueByDateRange.mockResolvedValue(0);
             mockPurchaseRepository.getTotalPurchases.mockResolvedValue(0);
+            mockPurchaseRepository.getTotalPayable.mockResolvedValue(0);
+            mockPurchaseRepository.getAllByDateRange.mockResolvedValue([]);
             mockProductRepository.getAll.mockResolvedValue([]);
             mockProductRepository.getLowStockCount.mockResolvedValue(0);
             mockCustomerRepository.getAll.mockResolvedValue([]);

@@ -1,4 +1,4 @@
-﻿// ------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // File: purchase_provider.dart
 // Purpose: Procurement Lifecycle and Inventory Inflow Governance.
 // Rationale: Centralizes the management of supplier purchase records, 
@@ -106,6 +106,21 @@ class PurchaseProvider extends ChangeNotifier {
       _isLoading = false;
       _isFetchingMore = false;
       notifyListeners();
+    }
+  }
+
+  /*
+   * Logic: Single Purchase Detail Fetch.
+   * Rationale: The list query excludes items for performance. This fetches the
+   *   full purchase record (including line items) for the detail view.
+   */
+  Future<Purchase?> fetchPurchaseById(String id) async {
+    try {
+      return await _repository.getPurchaseById(id);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return null;
     }
   }
 

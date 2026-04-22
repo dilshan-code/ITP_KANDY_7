@@ -186,11 +186,11 @@ class InvoicePdfUtils {
                 mainAxisAlignment: pw.MainAxisAlignment.end,
                 children: [
                   pw.Container(
-                    width: 200,
+                    width: 210,
                     padding: const pw.EdgeInsets.all(16),
                     decoration: pw.BoxDecoration(
-                      color: PdfColor.fromInt(0xFFF8FAFC),
-                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                      color: PdfColor.fromInt(0xFFF8FAFC), // Shaded background
+                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
                       border: pw.Border.all(color: PdfColors.grey200),
                     ),
                     child: pw.Column(
@@ -198,18 +198,18 @@ class InvoicePdfUtils {
                         pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text('Subtotal', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
-                            pw.Text('Rs ${totalAmount.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 10)),
+                            pw.Text('Subtotal', style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
+                            pw.Text('Rs ${totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
                           ],
                         ),
-                        pw.SizedBox(height: 4),
-                        pw.Divider(thickness: 0.5, color: PdfColors.grey300),
-                        pw.SizedBox(height: 4),
+                        pw.SizedBox(height: 8),
+                        pw.Divider(thickness: 1, color: PdfColors.grey100),
+                        pw.SizedBox(height: 8),
                         pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text('GRAND TOTAL', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-                            pw.Text('Rs ${totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF2563EB))),
+                            pw.Text('GRAND TOTAL', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
+                            pw.Text('Rs ${totalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF2563EB))),
                           ],
                         ),
                       ],

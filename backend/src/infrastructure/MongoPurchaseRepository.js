@@ -48,6 +48,25 @@ class MongoPurchaseRepository extends IPurchaseRepository {
     }
 
     /**
+     * Logic: Outstanding Liability Calculation.
+     * Sums the 'remaining' balance across all purchases to show current debt.
+     */
+    async getTotalPayable(ownerId) {
+        const cacheKey = `total_payable_${ownerId}`;
+        const cached = this._getCache(cacheKey);
+        if (cached !== null) return cached;
+
+        const result = await this.model.aggregate([
+            { $match: { ownerId } }, 
+            { $group: { _id: null, total: { $sum: "$remaining" } } }
+        ]);
+        
+        const total = result.length > 0 ? result[0].total : 0;
+        this._setCache(cacheKey, total);
+        return total;
+    }
+
+    /**
      * Logic: Temporal Procurement Tracking.
      * Fetches purchases within a specific date window for reporting purposes.
      */
@@ -153,6 +172,7 @@ class MongoPurchaseRepository extends IPurchaseRepository {
 
         // Invalidate KPI cache
         this._cache.delete(`total_purchases_${purchaseData.ownerId}`);
+        this._cache.delete(`total_payable_${purchaseData.ownerId}`);
 
         return new Purchase({ id: doc._id.toString(), ...doc.toJSON() }).toJSON();
     }
@@ -200,6 +220,7 @@ class MongoPurchaseRepository extends IPurchaseRepository {
 
         // Invalidate KPI cache
         this._cache.delete(`total_purchases_${ownerId}`);
+        this._cache.delete(`total_payable_${ownerId}`);
 
         return new Purchase({ id: doc._id.toString(), ...doc.toJSON() }).toJSON();
     }
@@ -213,6 +234,7 @@ class MongoPurchaseRepository extends IPurchaseRepository {
         
         // Invalidate KPI cache
         this._cache.delete(`total_purchases_${ownerId}`);
+        this._cache.delete(`total_payable_${ownerId}`);
 
         return result.deletedCount > 0;
     }

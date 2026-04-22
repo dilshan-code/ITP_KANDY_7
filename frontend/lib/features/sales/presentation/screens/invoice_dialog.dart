@@ -95,11 +95,12 @@ class InvoiceDialog extends StatelessWidget {
 
             // Items List: Break-down of products or service charges
             Text(
-              'ITEMS',
+              'ORDER SUMMARY',
               style: GoogleFonts.poppins(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
                 color: AppColors.textLight,
+                letterSpacing: 1.2,
               ),
             ),
             SizedBox(height: 8),
@@ -139,12 +140,15 @@ class InvoiceDialog extends StatelessWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                  '${item['name']} (x$qty ${item['unit'] ?? ''})', // Line item description
-                                  style: GoogleFonts.poppins(fontSize: 14),
+                                  '${item['name']} x$qty ${item['unit'] ?? ''}', // Product qty/unit pair
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
                               Text(
-                                'Rs ${(price * qty).toStringAsFixed(0)}', // Calculated subtotal
+                                'Rs. ${(price * qty).toStringAsFixed(0)}', // Itemized subtotal
                                 style: GoogleFonts.poppins(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
@@ -163,14 +167,14 @@ class InvoiceDialog extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'TOTAL',
-                  style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold),
+                  'TOTAL', // High-level settlement label
+                  style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w700),
                 ),
                 Text(
-                  'Rs ${double.parse(totalAmount.toString()).toStringAsFixed(0)}', // Unified total settlement
+                  'Rs. ${double.parse(totalAmount.toString()).toStringAsFixed(0)}', // Final aggregated amount
                   style: GoogleFonts.poppins(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
                     color: AppColors.primary,
                   ),
                 ),

@@ -43,6 +43,7 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
   String _selectedSupplierName = '';
   final List<Map<String, dynamic>> _purchasedItems = [];
   bool _isSubmitting = false;
+  bool _isLoadingDetails = false;
   bool _showSupplierError = false;
   bool _showProductError = false;
 
@@ -72,18 +73,15 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
       _amountPaidController.text = p.amountPaid.toString();
       _taxController.text = p.tax.toString();
       
-      for (var item in p.items) {
-        if (item is Map) {
-          _purchasedItems.add({
-            'productId': item['productId'],
-            'name': item['productName'] ?? item['name'] ?? '',
-            'quantity': item['quantity'],
-            'unit': item['unit'],
-            'costPrice': item['costPrice'] ?? item['price'] ?? 0.0,
-            'qtyController': TextEditingController(text: item['quantity'].toString()),
-            'costController': TextEditingController(text: (item['costPrice'] ?? item['price'] ?? 0.0).toString()),
-          });
-        }
+      // If items are already present (unlikely from list), populate them
+      _populateItems(p.items);
+
+      // Fetch full purchase details (with items) since the list query excludes them
+      if (p.items.isEmpty) {
+        _isLoadingDetails = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _fetchFullPurchaseDetails(p.id);
+        });
       }
     }
     _dateController.text = DateFormat('yyyy-MM-dd').format(_selectedDate);
@@ -94,6 +92,36 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
         context.read<ProductProvider>().fetchProducts();
       }
     });
+  }
+
+  void _populateItems(List<dynamic> items) {
+    _purchasedItems.clear();
+    for (var item in items) {
+      if (item is Map) {
+        _purchasedItems.add({
+          'productId': item['productId'],
+          'name': item['productName'] ?? item['name'] ?? '',
+          'quantity': item['quantity'],
+          'unit': item['unit'],
+          'costPrice': item['costPrice'] ?? item['price'] ?? 0.0,
+          'qtyController': TextEditingController(text: item['quantity'].toString()),
+          'costController': TextEditingController(text: (item['costPrice'] ?? item['price'] ?? 0.0).toString()),
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchFullPurchaseDetails(String purchaseId) async {
+    final provider = context.read<PurchaseProvider>();
+    final fullPurchase = await provider.fetchPurchaseById(purchaseId);
+    if (fullPurchase != null && mounted) {
+      setState(() {
+        _populateItems(fullPurchase.items);
+        _isLoadingDetails = false;
+      });
+    } else if (mounted) {
+      setState(() => _isLoadingDetails = false);
+    }
   }
 
   @override
@@ -216,12 +244,23 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
         : rawInvoice;
 
     final provider = Provider.of<PurchaseProvider>(context, listen: false);
+    // Serialize items: Strip TextEditingControllers which cannot be JSON-encoded.
+    final serializedItems = _purchasedItems.map((item) => <String, dynamic>{
+      'productId': item['productId'],
+      'name': item['name'],
+      'productName': item['name'],
+      'quantity': item['quantity'],
+      'unit': item['unit'],
+      'costPrice': item['costPrice'],
+      'unitPrice': item['costPrice'],
+    }).toList();
+
     final success = await provider.addPurchase({
       'supplierId': _selectedSupplierId,
       'supplierName': _selectedSupplierName,
       'invoiceNumber': invoiceNumber,
       'purchaseDate': _selectedDate.toIso8601String(),
-      'items': _purchasedItems,
+      'items': serializedItems,
       'subtotal': _subtotal,
       'tax': _tax,
       'totalAmount': _totalAmount,
@@ -253,8 +292,13 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
       if (mounted) {
         Navigator.pop(context, true);
       }
-    } else {
+    } else if (mounted) {
       setState(() => _isSubmitting = false);
+      SnackBarUtils.showSnackBar(
+        context,
+        provider.error ?? 'Failed to record purchase',
+        isError: true,
+      );
     }
   }
 
@@ -357,6 +401,49 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
                 SizedBox(height: 8),
                 _buildProductSelector(),
                 SizedBox(height: 16),
+              ],
+              // Loading indicator while fetching purchase details (items)
+              if (_isLoadingDetails) ...[
+                Text(
+                  'Purchased Items',
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: AppColors.textMedium,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          'Loading purchased items...',
+                          style: GoogleFonts.poppins(color: AppColors.textLight, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20),
               ],
 
               if (_purchasedItems.isNotEmpty) ...[

@@ -1,4 +1,4 @@
-﻿// ------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // File: supplier_provider.dart
 // Purpose: Supplier Lifecycle and Procurement Financial Governance.
 // Rationale: Orchestrates the supplier ecosystem, tracking directory data, 
@@ -55,13 +55,19 @@ class SupplierProvider extends ChangeNotifier {
     }
 
     try {
-      final fetchedSuppliers = await _repository.getAllSuppliers(
-        limit: _pageSize,
-        lastId: refresh || _suppliers.isEmpty ? null : _suppliers.last.id,
-      );
+      // Logic: Parallel fetch from distinct domains (Directory & Summary).
+      // Rationale: Reduces "Time to First Interactive" for the summary cards.
+      final results = await Future.wait([
+        _repository.getAllSuppliers(
+          limit: _pageSize,
+          lastId: refresh || _suppliers.isEmpty ? null : _suppliers.last.id,
+        ),
+        _repository.getSupplierSummary(),
+      ]);
 
-      // Fetch summary data from backend for accurate total payable amount
-      final summary = await _repository.getSupplierSummary();
+      final fetchedSuppliers = results[0] as List<Supplier>;
+      final summary = results[1] as Map<String, dynamic>;
+
       _totalPayable = (summary['totalPayable'] as num?)?.toDouble() ?? 0.0;
       _activeCount = (summary['activeCount'] as num?)?.toInt() ?? 0;
 
@@ -123,6 +129,21 @@ class SupplierProvider extends ChangeNotifier {
    * Logic: Record Deletion.
    * Rationale: Removes a supplier profile from the active directory.
    */
+  /*
+   * Logic: Financial Summary Refresh.
+   * Rationale: Lightweight update for "Total Payable" without reloading the directory.
+   */
+  Future<void> fetchSummary() async {
+    try {
+      final summary = await _repository.getSupplierSummary();
+      _totalPayable = (summary['totalPayable'] as num?)?.toDouble() ?? 0.0;
+      _activeCount = (summary['activeCount'] as num?)?.toInt() ?? 0;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error fetching supplier summary: $e');
+    }
+  }
+
   Future<bool> removeSupplier(String id) async {
     try {
       await _repository.deleteSupplier(id);

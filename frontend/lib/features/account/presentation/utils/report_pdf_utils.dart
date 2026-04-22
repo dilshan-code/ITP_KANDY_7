@@ -56,7 +56,7 @@ class ReportPdfUtils {
                     'Avg Order', currencyFormat.format(summary['averageOrderValue'] ?? 0)),
                 _buildSummaryStat('Customer Credit',
                     currencyFormat.format(summary['totalCreditOutstanding'] ?? 0)),
-                _buildSummaryStat('To Suppliers', currencyFormat.format(summary['totalPurchases'] ?? 0)),
+                _buildSummaryStat('To Suppliers', currencyFormat.format(summary['totalPayable'] ?? 0)),
               ],
             ),
             pw.SizedBox(height: 32),

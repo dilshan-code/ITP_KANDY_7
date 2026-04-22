@@ -6,10 +6,8 @@ ClickBuy is a modern, full-stack application designed to streamline inventory ma
 
 - **Multi-tenant Core**: Secure data isolation using `ownerId` scoping across the entire stack.
 - **Inventory Management**: Real-time tracking of product stock, categories, and inventory value with out-of-stock alerts.
-- **Supplier & Purchase Accounting**: Detailed tracking of historical purchase records with automated balance (actual debt) synchronization.
-- **Sales System**: Efficient cart management and atomic payment processing with automatic stock updates and PDF invoicing.
-- **Customer Credit Tracking**: Dedicated module for managing debtors, credit settlements, and credit limit alerts.
-- **Standardized Business-First PDF Reporting**: Professional, high-fidelity PDF reporting engine with standardized layouts and full Unicode support across all business modules.
+- **Supplier & Purchase Accounting**: Detailed tracking of historical purchase records with automated balance (actual debt) synchronization and itemized metadata snapshots.
+- **Invoice History & PDF Reporting**: Professional, granular transaction logs and high-fidelity PDF reporting engine with item-by-item breakdown and full Unicode support.
 - **Server-Side Database Backup**: Integrated utility for administrators to trigger and download secure database collection archives.
 - **UDP Auto-Discovery**: Automated backend discovery service that dynamically identifies the host machine's IP address on the local network.
 - **Total Wipeout Control**: Coordinated, multi-collection data erasure system for total privacy compliance and account deletion.

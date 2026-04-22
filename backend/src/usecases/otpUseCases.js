@@ -1,4 +1,3 @@
-const path = require('path');
 const nodemailer = require('nodemailer');
 const otpStoreService = require('../services/otpStoreService');
 const { normalizeEmail, normalizePhone } = require('./authUseCases');
@@ -78,36 +77,64 @@ class RequestOtp {
         }
 
         const info = await transporter.sendMail({
-            from: '"ClickBuy Support" <support@clickbuy.app>',
+            from: `"ClickBuy Support" <${process.env.EMAIL_USER}>`,
             to: email,
-            subject: "Your Verification Code",
-            messageId: `<otp.${Date.now()}.${pin}@clickbuy.app>`, // Meaningful Message-ID for tracking
+            subject: "ClickBuy - Your Verification Code",
+            messageId: `<otp.${Date.now()}.${Math.random().toString(36).slice(2)}@${process.env.EMAIL_USER.split('@')[1]}>`,
             text: `Your ClickBuy verification code is: ${pin}. It expires in 5 minutes.`,
             html: `
-                <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 500px;">
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <img src="cid:logo" alt="ClickBuy Logo" style="width: 80px; height: 80px; border-radius: 16px;">
+                <div style="max-width: 500px; margin: 0 auto; font-family: 'Segoe UI', Arial, sans-serif;">
+                    <!-- HEADER: Dark gradient -->
+                    <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+                         padding: 30px 20px; border-radius: 16px 16px 0 0; text-align: center;">
+                        <!-- Brand name -->
+                        <div style="margin-top: 12px; font-size: 22px; font-weight: 700;
+                             letter-spacing: 1.5px;">
+                            <span style="color: #ffffff;">Click</span><span style="color: #00B894;">Buy</span>
+                        </div>
+                        <div style="color: #a0aec0; font-size: 11px; margin-top: 4px;
+                             letter-spacing: 2px; text-transform: uppercase;">
+                            Grocery Store
+                        </div>
                     </div>
-                    <h2 style="color: #2D3436; text-align: center;">Welcome to ClickBuy!</h2>
-                    <p style="text-align: center; color: #636E72;">Enter the following code to verify your identity:</p>
-                    <div style="font-size: 32px; font-weight: bold; padding: 20px; background: #F9F9F9; text-align: center; color: #00B894; border-radius: 8px; margin: 20px 0; letter-spacing: 5px;">
-                        ${pin}
+
+                    <!-- BODY: Light card -->
+                    <div style="background: #ffffff; padding: 30px 25px; text-align: center;">
+                        <h2 style="color: #2D3436; margin: 0 0 8px 0; font-size: 20px;">
+                            Verify Your Identity
+                        </h2>
+                        <p style="color: #636E72; font-size: 14px; margin: 0 0 24px 0;">
+                            Enter the following code to continue:
+                        </p>
+
+                        <!-- OTP Code Box -->
+                        <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+                             border: 2px solid #00B894; border-radius: 12px;
+                             padding: 18px; margin: 0 auto 24px; max-width: 280px;">
+                            <div style="font-size: 36px; font-weight: 800; color: #00B894;
+                                 letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                                ${pin}
+                            </div>
+                        </div>
+
+                        <p style="color: #b2bec3; font-size: 12px; margin: 0;">
+                            This code expires in <strong>5 minutes</strong>. 
+                            If you didn't request this, you can safely ignore this email.
+                        </p>
                     </div>
-                    <p style="color: #636E72; font-size: 12px; margin-top: 20px; text-align: center;">
-                        This code will expire in 5 minutes. If you didn't request this, you can safely ignore this email.
-                    </p>
-                    <div style="margin-top: 30px; border-top: 1px solid #eee; pt: 10px; color: #b2bec3; font-size: 10px; text-align: center;">
-                        Ref: ${Date.now().toString().slice(-6)} | Requested at: ${new Date().toLocaleTimeString()}
+
+                    <!-- FOOTER: Dark section -->
+                    <div style="background: #1a1a2e; padding: 16px 20px;
+                         border-radius: 0 0 16px 16px; text-align: center;">
+                        <p style="color: #636e72; font-size: 10px; margin: 0;">
+                            Ref: ${Date.now().toString().slice(-6)} • ${new Date().toLocaleTimeString()}
+                        </p>
+                        <p style="color: #4a5568; font-size: 10px; margin: 4px 0 0 0;">
+                            © ${new Date().getFullYear()} ClickBuy — All rights reserved
+                        </p>
                     </div>
                 </div>
-            `,
-            attachments: [{
-                filename: 'logo.png',
-                // Portability: Use relative path resolve instead of hardcoded Windows-specific path
-                path: path.resolve(__dirname, '../../../frontend/assets/images/app_icon.png'),
-                cid: 'logo', // Matches src="cid:logo" in HTML
-                contentType: 'image/png'
-            }]
+            `
         });
 
         // Diagnostic: Log the preview URL for free testing accounts.

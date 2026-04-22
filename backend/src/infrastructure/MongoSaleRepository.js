@@ -134,7 +134,6 @@ class MongoSaleRepository extends ISaleRepository {
         // Optimization: Use .lean() and exclude the 'items' array.
         // List views in the app generally don't show specific items until tapped.
         let mongoQuery = this.model.find(query)
-            .select('-items') 
             .sort({ createdAt: -1 })
             .lean();
             
@@ -170,7 +169,6 @@ class MongoSaleRepository extends ISaleRepository {
 
         // Optimization: Use .lean() and summary projection.
         let mongoQuery = this.model.find(query)
-            .select('-items')
             .sort({ createdAt: -1 })
             .lean();
             
