@@ -13,7 +13,14 @@ const authMiddleware = (req, res, next) => {
 
     // Boundary: Skip verification ONLY for public auth-related routes (signup/login/otp)
     // or the base health check.
-    if (req.path.includes('/auth/') || req.path.includes('/otp/') || req.path === '/' || req.path === '/health') {
+    const publicAuthRoutes = [
+        '/auth/register',
+        '/auth/login',
+        '/auth/check-availability',
+        '/auth/reset-password'
+    ];
+
+    if (publicAuthRoutes.includes(req.path) || req.path.startsWith('/otp/') || req.path === '/' || req.path === '/health') {
         return next();
     }
 
@@ -37,7 +44,7 @@ const authMiddleware = (req, res, next) => {
         
         // RBAC: Role-Based Access Control Guard
         // Security logic: If the path is for an administrative tool, strict 'admin' role check is required.
-        if (req.path.includes('/admin/') && req.userRole !== 'admin') {
+        if (req.path.startsWith('/admin/') && req.userRole !== 'admin') {
             console.warn(`🛑 [AuthMiddleware] Unauthorized Admin Access Attempt by: ${req.ownerName} (${req.ownerId})`);
             return res.status(403).json({ 
                 success: false, 
