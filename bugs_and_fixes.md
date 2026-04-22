@@ -4,6 +4,36 @@ A professional record of technical challenges encountered and resolved during th
 
 ---
 
+## 📅 April 22, 2026
+> *Focus: Navigation Safety, Supplier Accounting Accuracy, and Granular Reporting*
+
+### `[FIXED]` Missing Back Button in OTP Verification
+- **Issue**: Users were unable to return to the registration or login screens from the OTP verification page, creating a "navigation trap" if they entered the wrong phone number or email.
+- **Fix**: Integrated the standardized `AppBackButton` into the `OtpVerificationScreen`. Implemented a comprehensive widget test (`otp_back_button_test.dart`) to verify its presence and functionality.
+- **Context**: Standardized navigation is critical for user confidence. Allowing users to correct errors before final verification reduces friction in the onboarding funnel.
+
+### `[FIXED]` Supplier "Total Payable" Metric Inaccuracy
+- **Issue**: The "To Suppliers" metric in the Business Analytics dashboard was incorrectly showing the cumulative total of all procurement costs instead of the actual outstanding balance.
+- **Fix**: Implemented a robust backend calculation in the `ReportRepository` that strictly aggregates unpaid balances from the `Purchase` collection. Updated the frontend to display this accurate financial figure.
+- **Context**: Financial metrics must be 100% reliable. Displaying actual debt instead of historical volume helps shop owners manage their cash flow more effectively.
+
+### `[FIXED]` Supplier Payable State Synchronization
+- **Issue**: The "Total Payable" summary card on the Supplier Management screen failed to update immediately after recording a new purchase, requiring a manual pull-to-refresh.
+- **Fix**: Updated the `RecordPurchaseScreen` to explicitly trigger a `fetchSuppliers()` call from the `SupplierProvider` upon successful submission.
+- **Context**: Instant UI feedback is a hallmark of premium apps. Synchronizing provider states across different feature modules ensures a seamless data flow.
+
+### `[FIXED]` Purchase Record PDF & History Granularity
+- **Issue**: Purchase receipts and the Invoice History modal provided only high-level totals, lacking the item-by-item breakdown required for detailed auditing.
+- **Fix**: Upgraded the `Purchase` domain model to persist item metadata (name, quantity, price) in the history array. Redesigned the `InvoiceDialog` and PDF generation utilities to render a professional, itemized receipt structure.
+- **Context**: Moving from "Total-only" to "Itemized" reporting transforms the app into a professional auditing tool capable of handling complex business logistics.
+
+### `[FIXED]` OTP Email Content Polish
+- **Issue**: The OTP verification email contained a non-standard cart emoji in the "ClickBuy" brand label, which triggered some spam filters and looked unprofessional.
+- **Fix**: Stripped the emoji from the email template in `otpUseCases.js`.
+- **Context**: Clean, text-only branding in automated emails improves deliverability and maintains a professional corporate identity.
+
+---
+
 ## 📅 April 21, 2026
 > *Focus: Firebase Phone Auth OTP Fix*
 
@@ -423,4 +453,4 @@ A professional record of technical challenges encountered and resolved during th
 
 ---
 
-*Last Review: 2026-04-17 • Total Issues Logged: 26*
+*Last Review: 2026-04-22 • Total Issues Logged: 31*

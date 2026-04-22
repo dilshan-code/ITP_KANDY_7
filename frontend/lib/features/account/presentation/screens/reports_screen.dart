@@ -146,7 +146,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
                                 child: _buildSectionTitle('Performance Leaderboard'),
                               ),
                             ),
-                            _buildTopProductsList(currencyFormat),
+                             _buildTopProductsList(currencyFormat),
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                                child: _buildSectionTitle('Top Suppliers (Last 30 Days)'),
+                              ),
+                            ),
+                            _buildTopSuppliersList(currencyFormat),
                             const SliverToBoxAdapter(child: SizedBox(height: 40)),
                           ],
                         ),
@@ -409,7 +416,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
           ),
           _buildModernStatCard(
             'To Suppliers',
-            format.format(summary['totalPurchases'] ?? 0),
+            format.format(summary['totalPayable'] ?? 0),
             Icons.local_shipping_outlined,
             const Color(0xFF3B82F6),
             const Color(0xFFDBEAFE),
@@ -646,6 +653,108 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
             );
           },
           childCount: products.length,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopSuppliersList(NumberFormat format) {
+    final suppliers = (_reportData!['topSuppliers'] as List? ?? []);
+    if (suppliers.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Center(
+            child: Text(
+              'No procurement data for this period',
+              style: GoogleFonts.inter(color: AppColors.textLight, fontSize: 14),
+            ),
+          ),
+        ),
+      );
+    }
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) {
+            final supplier = suppliers[index];
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.divider.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDBEAFE),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Icon(Icons.local_shipping_outlined, size: 20, color: const Color(0xFF3B82F6)),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          supplier['name'],
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        Text(
+                          '${supplier['purchaseCount']} orders processed',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: AppColors.textLight,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        format.format(supplier['spending']),
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF3B82F6),
+                        ),
+                      ),
+                      Container(
+                        margin: const EdgeInsets.only(top: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: index == 0 ? const Color(0xFFDBEAFE) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          index == 0 ? 'PARTNER' : 'RELIABLE',
+                          style: GoogleFonts.inter(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: index == 0 ? const Color(0xFF3B82F6) : AppColors.textLight,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+          childCount: suppliers.length,
         ),
       ),
     );

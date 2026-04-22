@@ -166,6 +166,7 @@ describe('Cross-Feature Integration Tests', () => {
         purchaseRepo = {
             getAll: jest.fn(async () => []),
             getTotalPurchases: jest.fn(async () => 0),
+            getTotalPayable: jest.fn(async () => 0),
             getAllByDateRange: jest.fn(async () => []),
         };
     });

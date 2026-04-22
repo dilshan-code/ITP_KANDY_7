@@ -61,18 +61,23 @@ class MongoSupplierRepository extends ISupplierRepository {
      * Sums the 'Total Payable' across all suppliers to show the merchant's total outstanding liabilities.
      */
     async getTotalPayable(ownerId) {
-        const cacheKey = `payable_${ownerId}`;
-        const cached = this._getCache(cacheKey);
-        if (cached !== null) return cached;
+        if (!ownerId) throw new Error('Owner ID is required');
 
         const result = await PurchaseModel.aggregate([
             { $match: { ownerId } }, 
             { $group: { _id: null, total: { $sum: "$remaining" } } } 
         ]);
         
-        const total = result.length > 0 ? result[0].total : 0;
-        this._setCache(cacheKey, total);
-        return total;
+        return result.length > 0 ? result[0].total : 0;
+    }
+
+    /**
+     * Logic: Efficient Partner Tally.
+     * Counts the number of active suppliers directly via MongoDB.
+     */
+    async countActive(ownerId) {
+        if (!ownerId) throw new Error('Owner ID is required');
+        return this.model.countDocuments({ ownerId, status: 'active' });
     }
 
     /**

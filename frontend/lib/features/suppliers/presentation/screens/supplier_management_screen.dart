@@ -87,13 +87,9 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _handleRefresh,
-          displacement: 20,
-          color: AppColors.primary,
-          child: NestedScrollView(
-            headerSliverBuilder: (context, innerBoxIsScrolled) {
-              return [
+        child: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
                 SliverToBoxAdapter(
                   child: ScreenHeader(
                     title: 'Supplier Management',
@@ -148,13 +144,20 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                 ),
               ];
             },
-            body: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildSuppliersTab(), // List of business contacts
-                _buildPurchaseRecordsTab(), // List of stock acquisitions
-              ],
-            ),
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              RefreshIndicator(
+                onRefresh: _handleRefresh,
+                color: AppColors.primary,
+                child: _buildSuppliersTab(),
+              ),
+              RefreshIndicator(
+                onRefresh: _handleRefresh,
+                color: AppColors.primary,
+                child: _buildPurchaseRecordsTab(),
+              ),
+            ],
           ),
         ),
       ),
@@ -191,8 +194,9 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
               }),
               icon: Icon(Icons.add_shopping_cart_outlined),
               label: Text('Record New Purchase'), // Logic for inventory intake
-              backgroundColor: AppColors.primary,
+               backgroundColor: AppColors.primary,
             ),
+      bottomNavigationBar: const SizedBox(height: 80),
     );
   }
 
@@ -308,7 +312,8 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
         }
         return ListView.builder(
           controller: _supplierScrollController,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          physics: const AlwaysScrollableScrollPhysics(), // Ensure refresh works on short lists
+          padding: const EdgeInsets.only(left: 24, right: 24, top: 12, bottom: 180),
           itemCount: provider.suppliers.length + (provider.hasMore ? 1 : 0),
           itemBuilder: (context, index) {
             if (index == provider.suppliers.length) {
@@ -451,7 +456,8 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
         }
         return ListView.builder(
           controller: _purchaseScrollController,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          physics: const AlwaysScrollableScrollPhysics(), // Ensure refresh works on short lists
+          padding: const EdgeInsets.only(left: 24, right: 24, top: 12, bottom: 180),
           itemCount: provider.purchases.length + (provider.hasMore ? 1 : 0),
           itemBuilder: (context, index) {
             if (index == provider.purchases.length) {

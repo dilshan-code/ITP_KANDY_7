@@ -87,12 +87,6 @@ class RequestOtp {
                     <!-- HEADER: Dark gradient -->
                     <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
                          padding: 30px 20px; border-radius: 16px 16px 0 0; text-align: center;">
-                        <!-- Logo icon -->
-                        <div style="display: inline-block; background: linear-gradient(135deg, #00B894, #00CEC9);
-                             width: 60px; height: 60px; border-radius: 16px; line-height: 60px;
-                             font-size: 30px; box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);">
-                            🛒
-                        </div>
                         <!-- Brand name -->
                         <div style="margin-top: 12px; font-size: 22px; font-weight: 700;
                              letter-spacing: 1.5px;">

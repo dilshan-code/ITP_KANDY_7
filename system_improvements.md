@@ -3,6 +3,31 @@
 A roadmap of architectural enhancements and user experience updates implemented to make **ClickBuy** a more robust and scalable platform.
 
 ---
+## 📅 April 22, 2026
+> *Focus: Granular Data Persistence and Navigation Standardization*
+
+### `[ARCH]` Itemized Transaction Persistence
+- **Feature**: Deep-Metadata Capture for Procurement.
+- **Description**: Upgraded the `Purchase` domain logic to persist full product metadata (Name, Cost, Quantity) directly within the transaction history records. Previously, only the total transaction amount was stored.
+- **Benefit**: Enables high-fidelity historical auditing and professional PDF generation without needing to join against potentially deleted or modified product entities. This ensures the historical record remains accurate for years.
+
+### `[UX]` Itemized Invoice History & PDF Exports
+- **Feature**: Granular transaction transparency for shop owners.
+- **Description**: Completely redesigned the "Invoice History" modal and the purchase receipt PDF generator to display a structured list of items, subtotals, and balance calculations.
+- **Benefit**: Provides a "Tier-1 ERP" experience where every rupee spent is accounted for at the item level. This drastically improves the professional look of the app's exports.
+
+### `[UX]` Standardized Back-Navigation Pattern
+- **Feature**: Universal "Exit & Return" logic for multi-step flows.
+- **Description**: Implemented the standardized `AppBackButton` pattern in the OTP Verification screen, ensuring consistent placement, animation, and behavior with the rest of the app's detail screens.
+- **Benefit**: Eliminates "dead-end" screens and improves the user's sense of control during high-friction flows like authentication and onboarding.
+
+### `[ARCH]` Server-Side Metric Re-normalization
+- **Feature**: Accurate Debt-Aware Analytics.
+- **Description**: Refactored the backend reporting engine to transition from "Volume-based" to "Balance-based" metric calculation for supplier payables.
+- **Benefit**: Ensures the "Business Analytics" dashboard reflects actual cash-out obligations (Total Payable) rather than historical spending volume, providing a more accurate picture of the business's current liabilities.
+
+---
+
 ## 📅 April 20, 2026
 > *Focus: Zero-Config Connectivity and Deployment Hardening*
 
@@ -378,4 +403,4 @@ A roadmap of architectural enhancements and user experience updates implemented 
 - **Benefit**: Gives the user full control over their data. Mistakes happen—now they can be fixed.
 
 ---
-*Last Update: 2026-04-17 • Status: Stable (Beta)*
+*Last Update: 2026-04-22 • Status: Stable (Beta)*

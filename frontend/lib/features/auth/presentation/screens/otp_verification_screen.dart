@@ -13,6 +13,7 @@ import 'package:provider/provider.dart'; // State: Dependency injection system
 import 'package:frontend/core/theme/app_colors.dart'; // Styling: Design system tokens
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // State: Identity manager
 import 'package:frontend/features/auth/presentation/widgets/auth_background.dart'; // Shared UI: Multi-layered background
+import 'package:frontend/shared/widgets/app_back_button.dart'; // Navigation: Standardized back button
 
 class OtpVerificationScreen extends StatefulWidget {
   final String target; // Parameter: Target device identifier or Email
@@ -135,6 +136,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
     return AuthBackground(
       showLogo: true, // Branding: Establish trust during the sensitive step
+      leading: AppBackButton(
+        onTap: () => Navigator.pop(context),
+        margin: const EdgeInsets.only(left: 12, top: 4, bottom: 4),
+      ),
       child: Column(
         children: [
           // Header: Primary screen context.
