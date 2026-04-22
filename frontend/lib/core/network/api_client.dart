@@ -150,21 +150,21 @@ class ApiClient {
    * Rationale: Compiles secure multi-tenant identities and localization 
    *   metadata for every outgoing infrastructure request.
    */
-  static Map<String, String> get _headers {
-    final Map<String, String> headers = {
+  static Map<String, String> get headers {
+    final Map<String, String> headersMap = {
       'Content-Type': 'application/json', // Protocol: All communication is JSON
       'x-timezone-offset': DateTime.now().timeZoneOffset.inMinutes.toString(), // Logic: Device timezone for reports
     };
     if (ownerId != null) {
-      headers['x-owner-id'] = ownerId!; // Security: Isolate data queries to this owner
+      headersMap['x-owner-id'] = ownerId!; // Security: Isolate data queries to this owner
     }
     if (ownerName != null) {
-      headers['x-owner-name'] = ownerName!; // Audit: Track which owner performed the action
+      headersMap['x-owner-name'] = ownerName!; // Audit: Track which owner performed the action
     }
     if (_token != null) {
-      headers['Authorization'] = 'Bearer $_token'; // Security: Sealed and signed session identity
+      headersMap['Authorization'] = 'Bearer $_token'; // Security: Sealed and signed session identity
     }
-    return headers;
+    return headersMap;
   }
 
   // --- HTTP Methods: REST Implementation ---
@@ -179,7 +179,7 @@ class ApiClient {
 
       final response = await http.get(
         uri, // Target: Fully qualified URL
-        headers: _headers, // Context: Multi-tenant headers
+        headers: headers, // Context: Multi-tenant headers
       ).timeout(const Duration(seconds: 15)); // Constraint: Prevent infinite hangs
 
       if (response.statusCode == 200) {
@@ -196,7 +196,7 @@ class ApiClient {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl$path'), // Target
-        headers: _headers, // Headers
+        headers: headers, // Headers
         body: jsonEncode(body), // Payload: Serialize map to JSON string
       ).timeout(const Duration(seconds: 15));
 
@@ -214,7 +214,7 @@ class ApiClient {
     try {
       final response = await http.put(
         Uri.parse('$baseUrl$path'),
-        headers: _headers,
+        headers: headers,
         body: jsonEncode(body),
       ).timeout(const Duration(seconds: 15));
 
@@ -232,7 +232,7 @@ class ApiClient {
     try {
       final response = await http.patch(
         Uri.parse('$baseUrl$path'),
-        headers: _headers,
+        headers: headers,
         body: body != null ? jsonEncode(body) : null,
       ).timeout(const Duration(seconds: 15));
 
@@ -250,7 +250,7 @@ class ApiClient {
     try {
       final response = await http.delete(
         Uri.parse('$baseUrl$path'),
-        headers: _headers,
+        headers: headers,
       ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {

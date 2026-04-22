@@ -59,12 +59,8 @@ class _DatabaseBackupScreenState extends State<DatabaseBackupScreen> {
       final client = http.Client();
       final request = http.Request('GET', Uri.parse('${ApiClient.baseUrl}/admin/backup'));
       
-      // Inject headers from ApiClient
-      final ownerId = ApiClient.ownerId;
-      if (ownerId != null) {
-        request.headers['x-owner-id'] = ownerId;
-      }
-      request.headers['Content-Type'] = 'application/json';
+      // Inject headers from ApiClient (handles JWT Authorization and Multi-tenant isolation)
+      request.headers.addAll(ApiClient.headers);
 
       final response = await client.send(request).timeout(const Duration(minutes: 5));
 
