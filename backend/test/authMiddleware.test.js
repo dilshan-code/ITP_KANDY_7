@@ -9,7 +9,7 @@ describe('Auth Middleware', () => {
     beforeEach(() => {
         req = { 
             headers: {}, 
-            path: '/api/products',
+            path: '/products',
             method: 'GET'
         };
         res = {
@@ -67,7 +67,7 @@ describe('Auth Middleware', () => {
     });
 
     test('should block non-admin access to admin routes', () => {
-        req.path = '/api/admin/dashboard';
+        req.path = '/admin/dashboard';
         req.headers['authorization'] = 'Bearer valid-token';
         const decoded = { id: 'owner-123', name: 'John', role: 'owner' };
         jwt.verify.mockReturnValue(decoded);
@@ -84,7 +84,7 @@ describe('Auth Middleware', () => {
     });
 
     test('should allow admin access to admin routes', () => {
-        req.path = '/api/admin/dashboard';
+        req.path = '/admin/dashboard';
         req.headers['authorization'] = 'Bearer admin-token';
         const decoded = { id: 'admin-1', name: 'Boss', role: 'admin' };
         jwt.verify.mockReturnValue(decoded);

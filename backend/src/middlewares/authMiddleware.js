@@ -20,7 +20,11 @@ const authMiddleware = (req, res, next) => {
         '/auth/reset-password'
     ];
 
-    if (publicAuthRoutes.includes(req.path) || req.path.startsWith('/otp/') || req.path === '/' || req.path === '/health') {
+    const isPublicAuthRoute = publicAuthRoutes.some(route => 
+        req.path === route || req.path === `/api${route}`
+    );
+
+    if (isPublicAuthRoute || req.path.startsWith('/otp/') || req.path.startsWith('/api/otp/') || req.path === '/' || req.path === '/health' || req.path === '/api/health') {
         return next();
     }
 
@@ -44,7 +48,8 @@ const authMiddleware = (req, res, next) => {
         
         // RBAC: Role-Based Access Control Guard
         // Security logic: If the path is for an administrative tool, strict 'admin' role check is required.
-        if (req.path.startsWith('/admin/') && req.userRole !== 'admin') {
+        // Support both relative (/admin/) and full (/api/admin/) paths for robustness.
+        if ((req.path.startsWith('/admin/') || req.path.startsWith('/api/admin/')) && req.userRole !== 'admin') {
             console.warn(`🛑 [AuthMiddleware] Unauthorized Admin Access Attempt by: ${req.ownerName} (${req.ownerId})`);
             return res.status(403).json({ 
                 success: false, 
