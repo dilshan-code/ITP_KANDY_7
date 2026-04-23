@@ -751,31 +751,34 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isActionInProgress = context.watch<AdminProvider>().isActionInProgress;
+    
     return TactileScale(
-      onTap: context.watch<AdminProvider>().isActionInProgress
-          ? null
-          : onPressed,
-      child: IgnorePointer(
-        child: ElevatedButton.icon(
-          onPressed: () {}, 
-          icon: Icon(icon, size: 16),
-          label: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.2,
+      onTap: isActionInProgress ? null : onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        constraints: const BoxConstraints(minHeight: 36),
+        decoration: BoxDecoration(
+          color: isActionInProgress ? color.withValues(alpha: 0.5) : color,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: Colors.white),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+                height: 1.0,
+              ),
             ),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: color,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            minimumSize: const Size(0, 36),
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+          ],
         ),
       ),
     );
