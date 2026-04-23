@@ -61,9 +61,9 @@ describe('Report Use Cases', () => {
 
         mockProductRepository = {
             getAll: jest.fn().mockResolvedValue([
-                { id: 'p1', name: 'Rice', sellingPrice: 200, purchasePrice: 150, stockQuantity: 50, minimumStockLevel: 10 },
-                { id: 'p2', name: 'Sugar', sellingPrice: 200, purchasePrice: 120, stockQuantity: 3, minimumStockLevel: 5 },
-                { id: 'p3', name: 'Tea', sellingPrice: 300, purchasePrice: 250, stockQuantity: 0, minimumStockLevel: 5 }
+                { id: 'p1', name: 'Rice', sellingPrice: 200, purchasePrice: 150, stockQuantity: 50, minimumStockLevel: 10, inventoryValue: 7500, isLowStock: false },
+                { id: 'p2', name: 'Sugar', sellingPrice: 200, purchasePrice: 120, stockQuantity: 3, minimumStockLevel: 5, inventoryValue: 360, isLowStock: true },
+                { id: 'p3', name: 'Tea', sellingPrice: 300, purchasePrice: 250, stockQuantity: 0, minimumStockLevel: 5, inventoryValue: 0, isLowStock: true }
             ]),
             getLowStockCount: jest.fn().mockResolvedValue(2),
         };

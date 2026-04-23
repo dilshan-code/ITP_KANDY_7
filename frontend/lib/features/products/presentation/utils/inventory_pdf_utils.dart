@@ -28,8 +28,8 @@ class InventoryPdfUtils {
     final totalProducts = products.length;
     final lowStockCount = products.where((p) => p.isLowStock).length;
     // Logic: Financial Aggregation.
-    // Business Rule: Use Weighted Average Cost and clamp stock to 0 to prevent negative asset reporting.
-    final totalStockValue = products.fold(0.0, (sum, p) => sum + (p.purchasePrice * (p.stockQuantity > 0 ? p.stockQuantity : 0)));
+    // Business Rule: Use server-computed inventory value which already handles non-negative stock clamping.
+    final totalStockValue = products.fold(0.0, (sum, p) => sum + p.inventoryValue);
 
     pdf.addPage(
       pw.MultiPage(
@@ -82,9 +82,9 @@ class InventoryPdfUtils {
                 ),
                 // Table Body
                 ...products.map((p) {
-                  // Logic: Valuation Floor.
-                  // Business Rule: Individual row valuation must match the non-negative asset rule.
-                  final valuation = p.purchasePrice * (p.stockQuantity > 0 ? p.stockQuantity : 0);
+                  // Logic: Valuation Consistency.
+                  // Business Rule: Use server-computed valuation for individual row accuracy.
+                  final valuation = p.inventoryValue;
                   return pw.TableRow(
                     decoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey100, width: 0.5))),
                     children: [

@@ -114,7 +114,7 @@ const authUseCases = {
     changeOwnerPassword: new ChangeOwnerPassword(ownerRepository),
     resetPassword: new ResetPassword(ownerRepository),
     updateOwnerByAdmin: new UpdateOwnerByAdmin(ownerRepository),
-    deleteOwner: new DeleteOwner(
+    deleteOwner: new DeleteOwner({
         ownerRepository,
         productRepository,
         customerRepository,
@@ -124,7 +124,7 @@ const authUseCases = {
         creditTransactionRepository,
         notificationRepository,
         feedbackRepository
-    ),
+    }),
     checkAvailability: new CheckAvailability(ownerRepository),
 };
 const authController = new AuthController(authUseCases);
