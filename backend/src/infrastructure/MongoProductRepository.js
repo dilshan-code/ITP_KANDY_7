@@ -185,6 +185,8 @@ class MongoProductRepository extends IProductRepository {
     async bulkUpdateStock(updates, ownerId, session = null) {
         if (!updates || updates.length === 0) return;
 
+        console.log(`[DB] bulkUpdateStock starting for ${updates.length} operations. Owner: ${ownerId}`);
+
         const operations = updates.map(up => ({
             updateOne: {
                 filter: { _id: up.productId, ownerId },
@@ -195,7 +197,9 @@ class MongoProductRepository extends IProductRepository {
             }
         }));
 
-        return this.model.bulkWrite(operations, { session });
+        const result = await this.model.bulkWrite(operations, { session });
+        console.log(`[DB] bulkWrite complete. Modified: ${result.modifiedCount}, Upserted: ${result.upsertedCount}, Matched: ${result.matchedCount}`);
+        return result;
     }
 
     /**

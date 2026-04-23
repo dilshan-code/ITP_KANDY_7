@@ -289,6 +289,9 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
       });
 
       // Stock reconciliation: Ensure local product list matches server after batch purchase.
+      // NOTE: Added a slight delay to ensure backend transaction commit is fully replicated 
+      // before the fresh fetch occurs.
+      await Future.delayed(const Duration(milliseconds: 500));
       await productProvider.fetchProducts();
 
       // Refresh dashboard statistics on Home Screen

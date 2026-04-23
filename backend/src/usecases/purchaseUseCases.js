@@ -80,39 +80,61 @@ class CreatePurchase {
                 const purchase = await this.purchaseRepository.create({ ...purchaseData, ownerId }, session);
 
                 // 4. Update Inventory & Costing
-                const stockUpdates = productDocs.map(({ item, _ }) => ({
+                const stockUpdates = productDocs.map(({ item }) => ({
                     productId: item.productId,
                     amount: (parseInt(item.quantity) || 0)
                 }));
 
+                console.log(`[CreatePurchase] Prepared stock updates:`, JSON.stringify(stockUpdates));
+
                 if (stockUpdates.length > 0) {
-                    await this.productRepository.bulkUpdateStock(stockUpdates, ownerId, session);
+                    const bulkResult = await this.productRepository.bulkUpdateStock(stockUpdates, ownerId, session);
+                    console.log(`[CreatePurchase] bulkUpdateStock result:`, JSON.stringify(bulkResult));
                     
+                    // Track updated quantities for WAC if multiple items of same product exist
+                    const productState = new Map();
+
                     for (const { item, product } of productDocs) {
                         const quantity = parseInt(item.quantity) || 0;
                         const itemUnitPrice = parseFloat(item.unitPrice) || product.purchasePrice || 0;
                         
+                        // Get current stock from our tracking map or the initial doc
+                        const currentProductState = productState.get(product.id) || {
+                            stockQuantity: product.stockQuantity || 0,
+                            purchasePrice: product.purchasePrice || 0
+                        };
+
                         // Logic: Weighted Average Cost (WAC) calculation.
                         // Formula: ((Old Stock * Old Price) + (New Quantity * New Price)) / (Total Stock)
                         let newAveragePrice;
-                        if (product.stockQuantity <= 0) {
-                            // Rationale: If stock is negative (shortage), the new cost basis starts at the current purchase price.
+                        if (currentProductState.stockQuantity <= 0) {
                             newAveragePrice = itemUnitPrice;
                         } else {
-                            const totalOldValue = product.stockQuantity * product.purchasePrice;
+                            const totalOldValue = currentProductState.stockQuantity * currentProductState.purchasePrice;
                             const totalNewValue = quantity * itemUnitPrice;
-                            newAveragePrice = (totalOldValue + totalNewValue) / (product.stockQuantity + quantity);
+                            newAveragePrice = (totalOldValue + totalNewValue) / (currentProductState.stockQuantity + quantity);
                         }
 
-                        // Stability: Round to 2 decimal places for financial precision.
-                        const roundedPrice = Math.round(newAveragePrice * 100) / 100;
+                        // Defensive Check: Prevent NaN
+                        if (isNaN(newAveragePrice)) {
+                            newAveragePrice = itemUnitPrice;
+                        }
 
-                        const newStockSnapshot = (product.stockQuantity || 0) + quantity;
+                        const roundedPrice = Math.round(newAveragePrice * 100) / 100;
+                        const newStockSnapshot = currentProductState.stockQuantity + quantity;
+
+                        console.log(`[CreatePurchase] Updating product ${product.id}: OldStock=${currentProductState.stockQuantity}, Added=${quantity}, NewStock=${newStockSnapshot}, NewPrice=${roundedPrice}`);
 
                         await this.productRepository.update(product.id, { 
                             purchasePrice: roundedPrice,
                             isLowStock: newStockSnapshot <= (product.minimumStockLevel || 0)
                         }, ownerId, session);
+
+                        // Update local state for next iteration (if same product appears again)
+                        productState.set(product.id, {
+                            stockQuantity: newStockSnapshot,
+                            purchasePrice: roundedPrice
+                        });
                     }
                 }
 
