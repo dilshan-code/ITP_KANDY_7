@@ -185,6 +185,13 @@ class MongoSupplierRepository extends ISupplierRepository {
 
         return doc;
     }
+
+    /**
+     * Logic: Cascading account removal.
+     */
+    async deleteAllByOwner(ownerId, session = null) {
+        return this.model.deleteMany({ ownerId }, { session });
+    }
 }
 
 // Module Export: Data infrastructure implementation for the supplier partner network.

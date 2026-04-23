@@ -104,6 +104,13 @@ class MongoNotificationRepository extends INotificationRepository {
         await this.model.deleteMany({ ownerId });
         return true;
     }
+
+    /**
+     * Logic: Cascading account removal.
+     */
+    async deleteAllByOwner(ownerId, session = null) {
+        return this.model.deleteMany({ ownerId }, { session });
+    }
 }
 
 // Module Export: Data infrastructure implementation for the notification subsystem.

@@ -80,7 +80,14 @@ class RequestOtp {
             from: `"ClickBuy Support" <${process.env.EMAIL_USER}>`,
             to: email,
             subject: "ClickBuy - Your Verification Code",
-            messageId: `<otp.${Date.now()}.${Math.random().toString(36).slice(2)}@${process.env.EMAIL_USER.split('@')[1]}>`,
+            // Priority headers to signal transactional nature
+            headers: {
+                "X-Priority": "1 (Highest)",
+                "X-MSMail-Priority": "High",
+                "Importance": "High",
+                "X-Auto-Response-Suppress": "All",
+                "X-Entity-Ref-ID": `otp-${Date.now()}`
+            },
             text: `Your ClickBuy verification code is: ${pin}. It expires in 5 minutes.`,
             html: `
                 <div style="max-width: 500px; margin: 0 auto; font-family: 'Segoe UI', Arial, sans-serif;">

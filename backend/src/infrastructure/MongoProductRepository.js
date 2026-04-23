@@ -197,6 +197,14 @@ class MongoProductRepository extends IProductRepository {
 
         return this.model.bulkWrite(operations, { session });
     }
+
+    /**
+     * Logic: Cascading account removal.
+     * Deletes all products associated with a specific merchant.
+     */
+    async deleteAllByOwner(ownerId, session = null) {
+        return this.model.deleteMany({ ownerId }, { session });
+    }
 }
 
 // Module Export: Data infrastructure implementation for products.

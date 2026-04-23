@@ -66,6 +66,13 @@ class MongoFeedbackRepository extends IFeedbackRepository {
         const result = await this.model.deleteOne({ _id: id });
         return result.deletedCount > 0;
     }
+
+    /**
+     * Logic: Cascading account removal.
+     */
+    async deleteAllByOwner(ownerId, session = null) {
+        return this.model.deleteMany({ ownerId }, { session });
+    }
 }
 
 // Module Export: Data infrastructure implementation for the feedback subsystem.

@@ -49,6 +49,22 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     _shopNameController = TextEditingController(text: owner?.shopName);
     _phoneController = TextEditingController(text: owner?.phone);
     _emailController = TextEditingController(text: owner?.email);
+
+    // Logic: Proactive synchronization.
+    // Rationale: Pulls latest data from the backend to reflect any administrative changes
+    //   made by ClickBuy staff while the user was away.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await context.read<AuthProvider>().refreshProfile();
+      
+      if (mounted) {
+        final freshOwner = context.read<AuthProvider>().currentOwner;
+        // Refinement: Update inputs with fresh data from the cloud.
+        _nameController.text = freshOwner?.name ?? _nameController.text;
+        _shopNameController.text = freshOwner?.shopName ?? _shopNameController.text;
+        _phoneController.text = freshOwner?.phone ?? _phoneController.text;
+        _emailController.text = freshOwner?.email ?? _emailController.text;
+      }
+    });
   }
 
   @override

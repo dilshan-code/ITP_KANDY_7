@@ -10,7 +10,7 @@ const OwnerSchema = new mongoose.Schema({
     name: { type: String, required: true }, // Merchant legal/full name
     shopName: { type: String, required: true }, // Business brand name
     phone: { type: String, required: true, unique: true }, // Identity Key: Unique mobile number
-    email: { type: String, default: null, unique: true, sparse: true }, // Optional unique email contact
+    email: { type: String, unique: true, sparse: true }, // Optional unique email contact
     password: { type: String, required: true }, // Security: Hashed credential storage
     role: { type: String, default: 'owner' }, // e.g., 'owner', 'admin'
     status: { type: String, default: 'approved' }, // Registration state (pending/approved)

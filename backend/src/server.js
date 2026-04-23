@@ -114,17 +114,17 @@ const authUseCases = {
     changeOwnerPassword: new ChangeOwnerPassword(ownerRepository),
     resetPassword: new ResetPassword(ownerRepository),
     updateOwnerByAdmin: new UpdateOwnerByAdmin(ownerRepository),
-    deleteOwner: new DeleteOwner({ // Logic: Cascade deletion of all merchant-specific data partitions
+    deleteOwner: new DeleteOwner(
         ownerRepository,
         productRepository,
-        saleRepository,
-        purchaseRepository,
         customerRepository,
         supplierRepository,
+        purchaseRepository,
+        saleRepository,
         creditTransactionRepository,
         notificationRepository,
         feedbackRepository
-    }),
+    ),
     checkAvailability: new CheckAvailability(ownerRepository),
 };
 const authController = new AuthController(authUseCases);

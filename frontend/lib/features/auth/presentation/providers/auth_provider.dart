@@ -436,6 +436,35 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /*
+   * Logic: Cloud-to-Local Synchronization.
+   * Rationale: Refreshes the local session state with the latest data from the backend.
+   *   Useful if an admin has modified the user's profile or status.
+   */
+  Future<void> refreshProfile() async {
+    if (_currentOwner == null) return;
+    
+    try {
+      // Step: Fetch the latest owner data from the repository.
+      final freshOwner = await _repository.getProfile(_currentOwner!.id);
+      
+      if (freshOwner != null) {
+        // Trace: Update the in-memory identity.
+        _currentOwner = freshOwner;
+        
+        // Persistence: Update the local disk cache with the fresh data.
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_storageKeyOwner, jsonEncode(_currentOwner!.toJson()));
+        
+        notifyListeners();
+        debugPrint('✅ [AuthProvider] Profile refreshed from cloud: ${_currentOwner!.name}');
+      }
+    } catch (e) {
+      // Silence: We don't want to block the UI with a popup if a background refresh fails.
+      debugPrint('❌ [AuthProvider] Profile refresh failed: $e');
+    }
+  }
+
+  /*
    * Logic: Profile Metadata Update.
    * Rationale: Handles generic profile modifications (Name, ShopName, etc.) via the PUT endpoint.
    */
