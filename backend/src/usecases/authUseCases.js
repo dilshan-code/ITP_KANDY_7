@@ -28,7 +28,7 @@ function normalizePhone(phone) {
  * Ensures consistent lookups by removing whitespace and forcing lowercase.
  */
 function normalizeEmail(email) {
-    if (!email || email.trim() === '') return null;
+    if (!email || email.trim() === '') return undefined;
     return email.trim().toLowerCase();
 }
 
@@ -97,7 +97,7 @@ class RegisterOwner {
         const newOwner = await this.ownerRepository.create({ 
             ...ownerData, 
             phone: normalizedPhone, 
-            email: normalizedEmail, 
+            email: normalizedEmail || undefined, // Use undefined instead of null to avoid unique constraint issues
             password: hashedPassword,
             status: 'approved', // Default state for new registrations
             isSuspended: false
@@ -410,8 +410,11 @@ class UpdateOwnerByAdmin {
         if (normalizedSuspension === false && normalizedStatus == null && existingOwner.status === 'suspended') {
             normalizedStatus = 'approved';
         }
-        if (normalizedSuspension === true && normalizedStatus == null) {
+        if (normalizedSuspension === true) {
             normalizedStatus = 'suspended';
+        } else if (normalizedSuspension === false && (existingOwner.status === 'suspended' || existingOwner.isSuspended)) {
+            // Logic: If explicitly unsuspending, we must also revert the status to 'approved'.
+            normalizedStatus = 'approved';
         }
 
         // --- Build Sanity-Checked Update Object ---
@@ -419,7 +422,7 @@ class UpdateOwnerByAdmin {
             name: typeof ownerData.name === 'string' ? ownerData.name.trim() : existingOwner.name,
             shopName: typeof ownerData.shopName === 'string' ? ownerData.shopName.trim() : existingOwner.shopName,
             phone: normalizedPhone,
-            email: normalizedEmail || '',
+            email: normalizedEmail || undefined, // Use undefined instead of '' or null to avoid unique constraint issues
             status: normalizedStatus ?? existingOwner.status,
             isSuspended: typeof normalizedSuspension === 'boolean'
                 ? normalizedSuspension

@@ -27,7 +27,9 @@ class InventoryPdfUtils {
     // Calculations for Executive Summary
     final totalProducts = products.length;
     final lowStockCount = products.where((p) => p.isLowStock).length;
-    final totalStockValue = products.fold(0.0, (sum, p) => sum + (p.purchasePrice * p.stockQuantity));
+    // Logic: Financial Aggregation.
+    // Business Rule: Use server-computed inventory value which already handles non-negative stock clamping.
+    final totalStockValue = products.fold(0.0, (sum, p) => sum + p.inventoryValue);
 
     pdf.addPage(
       pw.MultiPage(
@@ -80,7 +82,9 @@ class InventoryPdfUtils {
                 ),
                 // Table Body
                 ...products.map((p) {
-                  final valuation = p.purchasePrice * p.stockQuantity;
+                  // Logic: Valuation Consistency.
+                  // Business Rule: Use server-computed valuation for individual row accuracy.
+                  final valuation = p.inventoryValue;
                   return pw.TableRow(
                     decoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey100, width: 0.5))),
                     children: [

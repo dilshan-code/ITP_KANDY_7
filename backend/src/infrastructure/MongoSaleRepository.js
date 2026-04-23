@@ -253,6 +253,13 @@ class MongoSaleRepository extends ISaleRepository {
         
         return result.deletedCount > 0;
     }
+
+    /**
+     * Logic: Cascading account removal.
+     */
+    async deleteAllByOwner(ownerId, session = null) {
+        return this.model.deleteMany({ ownerId }, { session });
+    }
 }
 
 // Module Export: Data infrastructure implementation for the sales engine.

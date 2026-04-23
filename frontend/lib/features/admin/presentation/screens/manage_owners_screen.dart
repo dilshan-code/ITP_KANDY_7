@@ -586,8 +586,9 @@ class _OwnerCard extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Wrap(
-              spacing: 10,
-              runSpacing: 10,
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.start,
               children: [
                 _ActionButton(
                   label: owner.isSuspended ? 'Unsuspend' : 'Suspend',
@@ -595,8 +596,8 @@ class _OwnerCard extends StatelessWidget {
                       ? Icons.play_circle_outline_rounded 
                       : Icons.pause_circle_outline_rounded,
                   color: owner.isSuspended 
-                      ? const Color(0xFF0F9D58) 
-                      : const Color(0xFFDC2626),
+                      ? AppColors.success 
+                      : AppColors.warning,
                   onPressed: () => _runAction(
                     context,
                     // Administrative suspension: Toggling account access via AdminProvider.
@@ -609,13 +610,13 @@ class _OwnerCard extends StatelessWidget {
                 _ActionButton(
                   label: 'Update',
                   icon: Icons.edit_rounded,
-                  color: const Color(0xFF1D4ED8),
+                  color: const Color(0xFF3B82F6),
                   onPressed: () => _showEditDialog(context),
                 ),
                 _ActionButton(
                   label: 'Delete',
                   icon: Icons.delete_outline_rounded,
-                  color: const Color(0xFF7F1D1D),
+                  color: AppColors.error,
                   onPressed: () => _deleteOwner(context),
                 ),
               ],
@@ -750,20 +751,34 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isActionInProgress = context.watch<AdminProvider>().isActionInProgress;
+    
     return TactileScale(
-      onTap: context.watch<AdminProvider>().isActionInProgress
-          ? null
-          : onPressed,
-      child: ElevatedButton.icon(
-        onPressed: () {}, // Restoration: Providing a callback ensures the button stays vibrant/colored rather than graying out. TactileScale still handles the actual logic.
-        icon: Icon(icon, size: 18),
-        label: Text(label),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      onTap: isActionInProgress ? null : onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        constraints: const BoxConstraints(minHeight: 36),
+        decoration: BoxDecoration(
+          color: isActionInProgress ? color.withValues(alpha: 0.5) : color,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: Colors.white),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+                height: 1.0,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -975,10 +990,16 @@ class _OwnerEditSheetState extends State<_OwnerEditSheet> {
                                   data,
                                 );
                                 if (success && context.mounted) {
-                                  Navigator.pop(context);
+                                  Navigator.of(context).pop();
                                   SnackBarUtils.showTopSnackBar(
                                     context,
-                                    'Owner updated successfully',
+                                    'Owner details updated successfully',
+                                  );
+                                } else if (!success && context.mounted) {
+                                  SnackBarUtils.showTopSnackBar(
+                                    context,
+                                    adminProvider.error ?? 'Failed to update owner',
+                                    isError: true,
                                   );
                                 }
                               },

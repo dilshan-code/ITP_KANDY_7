@@ -1,4 +1,4 @@
-﻿// ------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // File: admin_account_screen.dart
 // Purpose: Administrative profile and system-wide settings navigation hub.
 // Rationale: Acts as the secondary control interface where administrators 
@@ -121,6 +121,7 @@ class AdminAccountScreen extends StatelessWidget {
               );
             },
           ),
+          /* 
           _buildSettingsItem(
             icon: Icons.security,
             title: 'Security Logs',
@@ -133,6 +134,7 @@ class AdminAccountScreen extends StatelessWidget {
             subtitle: 'Broadcast to all store owners',
             onTap: () {},
           ),
+          */
           _buildSettingsItem(
             icon: Icons.backup_outlined,
             title: 'Database Backup',

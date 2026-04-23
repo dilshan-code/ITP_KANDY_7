@@ -1,8 +1,9 @@
 const jwt = require('jsonwebtoken'); // Security: Cryptographic verification engine
+const OwnerModel = require('../infrastructure/models/Owner');
 
 // Middleware to extract and verify the owner's identity from a JWT token.
 // This ensures that only authenticated users can access their specific shop data.
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
     // Strategy: Look for token in the Authorization header (Bearer scheme)
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -46,6 +47,19 @@ const authMiddleware = (req, res, next) => {
         req.ownerName = decoded.name;
         req.userRole = decoded.role;
         
+        // --- Security Boundary: Real-time Suspension Check ---
+        // Rationale: Even if the token is valid, we must block access if the admin has 
+        //   suspended the account in the interim.
+        const activeOwner = await OwnerModel.findById(req.ownerId).select('isSuspended status').lean();
+        
+        if (activeOwner && (activeOwner.isSuspended || activeOwner.status === 'suspended')) {
+            console.warn(`🛑 [AuthMiddleware] Blocked request from suspended user: ${req.ownerName} (${req.ownerId})`);
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Account Suspended: Your access has been revoked. Please contact administration.' 
+            });
+        }
+
         // RBAC: Role-Based Access Control Guard
         // Security logic: If the path is for an administrative tool, strict 'admin' role check is required.
         // Support both relative (/admin/) and full (/api/admin/) paths for robustness.

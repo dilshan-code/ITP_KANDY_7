@@ -1,4 +1,4 @@
-﻿// ------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // File: admin_provider.dart
 // Purpose: Centralized state management for global administrative operations.
 // Rationale: Orchestrates high-level system control including store owner 
@@ -89,6 +89,7 @@ class AdminProvider extends ChangeNotifier {
     try {
       _isActionInProgress = true;
       _error = null;
+      _technicalDetails = null;
       notifyListeners();
 
       final response = await request();

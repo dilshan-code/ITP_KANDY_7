@@ -21,7 +21,7 @@ import 'package:frontend/core/services/notification_service.dart'; // Service: A
 import 'package:provider/provider.dart'; // State: Dependency access
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // State: Identity context
 import 'package:frontend/shared/main_shell.dart'; // Navigation: Primary authenticated shell
-
+import 'package:frontend/features/admin/presentation/screens/admin_shell.dart'; // Navigation: System-wide control
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -118,10 +118,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     if (authProvider.isLoggedIn) {
       // Logic: Returning user with a valid persistent session.
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const MainShell()),
-      );
+      if (authProvider.currentOwner?.role == 'admin') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminShell()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const MainShell()),
+        );
+      }
     } else if (!hasSeenGetStarted) {
       // Logic: First-time visitor.
       Navigator.pushReplacement(
