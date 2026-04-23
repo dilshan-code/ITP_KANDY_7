@@ -183,9 +183,9 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
           'name': product.name,
           'quantity': 1,
           'unit': product.unit,
-          'costPrice': product.sellingPrice,
+          'costPrice': product.purchasePrice,
           'qtyController': TextEditingController(text: '1'),
-          'costController': TextEditingController(text: product.sellingPrice.toString()),
+          'costController': TextEditingController(text: product.purchasePrice.toString()),
         });
       }
       _showProductError = false;
@@ -205,8 +205,13 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
 
   void _updateItem(int index, {int? quantity, double? costPrice}) {
     setState(() {
-      if (quantity != null) _purchasedItems[index]['quantity'] = quantity;
-      if (costPrice != null) _purchasedItems[index]['costPrice'] = costPrice;
+      // Logic: Clamping inputs to prevent mathematical errors in inventory valuation.
+      if (quantity != null) {
+        _purchasedItems[index]['quantity'] = quantity < 1 ? 1 : quantity;
+      }
+      if (costPrice != null) {
+        _purchasedItems[index]['costPrice'] = costPrice < 0 ? 0.0 : costPrice;
+      }
       
       // Locked-in Logic: If status is 'Paid', keep amountPaid in sync with the new total
       if (_paymentStatus == 'Paid') {

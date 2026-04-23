@@ -69,7 +69,12 @@ class CreateProduct {
             throw new Error('Valid selling price is required');
         }
         
-        // 4. Inventory Integrity Check: If set, the minimum stock threshold must be a non-negative number.
+        // 4. Cost Integrity Check: If provided, ensure the purchase price is non-negative.
+        if (productData.purchasePrice !== undefined && !isValidPrice(productData.purchasePrice)) {
+            throw new Error('Valid purchase price is required');
+        }
+        
+        // 5. Inventory Integrity Check: If set, the minimum stock threshold must be a non-negative number.
         if (productData.minimumStockLevel !== undefined && !isValidStock(productData.minimumStockLevel)) {
             throw new Error('Valid minimum stock level is required');
         }
@@ -113,7 +118,12 @@ class UpdateProduct {
             throw new Error('Valid selling price is required');
         }
         
-        // 3. Stock Threshold Check
+        // 3. Cost Check
+        if (productData.purchasePrice !== undefined && !isValidPrice(productData.purchasePrice)) {
+            throw new Error('Valid purchase price is required');
+        }
+        
+        // 4. Stock Threshold Check
         if (productData.minimumStockLevel !== undefined && !isValidStock(productData.minimumStockLevel)) {
             throw new Error('Valid minimum stock level is required');
         }

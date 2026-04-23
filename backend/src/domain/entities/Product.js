@@ -55,7 +55,8 @@ class Product {
    * Business Rule: Inventory Value = Procurement Cost (purchasePrice) * Units on hand.
    */
   get inventoryValue() {
-    return this.purchasePrice * this.stockQuantity;
+    // Stability: Clamp stock to 0 for valuation to prevent negative asset reporting.
+    return this.purchasePrice * Math.max(0, this.stockQuantity);
   }
 
   /**

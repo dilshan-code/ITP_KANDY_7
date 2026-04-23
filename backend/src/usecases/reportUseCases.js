@@ -128,7 +128,8 @@ class GetBusinessReport {
         });
 
         // --- Phase 5: Inventory Valuation ---
-        const totalStockValue = products.reduce((sum, p) => sum + ((p.stockQuantity || 0) * (p.purchasePrice || 0)), 0);
+        // Stability: Sum up the pre-clamped inventoryValue from each product entity.
+        const totalStockValue = products.reduce((sum, p) => sum + (p.inventoryValue || 0), 0);
 
         // --- Final Result Assembly ---
         return {

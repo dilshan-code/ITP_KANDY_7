@@ -89,12 +89,28 @@ class CreatePurchase {
                     await this.productRepository.bulkUpdateStock(stockUpdates, ownerId, session);
                     
                     for (const { item, product } of productDocs) {
-                        const newPurchasePrice = parseFloat(item.unitPrice) || product.purchasePrice || 0;
                         const quantity = parseInt(item.quantity) || 0;
+                        const itemUnitPrice = parseFloat(item.unitPrice) || product.purchasePrice || 0;
+                        
+                        // Logic: Weighted Average Cost (WAC) calculation.
+                        // Formula: ((Old Stock * Old Price) + (New Quantity * New Price)) / (Total Stock)
+                        let newAveragePrice;
+                        if (product.stockQuantity <= 0) {
+                            // Rationale: If stock is negative (shortage), the new cost basis starts at the current purchase price.
+                            newAveragePrice = itemUnitPrice;
+                        } else {
+                            const totalOldValue = product.stockQuantity * product.purchasePrice;
+                            const totalNewValue = quantity * itemUnitPrice;
+                            newAveragePrice = (totalOldValue + totalNewValue) / (product.stockQuantity + quantity);
+                        }
+
+                        // Stability: Round to 2 decimal places for financial precision.
+                        const roundedPrice = Math.round(newAveragePrice * 100) / 100;
+
                         const newStockSnapshot = (product.stockQuantity || 0) + quantity;
 
                         await this.productRepository.update(product.id, { 
-                            purchasePrice: newPurchasePrice,
+                            purchasePrice: roundedPrice,
                             isLowStock: newStockSnapshot <= (product.minimumStockLevel || 0)
                         }, ownerId, session);
                     }
