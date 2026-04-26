@@ -75,7 +75,6 @@ class ApiClient {
     // A. Check if the currently configured/saved server is alive
     bool isPrimaryAlive = await _probeHealth(_serverIp, _serverPort);
     if (isPrimaryAlive) {
-      debugPrint('✅ [Discovery] Primary server ($_serverIp) is ONLINE.');
       _isLocalFallback = !_isHostname(_serverIp);
       return;
     }
@@ -86,7 +85,6 @@ class ApiClient {
       if (await _probeHealth(_replitHost, 443)) {
         _serverIp = _replitHost;
         _isLocalFallback = false;
-        debugPrint('✅ [Discovery] Switched to Replit Cloud.');
         return;
       }
     }
@@ -99,7 +97,6 @@ class ApiClient {
       _serverIp = localIp;
       _serverPort = 3000;
       _isLocalFallback = true;
-      debugPrint('✅ [Discovery] Local Backend detected. Connected to Laptop.');
     } else {
       debugPrint('⚠️ [Discovery] All backend probes failed. Using last known config.');
     }
@@ -134,7 +131,6 @@ class ApiClient {
     try {
       final prefs = await SharedPreferences.getInstance(); // Access: Local disk storage
       await prefs.setString(_storageKeyIp, ip); // Commit: Persist new IP to disk
-      debugPrint('✅ [ApiClient] Server IP updated to: $ip');
     } catch (e) {
       debugPrint('❌ [ApiClient] Failed to save IP: $e'); // Log: Persistence failure
     }
@@ -150,7 +146,6 @@ class ApiClient {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_storageKeyPort, port);
-      debugPrint('✅ [ApiClient] Server Port updated to: $port');
     } catch (e) {
       debugPrint('❌ [ApiClient] Failed to save Port: $e');
     }

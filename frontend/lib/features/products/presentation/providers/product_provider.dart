@@ -105,12 +105,6 @@ class ProductProvider extends ChangeNotifier {
 
       if (refresh) {
         _products = fetchedProducts;
-        debugPrint('✅ [ProductProvider] Refreshed ${fetchedProducts.length} products.');
-        // Log top 5 or all for debugging stock synchronization
-        for (var i = 0; i < (fetchedProducts.length < 10 ? fetchedProducts.length : 10); i++) {
-          final p = fetchedProducts[i];
-          debugPrint('   - ${p.name}: stock=${p.stockQuantity}, price=${p.purchasePrice}');
-        }
       } else {
         _products.addAll(fetchedProducts);
       }
