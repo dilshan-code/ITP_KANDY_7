@@ -11,6 +11,8 @@ import 'package:provider/provider.dart'; // State: Dependency injection system
 import 'package:intl/intl.dart'; // Formatting: Date localization
 import 'package:frontend/core/theme/app_colors.dart'; // Styling: Design system tokens
 import 'package:frontend/features/sales/presentation/providers/sale_provider.dart'; // State: Sales data manager
+import 'package:frontend/features/products/presentation/providers/product_provider.dart'; // Sync: Inventory restoration
+import 'package:frontend/features/credit/presentation/providers/credit_provider.dart'; // Sync: Debt reconciliation
 import 'package:frontend/features/sales/presentation/screens/invoice_dialog.dart'; // UI: Receipt detail modal
 import 'package:frontend/shared/widgets/app_back_button.dart'; // Standardized navigation trigger
 
@@ -361,14 +363,31 @@ class InvoiceHistoryScreenState extends State<InvoiceHistoryScreen> {
             onPressed: () async {
               Navigator.pop(context); // Close dialog
               try {
-                // Execute destructive database operation
+                // Logic: Destructive record reversal.
+                // Rationale: We capture the sale type BEFORE deletion to know which domains to refresh.
+                final saleToDelete = context.read<SaleProvider>().sales.firstWhere((s) => s['id'] == saleId, orElse: () => null);
+                final isCreditSale = saleToDelete != null && saleToDelete['paymentMethod'] == 'credit';
+
                 await context.read<SaleProvider>().deleteSale(saleId);
+                
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Invoice deleted successfully'),
-                    ),
-                  );
+                  // Strategy: Synchronization Delay.
+                  // Rationale: Wait for backend write-lock release and stock indices to update before fetching.
+                  await Future.delayed(const Duration(milliseconds: 1000));
+                  
+                  if (context.mounted) {
+                    // Sync: Restore inventory levels in the main product catalog.
+                    context.read<ProductProvider>().fetchProducts(refresh: true);
+                    
+                    // Sync: Reconcile customer debt if the reversed sale was a credit transaction.
+                    if (isCreditSale) {
+                      context.read<CreditProvider>().fetchCustomers();
+                    }
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Invoice deleted and stock restored')),
+                    );
+                  }
                 }
               } catch (e) {
                 if (context.mounted) {

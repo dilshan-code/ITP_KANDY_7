@@ -206,7 +206,6 @@ class AuthProvider extends ChangeNotifier {
       });
 
       if (response['success'] == true) {
-        debugPrint('✅ [BACKEND OTP] Request successful.');
         _isLoading = false;
         notifyListeners();
         onCodeSent();
@@ -242,7 +241,6 @@ class AuthProvider extends ChangeNotifier {
       });
 
       if (response['success'] == true) {
-        debugPrint('✅ [BACKEND OTP] Identity verified.');
         _isLoading = false;
         notifyListeners();
         return true;
@@ -425,7 +423,6 @@ class AuthProvider extends ChangeNotifier {
           ApiClient.ownerName = _currentOwner!.name;
           await ApiClient.setToken(_currentOwner!.token); // Security: Restore cryptographic session
           _isLoggedIn = true;
-          debugPrint('✅ [AuthProvider] Session restored: ${_currentOwner!.name}');
         }
       }
     } catch (e) {
@@ -456,7 +453,6 @@ class AuthProvider extends ChangeNotifier {
         await prefs.setString(_storageKeyOwner, jsonEncode(_currentOwner!.toJson()));
         
         notifyListeners();
-        debugPrint('✅ [AuthProvider] Profile refreshed from cloud: ${_currentOwner!.name}');
       }
     } catch (e) {
       // Silence: We don't want to block the UI with a popup if a background refresh fails.

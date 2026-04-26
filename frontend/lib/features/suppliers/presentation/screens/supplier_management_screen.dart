@@ -20,6 +20,7 @@ import 'package:frontend/features/suppliers/presentation/utils/export_utils.dart
 import 'package:frontend/shared/widgets/modern_pdf_icon.dart'; // UI: Brand-consistent PDF trigger icon
 import 'package:frontend/shared/widgets/screen_header.dart'; // UI: Reusable top-level screen header
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // Auth: User context
+import 'package:frontend/features/products/presentation/providers/product_provider.dart'; // Sync: Inventory reversal
 class SupplierManagementScreen extends StatefulWidget {
   const SupplierManagementScreen({super.key});
 
@@ -784,8 +785,15 @@ class _SupplierManagementScreenState extends State<SupplierManagementScreen>
                   .deletePurchase(purchase.id);
               if (context.mounted) {
                 if (success) {
-                  SnackBarUtils.showSnackBar(context, 'Record deleted');
-                  context.read<SupplierProvider>().fetchSuppliers();
+                  // Strategy: Synchronization Delay.
+                  // Rationale: Wait for backend stock reversal to commit before refreshing local catalogue.
+                  await Future.delayed(const Duration(milliseconds: 1000));
+                  
+                  if (context.mounted) {
+                    SnackBarUtils.showSnackBar(context, 'Record deleted and stock reverted');
+                    context.read<SupplierProvider>().fetchSuppliers(); // Balance reconciliation
+                    context.read<ProductProvider>().fetchProducts(refresh: true); // Sync inventory
+                  }
                 } else {
                   final purchaseProvider = context.read<PurchaseProvider>();
                   SnackBarUtils.showSnackBar(

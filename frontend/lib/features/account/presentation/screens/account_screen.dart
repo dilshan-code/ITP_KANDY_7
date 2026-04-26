@@ -9,6 +9,7 @@ import 'package:flutter/material.dart'; // Core: Flutter UI reactive system
 import 'package:google_fonts/google_fonts.dart'; // Typography: Brand font sets
 import 'package:provider/provider.dart'; // State: Dependency injection system
 import 'package:frontend/core/theme/app_colors.dart'; // Styling: Design system tokens
+import 'package:frontend/core/network/api_client.dart'; // Network: State for fallback UI
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // State: Identity source of truth
 import 'package:frontend/features/auth/presentation/screens/login_screen.dart'; // Navigation: Session exit destination
 import 'package:frontend/features/suppliers/presentation/screens/supplier_management_screen.dart'; // Navigation: Supply chain entry
@@ -20,7 +21,6 @@ import 'package:frontend/features/account/presentation/screens/help_support_scre
 import 'package:frontend/features/account/presentation/screens/delete_account_screen.dart'; // Navigation: Irreversible account purge
 import 'package:frontend/features/account/presentation/screens/terms_conditions_screen.dart'; // Navigation: Legal compliance
 import 'package:frontend/features/account/presentation/screens/privacy_policy_screen.dart'; // Navigation: Privacy data governance
-import 'package:frontend/core/widgets/doodle_painter.dart'; // Shared UI: Generative background patterns
 import 'package:frontend/shared/widgets/screen_header.dart'; // Shared UI: Consistent titled headers
 import 'package:package_info_plus/package_info_plus.dart'; // Infrastructure: Platform versioning
 
@@ -35,110 +35,123 @@ class AccountScreen extends StatelessWidget {
           child: Column(
             children: [
               // --- Part A: Branded Identity Header ---
-              // Rationale: Establishes strong brand presence and confirms the active owner's identity.
-              Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [AppColors.primary, AppColors.primaryDark],
-                  ),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(32),
-                    bottomRight: Radius.circular(32),
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    // Logic: Doodle pattern background for texture and visual premiumness.
-                    Positioned.fill(
-                      child: ClipRRect(
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(32),
-                          bottomRight: Radius.circular(32),
-                        ),
-                        child: Opacity(
-                          opacity: 0.6,
-                          child: DoodleBackground(
-                            color: Colors.white.withValues(alpha: 0.12),
-                            spacing: 45, // Density: Adjusted for high visibility
-                          ),
-                        ),
-                      ),
-                    ),
-                    
-                    // --- Profile Narrative ---
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(0, 4, 0, 24),
-                      child: Column(
-                      children: [
-                        const ScreenHeader(
-                          title: 'Account',
-                          titleColor: Colors.white,
-                          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        ),
-                        const SizedBox(height: 4),
-                        // Logic: Reactive synchronization with Global Auth state.
-                        Consumer<AuthProvider>(
-                          builder: (context, auth, _) {
-                            return Column(
-                              children: [
-                                // Avatar: Visual identity representation.
-                                CircleAvatar(
-                                  radius: 40,
-                                  backgroundColor: Colors.white.withValues(alpha: 0.2),
-                                  backgroundImage: (auth.currentOwner?.profilePic != null && 
-                                                   auth.currentOwner!.profilePic!.isNotEmpty)
-                                      ? NetworkImage(auth.currentOwner!.profilePic!)
-                                      : null,
-                                  child: (auth.currentOwner?.profilePic == null || 
-                                          auth.currentOwner!.profilePic!.isEmpty)
-                                      ? const Icon(
-                                          Icons.person,
-                                          size: 40,
-                                          color: Colors.white,
-                                        )
-                                      : null,
-                                ),
-                                const SizedBox(height: 12),
-                                // Name: Primary identity label.
-                                Text(
-                                  auth.currentOwner?.name ?? 'Shop Owner',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                // Shop: Business context label.
-                                Text(
-                                  auth.currentOwner?.shopName ?? 'ClickBuy Store',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    color: Colors.white.withValues(alpha: 0.8),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                // Email: Secondary identifier.
-                                Text(
-                                  auth.currentOwner?.email ?? '',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    color: Colors.white.withValues(alpha: 0.6),
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
+              // Rationale: Replaced the large green bar with a clean, standard header for a more modern, lightweight aesthetic.
+              const ScreenHeader(
+                title: 'Account',
+                subtitle: 'Manage your profile and settings',
+                padding: EdgeInsets.fromLTRB(24, 24, 24, 12),
+              ),
+
+              // --- Profile Narrative ---
+              // Logic: Reactive synchronization with Global Auth state.
+              Consumer<AuthProvider>(
+                builder: (context, auth, _) {
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    child: Row(
+                      children: [
+                        // Avatar: Visual identity representation with subtle border.
+                        Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.accentGreen, width: 2),
+                          ),
+                          child: CircleAvatar(
+                            radius: 36,
+                            backgroundColor: AppColors.cardBlueBg,
+                            backgroundImage: (auth.currentOwner?.profilePic != null && 
+                                             auth.currentOwner!.profilePic!.isNotEmpty)
+                                ? NetworkImage(auth.currentOwner!.profilePic!)
+                                : null,
+                            child: (auth.currentOwner?.profilePic == null || 
+                                    auth.currentOwner!.profilePic!.isEmpty)
+                                ? const Icon(
+                                    Icons.person,
+                                    size: 36,
+                                    color: AppColors.primary,
+                                  )
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        // Profile Data: Name, Shop, and Email in a clean vertical stack.
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                auth.currentOwner?.name ?? 'Shop Owner',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textDark,
+                                ),
+                              ),
+                              Text(
+                                auth.currentOwner?.shopName ?? 'ClickBuy Store',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                auth.currentOwner?.email ?? '',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 11,
+                                  color: AppColors.textLight,
+                                ),
+                              ),
+                              // Network Indicator: Signals to the developer if the app is bypassing Replit
+                              if (ApiClient.isLocalFallback)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.warning.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.dns_outlined, size: 12, color: AppColors.warning),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Local Server Active',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.warning,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
-            ),
 
               // --- Part B: Navigation Menu Tree ---
               Padding(

@@ -21,7 +21,9 @@ import 'package:frontend/features/notifications/presentation/providers/notificat
 import 'package:frontend/features/credit/presentation/utils/credit_pdf_utils.dart'; // PDF: Customer statement generator
 import 'package:frontend/shared/widgets/modern_pdf_icon.dart'; // UI: Brand-consistent PDF trigger icon
 import 'package:frontend/shared/main_shell.dart'; // Shell: Global app state anchor for dashboard refresh
-import 'package:frontend/shared/widgets/app_back_button.dart'; // Standardized navigation trigger
+import 'package:frontend/shared/widgets/app_back_button.dart'; // UI: Standardized navigation trigger
+import 'package:frontend/shared/widgets/tactile_scale.dart'; // UI: Interaction physics
+import 'package:animate_do/animate_do.dart'; // UI: Motion design framework
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // Auth: User context
 
 /// CreditDetailScreen: An in-depth financial ledger for a specific customer.
@@ -168,107 +170,174 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Customer header card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [AppColors.primary, AppColors.primaryDark],
+                  // Customer header card: Premium Financial Identity Card
+                  FadeInDown(
+                    duration: const Duration(milliseconds: 600),
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF0F4C3F), Color(0xFF166534), Color(0xFF22C55E)],
+                        ),
+                        borderRadius: BorderRadius.circular(32),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0F4C3F).withValues(alpha: 0.15),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
                       ),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Column(
-                      children: [
-                        CircleAvatar(
-                          radius: 32,
-                          backgroundColor: Colors.white.withValues(alpha: 0.2),
-                          child: Text(
-                            _currentCustomer.name.isNotEmpty
-                                ? _currentCustomer.name[0].toUpperCase()
-                                : '?',
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 28,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 12),
-                        Text(
-                          _currentCustomer.name,
-                          style: GoogleFonts.poppins(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          _currentCustomer.phone,
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            color: Colors.white.withValues(alpha: 0.8),
-                          ),
-                        ),
-                        SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(32),
+                        child: Stack(
                           children: [
-                            _buildStatItem(
-                              'Active Credit',
-                              'Rs ${_currentCustomer.totalOutstanding.toStringAsFixed(0)}',
+                            // Decorative depth circles
+                            Positioned(
+                              top: -60,
+                              right: -60,
+                              child: Container(
+                                width: 200,
+                                height: 200,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
                             ),
-                            Container(
-                              width: 1,
-                              height: 32,
-                              color: Colors.white.withValues(alpha: 0.3),
+                            Positioned(
+                              bottom: -40,
+                              left: -40,
+                              child: Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
                             ),
-                            _buildStatItem(
-                              'Limit',
-                              'Rs ${_currentCustomer.creditLimit.toStringAsFixed(0)}',
-                            ),
-                            Container(
-                              width: 1,
-                              height: 32,
-                              color: Colors.white.withValues(alpha: 0.3),
-                            ),
-                            _buildStatItem(
-                              'Status',
-                              _currentCustomer.totalOutstanding <= 0 
-                                  ? 'PAID' 
-                                  : _currentCustomer.status.toUpperCase(),
+                            Padding(
+                              padding: const EdgeInsets.all(28),
+                              child: Column(
+                                children: [
+                                  // Identity Block
+                                  Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.2),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
+                                    ),
+                                    child: CircleAvatar(
+                                      radius: 36,
+                                      backgroundColor: Colors.white,
+                                      child: Text(
+                                        _currentCustomer.name.isNotEmpty
+                                            ? _currentCustomer.name[0].toUpperCase()
+                                            : '?',
+                                        style: GoogleFonts.poppins(
+                                          color: const Color(0xFF0F4C3F),
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 32,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    _currentCustomer.name,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      _currentCustomer.phone,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white.withValues(alpha: 0.9),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 32),
+                                  // Glassmorphic Statistics
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: _buildStatNode(
+                                          'BALANCE',
+                                          'Rs.${_currentCustomer.totalOutstanding.toStringAsFixed(0)}',
+                                          Icons.account_balance_wallet_rounded,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: _buildStatNode(
+                                          'LIMIT',
+                                          'Rs.${_currentCustomer.creditLimit.toStringAsFixed(0)}',
+                                          Icons.speed_rounded,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: _buildStatNode(
+                                          'STATUS',
+                                          _currentCustomer.totalOutstanding <= 0 ? 'CLEAR' : _currentCustomer.status.toUpperCase(),
+                                          Icons.shield_rounded,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (_currentCustomer.totalOutstanding > 0) ...[
+                                    const SizedBox(height: 28),
+                                    TactileScale(
+                                      onTap: () => _showSettleConfirmation(context),
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(16),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.1),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Text(
+                                          'SETTLE FULL BALANCE',
+                                          style: GoogleFonts.poppins(
+                                            color: const Color(0xFF0F4C3F),
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 14,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ),
                           ],
                         ),
-                        if (_currentCustomer.totalOutstanding > 0) ...[
-                          SizedBox(height: 20),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () => _showSettleConfirmation(context),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: AppColors.primary,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: Text(
-                                'Settle Full Balance', // Logic for clearing all debt in one tap
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+                      ),
                     ),
                   ),
                   SizedBox(height: 24),
@@ -335,23 +404,39 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
     );
   }
 
-  Widget _buildStatItem(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: GoogleFonts.poppins(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
+  Widget _buildStatNode(String label, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 20, color: Colors.white.withValues(alpha: 0.7)),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+              letterSpacing: -0.2,
+            ),
           ),
-        ),
-        SizedBox(height: 4),
-        Text(
-          label,
-          style: GoogleFonts.poppins(fontSize: 12, color: Colors.white.withValues(alpha: 0.7)),
-        ),
-      ],
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              color: Colors.white.withValues(alpha: 0.6),
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

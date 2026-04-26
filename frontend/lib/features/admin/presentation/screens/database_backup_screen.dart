@@ -52,73 +52,56 @@ class _DatabaseBackupScreenState extends State<DatabaseBackupScreen> {
     });
 
     try {
-      final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final now = DateTime.now();
+      final dateStr = DateFormat('yyyy-MM-dd_HH-mm-ss').format(now);
       final fileName = 'clickbuy_backup_$dateStr.zip';
       
-      // 1. Start actual HTTP request to backend
-      final client = http.Client();
-      final request = http.Request('GET', Uri.parse('${ApiClient.baseUrl}/admin/backup'));
-      
-      // Inject headers from ApiClient (handles JWT Authorization and Multi-tenant isolation)
-      request.headers.addAll(ApiClient.headers);
-
-      final response = await client.send(request).timeout(const Duration(minutes: 5));
+      // 1. Fetch from backend using simple http.get
+      final url = Uri.parse('${ApiClient.baseUrl}/admin/backup?t=${now.millisecondsSinceEpoch}');
+      final response = await http.get(url, headers: ApiClient.headers).timeout(const Duration(minutes: 5));
 
       if (response.statusCode != 200) {
-        // Error handling: Catching server-side ZIP generation failures or unauthorized access.
-        throw Exception('Server returned ${response.statusCode}');
+        throw Exception('Server error (${response.statusCode}): ${response.body.isNotEmpty ? response.body : "No details"}');
       }
 
-      // 2. Prepare local file
+      setState(() => _progress = 0.5); // Mid-way progress
+
+      // 2. Save to local file
       final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/$fileName');
-      final sink = file.openWrite();
+      final backupFile = File('${tempDir.path}/$fileName');
+      await backupFile.writeAsBytes(response.bodyBytes);
 
-      // 3. Stream bytes and update progress
-      int downloaded = 0;
-      final total = response.contentLength;
-      setState(() => _totalSize = total);
+      setState(() => _progress = 1.0);
 
-      await response.stream.listen(
-        (chunk) {
-          // Streaming IO: Appending received bytes to a temporary local file to avoid RAM spikes.
-          sink.add(chunk);
-          downloaded += chunk.length;
-          if (total != null && total > 0) {
-            setState(() {
-              _progress = downloaded / total;
-            });
-          } else {
-            // Streaming ZIPs often lack Content-Length.
-            // We set _progress to a small non-zero value to trigger the indeterminate 
-            // state in the UI safely without showing a fake percentage.
-            if (_progress == 0) {
-              setState(() => _progress = 0.01);
-            }
-          }
-        },
-        onDone: () async {
-          // Cleanup: Closing file handles and network client after full transfer.
-          await sink.close();
-          client.close();
-          
-          if (mounted) {
-            setState(() => _progress = 1.0);
-            await _handleDownloadComplete(file, fileName);
-          }
-        },
-        onError: (e) {
-          throw e;
-        },
-      ).asFuture();
-
+      // 3. Verify and Share
+      if (await backupFile.exists() && await backupFile.length() > 0) {
+        await _handleDownloadComplete(backupFile, fileName);
+      } else {
+        throw Exception('Downloaded file is empty. Backup generation failed.');
+      }
     } catch (e) {
+      debugPrint('❌ [Backup] Critical failure: $e');
       if (mounted) {
         setState(() => _isDownloading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Backup failed: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Details',
+              textColor: Colors.white,
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Backup Error'),
+                    content: SingleChildScrollView(child: Text(e.toString())),
+                    actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+                  ),
+                );
+              },
+            ),
           ),
         );
       }

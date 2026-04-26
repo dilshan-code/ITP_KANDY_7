@@ -61,9 +61,9 @@ describe('Report Use Cases', () => {
 
         mockProductRepository = {
             getAll: jest.fn().mockResolvedValue([
-                { id: 'p1', name: 'Rice', sellingPrice: 200, purchasePrice: 150, stockQuantity: 50, minimumStockLevel: 10, inventoryValue: 7500, isLowStock: false },
-                { id: 'p2', name: 'Sugar', sellingPrice: 200, purchasePrice: 120, stockQuantity: 3, minimumStockLevel: 5, inventoryValue: 360, isLowStock: true },
-                { id: 'p3', name: 'Tea', sellingPrice: 300, purchasePrice: 250, stockQuantity: 0, minimumStockLevel: 5, inventoryValue: 0, isLowStock: true }
+                { _id: 'p1', name: 'Rice', sellingPrice: 200, purchasePrice: 150, stockQuantity: 50, minimumStockLevel: 10, isLowStock: false },
+                { _id: 'p2', name: 'Sugar', sellingPrice: 200, purchasePrice: 120, stockQuantity: 3, minimumStockLevel: 5, isLowStock: true },
+                { _id: 'p3', name: 'Tea', sellingPrice: 300, purchasePrice: 250, stockQuantity: 0, minimumStockLevel: 5, isLowStock: true }
             ]),
             getLowStockCount: jest.fn().mockResolvedValue(2),
         };
@@ -136,14 +136,14 @@ describe('Report Use Cases', () => {
             expect(report.inventory.totalValue).toBe(7860);
         });
 
-        test('should produce top products sorted by quantity sold', async () => {
+        test('should produce top products sorted by revenue', async () => {
             const report = await getReport.execute(ownerId);
             expect(report.topProducts).toHaveLength(2);
-            // Rice sold 7 (5+2), Sugar sold 3
+            // Rice revenue: 7 * 200 = 1400. Sugar revenue: 3 * 200 = 600.
             expect(report.topProducts[0].name).toBe('Rice');
-            expect(report.topProducts[0].quantity).toBe(7);
+            expect(report.topProducts[0].revenue).toBe(1400);
             expect(report.topProducts[1].name).toBe('Sugar');
-            expect(report.topProducts[1].quantity).toBe(3);
+            expect(report.topProducts[1].revenue).toBe(600);
         });
 
         test('should generate 30-day trend', async () => {

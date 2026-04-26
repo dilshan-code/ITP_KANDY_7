@@ -8,6 +8,7 @@ class IPurchaseRepository {
     async getTotalPurchases(ownerId) { throw new Error('Not implemented'); }
     async getTotalPayable(ownerId) { throw new Error('Not implemented'); }
     async getAllByDateRange(ownerId, startDate, endDate) { throw new Error('Not implemented'); }
+    async deleteAllByOwner(ownerId) { throw new Error('Not implemented'); }
 }
 
 module.exports = IPurchaseRepository;

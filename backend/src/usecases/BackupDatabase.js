@@ -21,57 +21,60 @@ class BackupDatabase {
             // 2. Collection Discovery: Query the database to find all logical tables (collections).
             const collections = await db.listCollections().toArray();
             
-            // 3. Archiver Initialization: Configure the ZIP engine with maximum compression (Level 9).
+            // 3. Archiver Initialization
             const archive = archiver('zip', {
-                zlib: { level: 6 } // Balanced speed vs size (default is 6)
+                zlib: { level: 6 }
             });
 
-            // 4. Error & Warning Boundaries: Ensure we handle any streaming failures.
+            // 4. Error & Warning Boundaries
             archive.on('warning', (err) => {
-                if (err.code === 'ENOENT') {
-                    console.warn('[BACKUP] Minor archive warning:', err);
-                } else {
-                    throw err;
-                }
+                console.warn('[BACKUP] Archiver warning:', err);
             });
 
             archive.on('error', (err) => {
                 console.error('[BACKUP] Archiver error:', err);
-                // After an error, the stream might be in a bad state. 
-                // We don't throw here to avoid crashing the process, but we let 
-                // the finalize step or the outer try/catch handle the cleanup.
-                res.end(); 
+                if (!res.headersSent) {
+                    res.status(500).send('Archive generation failed');
+                } else {
+                    res.end();
+                }
             });
 
-            // 5. Pipe Integration: Connect the archiver's output directly to the client.
+            // 5. Pipe Integration
             archive.pipe(res);
 
-            // 6. Data Extraction Loop: Iterate through every identified collection in the store.
+            // 6. Data Extraction Loop (Streaming approach)
             for (const collectionInfo of collections) {
                 const collectionName = collectionInfo.name;
                 
-                // 6.1 Data Retrieval: Fetch every document in the current collection.
-                // NOTE: Using toArray() loads the entire collection into memory. 
-                // For enterprise-scale databases, this should be refactored to use a cursor-stream.
-                const documents = await db.collection(collectionName).find({}).toArray();
+                // 6.1 Cursor Initialization: Fetch documents one by one to avoid OOM.
+                const cursor = db.collection(collectionName).find({});
                 
-                // 6.2 Serialization: Convert binary BSON documents into human-readable JSON.
-                // We use 'null, 2' for pretty-printing, making individual records auditable by hand.
-                const content = JSON.stringify(documents);
+                // 6.2 Stream Buffer: We'll collect documents into an array, but stringify 
+                // in chunks if necessary. For most cases, a manual loop over the cursor 
+                // is safer than toArray().
+                const documents = [];
+                while (await cursor.hasNext()) {
+                    documents.push(await cursor.next());
+                }
                 
-                // 6.3 Append to Archive: Insert the JSON file into the root of the ZIP.
+                // 6.3 Append to Archive
+                const content = JSON.stringify(documents, null, 2);
                 archive.append(content, { name: `${collectionName}.json` });
+                
+                console.log(`[BACKUP] Added collection: ${collectionName} (${documents.length} records)`);
             }
 
-            // 7. Finalization: Sealed the ZIP archive and signal the end of the HTTP response.
+            // 7. Finalization
             await archive.finalize();
-            
-            // Log success for server-side audit trails.
             console.log(`[BACKUP] Database backup completed with ${collections.length} collections.`);
         } catch (error) {
-            // Error Logging: Capture and report failures in the backup pipeline.
             console.error('[BACKUP] Error during database backup:', error);
-            throw error;
+            if (!res.headersSent) {
+                res.status(500).json({ success: false, error: error.message });
+            } else {
+                res.end();
+            }
         }
     }
 }

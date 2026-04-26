@@ -79,7 +79,7 @@ class GetBusinessReport {
                     productSales[item.productId].revenue += ((item.unitPrice || item.price || 0) * (item.quantity || 0));
 
                     const costPrice = item.purchasePrice !== undefined ? item.purchasePrice : 
-                                     (products.find(p => p.id === item.productId)?.purchasePrice || 0);
+                                     (products.find(p => p._id === item.productId)?.purchasePrice || 0);
                     saleCost += (costPrice * (item.quantity || 0));
                 });
             }
@@ -87,8 +87,9 @@ class GetBusinessReport {
         });
 
         // --- Phase 3: Rank Top Products & Suppliers ---
+        // Strategy: Ranking by revenue provides better insight into which products contribute most to the bottom line.
         const topProducts = Object.values(productSales)
-            .sort((a, b) => b.quantity - a.quantity)
+            .sort((a, b) => b.revenue - a.revenue)
             .slice(0, 5);
 
         // Calculate Top Suppliers based on spending in the last 30 days
@@ -128,8 +129,9 @@ class GetBusinessReport {
         });
 
         // --- Phase 5: Inventory Valuation ---
-        // Stability: Sum up the pre-clamped inventoryValue from each product entity.
-        const totalStockValue = products.reduce((sum, p) => sum + (p.inventoryValue || 0), 0);
+        // Stability: Calculate value directly since 'products' are raw database objects without domain getters.
+        // Clamping stock to 0 prevents negative inventory from falsely reducing total asset value.
+        const totalStockValue = products.reduce((sum, p) => sum + ((p.purchasePrice || 0) * Math.max(0, p.stockQuantity || 0)), 0);
 
         // --- Final Result Assembly ---
         return {

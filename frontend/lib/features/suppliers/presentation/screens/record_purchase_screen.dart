@@ -289,9 +289,12 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
       });
 
       // Stock reconciliation: Ensure local product list matches server after batch purchase.
+      // NOTE: Increased delay to ensure backend transaction commit is fully replicated 
+      // before the fresh fetch occurs, preventing stale stock counts.
+      await Future.delayed(const Duration(milliseconds: 1000));
       await productProvider.fetchProducts();
 
-      // Refresh dashboard statistics on Home Screen
+      // Refresh dashboard statistics on Home Screen to update "Total Inventory Value" etc.
       MainShell.homeKey.currentState?.refresh();
       
       if (mounted) {
@@ -310,293 +313,187 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text(_isReadOnly ? 'Purchase Details' : 'Record Purchase'),
+        title: Text(
+          _isReadOnly ? 'Purchase Details' : 'Record Purchase',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
         leading: AppBackButton(
           onTap: () => Navigator.pop(context),
           margin: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
         ),
         actions: [
           if (_isReadOnly)
-            IconButton(
-              icon: Icon(Icons.receipt_long, color: AppColors.primary),
-              onPressed: () {
-                final owner = context.read<AuthProvider>().currentOwner;
-                SupplierExportUtils.exportPaymentReceiptPdf(widget.purchase!, owner: owner);
-              },
-              tooltip: 'Export Receipt',
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: IconButton(
+                icon: const Icon(Icons.receipt_long, color: AppColors.primary),
+                onPressed: () {
+                  final owner = context.read<AuthProvider>().currentOwner;
+                  SupplierExportUtils.exportPaymentReceiptPdf(widget.purchase!, owner: owner);
+                },
+                tooltip: 'Export Receipt',
+              ),
             ),
         ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Supplier selection
-              _buildLabel('Select Supplier *'),
-              SizedBox(height: 8),
-              Consumer<SupplierProvider>(
-                builder: (context, supplierProvider, _) {
-                  if (supplierProvider.isLoading &&
-                      supplierProvider.suppliers.isEmpty) {
-                    return _buildLoadingDropdown('Loading Suppliers...');
-                  }
-                  return Container(
-                    decoration: _containerDecoration(
-                      Icons.local_shipping_outlined,
-                      borderColor: _showSupplierError
-                          ? AppColors.error // Alert user if selection is missing
-                          : Colors.grey.shade300,
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        key: ValueKey(
-                            'supplier_id_dropdown_${supplierProvider.isLoading}_${_selectedSupplierId == null}'),
-                        isExpanded: true,
-                        value: _selectedSupplierId,
-                        hint: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('Choose a supplier'), // UX: Prompt user to select partner
-                        ),
-                        items: supplierProvider.suppliers
-                            .map((s) => s.id)
-                            .toSet()
-                            .map((id) {
-                          final s = supplierProvider.suppliers
-                              .firstWhere((sup) => sup.id == id);
-                          return DropdownMenuItem(
-                            value: id,
+              // --- Section 1: Supplier & Logistics ---
+              _buildSectionHeader(Icons.local_shipping_outlined, 'Partner & Logistics'),
+              const SizedBox(height: 16),
+              _buildFormCard([
+                _buildLabel('Select Supplier *'),
+                const SizedBox(height: 8),
+                Consumer<SupplierProvider>(
+                  builder: (context, supplierProvider, _) {
+                    if (supplierProvider.isLoading && supplierProvider.suppliers.isEmpty) {
+                      return _buildLoadingDropdown('Syncing suppliers...');
+                    }
+                    return Container(
+                      decoration: _inputBoxDecoration(
+                        borderColor: _showSupplierError ? AppColors.error : Colors.transparent,
+                        bgColor: _isReadOnly ? const Color(0xFFF1F5F9) : const Color(0xFFF1F5F9).withValues(alpha: 0.5),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: _selectedSupplierId,
+                          hint: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16),
+                            child: Text('Choose a business partner'),
+                          ),
+                          items: supplierProvider.suppliers.map((s) => DropdownMenuItem(
+                            value: s.id,
                             child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              child: Text(s.name), // Textual representation of the partner
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(s.name, style: GoogleFonts.poppins(fontSize: 14)),
                             ),
-                          );
-                        }).toList(),
-                        onChanged: _isReadOnly ? null : (value) {
-                          if (value == null) return;
-                          setState(() {
-                            // Link selected ID to the supplier entity for data bundling.
-                            _selectedSupplierId = value;
-                            final supplier =
-                                supplierProvider.suppliers.firstWhere(
-                              (s) => s.id == value,
-                            );
-                            _selectedSupplierName = supplier.name;
-                            _showSupplierError = false;
-                          });
-                        },
-                        icon: Padding(
-                          padding: EdgeInsets.only(right: 12),
-                          child: Icon(Icons.arrow_drop_down,
-                              color: AppColors.primary),
+                          )).toList(),
+                          onChanged: _isReadOnly ? null : (value) {
+                            if (value == null) return;
+                            setState(() {
+                              _selectedSupplierId = value;
+                              final supplier = supplierProvider.suppliers.firstWhere((s) => s.id == value);
+                              _selectedSupplierName = supplier.name;
+                              _showSupplierError = false;
+                            });
+                          },
+                          icon: const Padding(
+                            padding: EdgeInsets.only(right: 12),
+                            child: Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
-              ),
-              SizedBox(height: 20),
-
-              // Product Selection
-              if (!_isReadOnly) ...[
-                _buildLabel('Add Products to Stock *'),
-                SizedBox(height: 8),
-                _buildProductSelector(),
-                SizedBox(height: 16),
-              ],
-              // Loading indicator while fetching purchase details (items)
-              if (_isLoadingDetails) ...[
-                Text(
-                  'Purchased Items',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: AppColors.textMedium,
-                  ),
-                ),
-                SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
-                        ),
-                        SizedBox(height: 12),
-                        Text(
-                          'Loading purchased items...',
-                          style: GoogleFonts.poppins(color: AppColors.textLight, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20),
-              ],
-
-              if (_purchasedItems.isNotEmpty) ...[
-                Text(
-                  'Purchased Items',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: AppColors.textMedium,
-                  ),
-                ),
-                SizedBox(height: 12),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _purchasedItems.length,
-                  itemBuilder: (context, index) {
-                    final item = _purchasedItems[index];
-                    return _buildPurchasedItemCard(index, item);
+                    );
                   },
                 ),
-                SizedBox(height: 20),
-              ],
-
-              // Invoice number
-              _buildLabel('Invoice Number (Optional)'),
-              if (!_isReadOnly) ...[
-                SizedBox(height: 4),
-                Text(
-                  'Leave empty to auto-generate',
-                  style: GoogleFonts.poppins(fontSize: 12, color: AppColors.textLight),
-                ),
-              ],
-              SizedBox(height: 8),
-              TextField(
-                controller: _invoiceController,
-                enabled: !_isReadOnly,
-                decoration: InputDecoration(
-                  hintText: 'e.g. INV-0001',
-                  prefixIcon: const Icon(
-                    Icons.description_rounded,
-                    color: AppColors.primary,
-                  ),
-                  filled: _isReadOnly,
-                  fillColor: _isReadOnly ? Colors.grey.shade100 : null,
-                ),
-              ),
-              SizedBox(height: 20),
-
-              // Date
-              _buildLabel('Purchase Date'),
-              SizedBox(height: 8),
-              GestureDetector(
-                onTap: _isReadOnly ? null : () => _selectDate(context),
-                child: AbsorbPointer(
-                  child: TextField(
-                    controller: _dateController,
-                    enabled: !_isReadOnly,
-                    decoration: InputDecoration(
-                      hintText: 'Select Date',
-                      prefixIcon: const Icon(
-                        Icons.calendar_month_rounded,
-                        color: AppColors.primary,
-                      ),
-                      filled: _isReadOnly,
-                      fillColor: _isReadOnly ? Colors.grey.shade100 : null,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: 20),
-
-              // Amounts
-              _buildLabel('Subtotal'),
-              SizedBox(height: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: Row(
+                const SizedBox(height: 20),
+                Row(
                   children: [
-                    Text(
-                      'Rs ',
-                      style: GoogleFonts.poppins(
-                        color: AppColors.textLight,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Invoice #'),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _invoiceController,
+                            enabled: !_isReadOnly,
+                            style: GoogleFonts.poppins(fontSize: 14),
+                            decoration: _inputDecoration(
+                              hint: 'Auto-generated',
+                              icon: Icons.description_outlined,
+                              isReadOnly: _isReadOnly,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    SizedBox(width: 8),
-                    Text(
-                      _subtotal.toStringAsFixed(2),
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Purchase Date'),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: _isReadOnly ? null : () => _selectDate(context),
+                            child: AbsorbPointer(
+                              child: TextField(
+                                controller: _dateController,
+                                enabled: !_isReadOnly,
+                                style: GoogleFonts.poppins(fontSize: 14),
+                                decoration: _inputDecoration(
+                                  hint: 'Select Date',
+                                  icon: Icons.calendar_today_outlined,
+                                  isReadOnly: _isReadOnly,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-              SizedBox(height: 20),
+              ]),
 
-              _buildLabel('Tax Amount'),
-              SizedBox(height: 8),
-              TextField(
-                controller: _taxController,
-                enabled: !_isReadOnly,
-                keyboardType: TextInputType.number,
-                onChanged: (_) => setState(() {}),
-                decoration: InputDecoration(
-                  hintText: '0.00',
-                  prefixIcon: const Icon(Icons.price_change_rounded, color: AppColors.primary),
-                  filled: _isReadOnly,
-                  fillColor: _isReadOnly ? Colors.grey.shade100 : null,
+              const SizedBox(height: 24),
+              // --- Section 2: Inventory Intake ---
+              _buildSectionHeader(Icons.inventory_2_outlined, 'Stock Intake'),
+              const SizedBox(height: 16),
+              if (!_isReadOnly) ...[
+                _buildProductSelector(),
+                const SizedBox(height: 16),
+              ],
+
+              if (_isLoadingDetails) ...[
+                _buildLoadingState('Fetching inventory details...'),
+              ] else if (_purchasedItems.isEmpty) ...[
+                _buildEmptyState(),
+              ] else ...[
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _purchasedItems.length,
+                  itemBuilder: (context, index) => _buildPurchasedItemCard(index, _purchasedItems[index]),
                 ),
-              ),
-              SizedBox(height: 20),
+              ],
 
-              // Payment Status and Method
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('Payment Status'),
-                        SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: _containerDecoration(
-                            Icons.pending_actions_outlined,
-                            borderColor: Colors.grey.shade300,
-                            bgColor: _isReadOnly ? Colors.grey.shade100 : null,
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              isExpanded: true,
-                              value: _paymentStatus,
-                              items: ['Paid', 'Partial', 'Pending']
-                                  .map((status) => DropdownMenuItem(
-                                        value: status,
-                                        child: Text(status),
-                                      ))
-                                  .toList(),
+              const SizedBox(height: 24),
+              // --- Section 3: Financial Settlement ---
+              _buildSectionHeader(Icons.account_balance_wallet_outlined, 'Financial Settlement'),
+              const SizedBox(height: 16),
+              _buildFormCard([
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Payment Status'),
+                          const SizedBox(height: 8),
+                          Container(
+                            decoration: _inputBoxDecoration(
+                              bgColor: _isReadOnly ? const Color(0xFFF1F5F9) : const Color(0xFFF1F5F9).withValues(alpha: 0.5),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                isExpanded: true,
+                                value: _paymentStatus,
+                                items: ['Paid', 'Partial', 'Pending'].map((status) => DropdownMenuItem(
+                                  value: status,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    child: Text(status, style: GoogleFonts.poppins(fontSize: 14)),
+                                  ),
+                                )).toList(),
                                 onChanged: _isReadOnly ? null : (value) {
                                   if (value == null) return;
                                   setState(() {
@@ -608,210 +505,214 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
                                     }
                                   });
                                 },
-                              icon: const Icon(Icons.arrow_drop_down,
-                                  color: AppColors.primary),
+                                icon: const Padding(
+                                  padding: EdgeInsets.only(right: 12),
+                                  child: Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel('Payment Method'),
-                        SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: _containerDecoration(
-                            Icons.payment_outlined,
-                            borderColor: Colors.grey.shade300,
-                            bgColor: _isReadOnly ? Colors.grey.shade100 : null,
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              isExpanded: true,
-                              value: _paymentMethod,
-                              items: ['Cash', 'Credit', 'Bank Transfer', 'App Transfer']
-                                  .map((method) => DropdownMenuItem(
-                                        value: method,
-                                        child: Text(method),
-                                      ))
-                                  .toList(),
-                              onChanged: _isReadOnly ? null : (value) {
-                                if (value != null) {
-                                  setState(() => _paymentMethod = value);
-                                }
-                              },
-                              icon: const Icon(Icons.arrow_drop_down,
-                                  color: AppColors.primary),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Method'),
+                          const SizedBox(height: 8),
+                          Container(
+                            decoration: _inputBoxDecoration(
+                              bgColor: _isReadOnly ? const Color(0xFFF1F5F9) : const Color(0xFFF1F5F9).withValues(alpha: 0.5),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                isExpanded: true,
+                                value: _paymentMethod,
+                                items: ['Cash', 'Credit', 'Bank Transfer', 'App Transfer'].map((method) => DropdownMenuItem(
+                                  value: method,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    child: Text(method, style: GoogleFonts.poppins(fontSize: 14)),
+                                  ),
+                                )).toList(),
+                                onChanged: _isReadOnly ? null : (value) {
+                                  if (value != null) setState(() => _paymentMethod = value);
+                                },
+                                icon: const Padding(
+                                  padding: EdgeInsets.only(right: 12),
+                                  child: Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 20),
-
-              _buildLabel('Amount Paid'),
-              SizedBox(height: 8),
-              TextField(
-                controller: _amountPaidController,
-                enabled: !_isReadOnly && _paymentStatus == 'Partial',
-                keyboardType: TextInputType.number,
-                onChanged: (_) => setState(() {}),
-                style: GoogleFonts.poppins(
-                  color: (!_isReadOnly && _paymentStatus == 'Partial') 
-                    ? AppColors.textDark 
-                    : AppColors.textMedium,
-                ),
-                decoration: InputDecoration(
-                  hintText: '0.00',
-                  prefixIcon: const Icon(
-                    Icons.payments_rounded,
-                    color: AppColors.primary,
-                  ),
-                  filled: _isReadOnly || _paymentStatus != 'Partial',
-                  fillColor: (_isReadOnly || _paymentStatus != 'Partial') 
-                    ? Colors.grey.shade100 
-                    : null,
-                ),
-              ),
-              SizedBox(height: 20),
-
-              // Notes
-              _buildLabel('Additional Notes (Optional)'),
-              SizedBox(height: 8),
-              TextField(
-                controller: _notesController,
-                enabled: !_isReadOnly,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: 'Add remarks about this purchase...',
-                  filled: _isReadOnly,
-                  fillColor: _isReadOnly ? Colors.grey.shade100 : Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 2),
-                  ),
-                ),
-              ),
-              SizedBox(height: 24),
-
-              // Summary
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  children: [
-                    _buildSummaryRow(
-                      'Subtotal',
-                      'Rs ${_subtotal.toStringAsFixed(2)}',
-                      labelColor: Colors.white.withValues(alpha: 0.9),
-                      valueColor: Colors.white,
-                    ),
-                    SizedBox(height: 8),
-                    _buildSummaryRow(
-                      'Tax', 
-                      'Rs ${_tax.toStringAsFixed(2)}',
-                      labelColor: Colors.white.withValues(alpha: 0.9),
-                      valueColor: Colors.white,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildSummaryRow(
-                      'Total Amount',
-                      'Rs ${_totalAmount.toStringAsFixed(2)}',
-                      isBold: true,
-                      labelColor: Colors.white,
-                      valueColor: Colors.white,
-                    ),
-                    SizedBox(height: 8),
-                    _buildSummaryRow(
-                      'Amount Paid',
-                      'Rs ${_amountPaid.toStringAsFixed(2)}',
-                      labelColor: Colors.white.withValues(alpha: 0.9),
-                      valueColor: Colors.white,
-                    ),
-                    SizedBox(height: 8),
-                    _buildSummaryRow(
-                      'Remaining',
-                      'Rs ${_remaining.toStringAsFixed(2)}',
-                      isBold: true,
-                      labelColor: Colors.white,
-                      valueColor: Colors.white,
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-              SizedBox(height: 32),
-
-              if (_isReadOnly)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  decoration: BoxDecoration(
-                    color: AppColors.cardBlueBg,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'This record is locked for auditing.',
-                      style: GoogleFonts.poppins(
-                        color: AppColors.textDark,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                )
-              else
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Text(
-                            'Record Purchase',
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Amount Paid'),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _amountPaidController,
+                            enabled: !_isReadOnly && _paymentStatus == 'Partial',
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
+                            style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600),
+                            decoration: _inputDecoration(
+                              hint: '0.00',
+                              icon: Icons.payments_outlined,
+                              isReadOnly: _isReadOnly || _paymentStatus != 'Partial',
                             ),
                           ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel('Tax/Other'),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _taxController,
+                            enabled: !_isReadOnly,
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setState(() {}),
+                            style: GoogleFonts.poppins(fontSize: 14),
+                            decoration: _inputDecoration(
+                              hint: '0.00',
+                              icon: Icons.receipt_outlined,
+                              isReadOnly: _isReadOnly,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ]),
+
+              const SizedBox(height: 24),
+              // --- Section 4: Remarks ---
+              _buildSectionHeader(Icons.notes_outlined, 'Additional Remarks'),
+              const SizedBox(height: 16),
+              _buildFormCard([
+                TextField(
+                  controller: _notesController,
+                  enabled: !_isReadOnly,
+                  maxLines: 2,
+                  style: GoogleFonts.poppins(fontSize: 14),
+                  decoration: _inputDecoration(
+                    hint: 'Add internal notes or specific purchase terms...',
+                    icon: Icons.edit_note_outlined,
+                    isReadOnly: _isReadOnly,
                   ),
                 ),
+              ]),
+
+              const SizedBox(height: 32),
+              // --- Final Summary Section ---
+              _buildPremiumSummary(),
+
+              const SizedBox(height: 40),
+
+              if (_isReadOnly)
+                _buildLockedState()
+              else
+                _buildSubmitButton(),
+              
+              const SizedBox(height: 24),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSectionHeader(IconData icon, String title) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: AppColors.primary, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title.toUpperCase(),
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.2,
+            color: AppColors.textLight.withValues(alpha: 0.8),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormCard(List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({required String hint, required IconData icon, bool isReadOnly = false}) {
+    return InputDecoration(
+      hintText: hint,
+      prefixIcon: Icon(icon, color: AppColors.textLight.withValues(alpha: 0.5), size: 20),
+      filled: true,
+      fillColor: isReadOnly ? const Color(0xFFF1F5F9) : const Color(0xFFF1F5F9).withValues(alpha: 0.5),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+      ),
+    );
+  }
+
+  BoxDecoration _inputBoxDecoration({Color? borderColor, Color? bgColor}) {
+    return BoxDecoration(
+      color: bgColor ?? const Color(0xFFF1F5F9),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: borderColor ?? Colors.transparent, width: 1.5),
     );
   }
 
@@ -820,35 +721,79 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
       text,
       style: GoogleFonts.poppins(
         fontWeight: FontWeight.w600,
-        fontSize: 14,
-        color: AppColors.textDark,
+        fontSize: 13,
+        color: AppColors.textDark.withValues(alpha: 0.8),
       ),
     );
   }
 
-  Widget _buildSummaryRow(
-    String label,
-    String value, {
-    bool isBold = false,
-    Color? labelColor,
-    Color? valueColor,
-  }) {
+  Widget _buildPremiumSummary() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.primary, AppColors.primaryDark],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildSummaryRow('Subtotal', 'Rs ${_subtotal.toStringAsFixed(2)}', opacity: 0.8),
+          const SizedBox(height: 12),
+          _buildSummaryRow('Tax & Fees', 'Rs ${_tax.toStringAsFixed(2)}', opacity: 0.8),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Divider(color: Colors.white24, height: 1),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Total Liability',
+                style: GoogleFonts.poppins(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              Text(
+                'Rs ${_totalAmount.toStringAsFixed(2)}',
+                style: GoogleFonts.poppins(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildSummaryRow('Amount Settled', 'Rs ${_amountPaid.toStringAsFixed(2)}', opacity: 0.9),
+          const SizedBox(height: 8),
+          _buildSummaryRow('Pending Balance', 'Rs ${_remaining.toStringAsFixed(2)}', 
+            isBold: true, 
+            valueColor: _remaining > 0 ? const Color(0xFFFECACA) : Colors.white70
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value, {double opacity = 1.0, bool isBold = false, Color? valueColor}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: GoogleFonts.poppins(
-            fontSize: 14, 
-            color: labelColor ?? AppColors.textMedium,
-          ),
+          style: GoogleFonts.poppins(color: Colors.white.withValues(alpha: opacity), fontSize: 13, fontWeight: FontWeight.w500),
         ),
         Text(
           value,
           style: GoogleFonts.poppins(
-            fontSize: isBold ? 16 : 14,
-            fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
-            color: valueColor ?? AppColors.textDark,
+            color: valueColor ?? Colors.white.withValues(alpha: opacity), 
+            fontSize: isBold ? 15 : 13, 
+            fontWeight: isBold ? FontWeight.w700 : FontWeight.w600
           ),
         ),
       ],
@@ -858,57 +803,37 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
   Widget _buildProductSelector() {
     return Consumer<ProductProvider>(
       builder: (context, productProvider, _) {
-        if (productProvider.isLoading) {
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.sync, color: AppColors.textLight, size: 20),
-                SizedBox(width: 12),
-                Text('Loading products...', style: GoogleFonts.poppins(color: AppColors.textLight)),
-              ],
-            ),
-          );
-        }
         return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: _showProductError ? AppColors.error : Colors.grey.shade300,
-            ),
+          decoration: _inputBoxDecoration(
+            borderColor: _showProductError ? AppColors.error : Colors.transparent,
+            bgColor: Colors.white,
           ),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              key: ValueKey('product_selector_${productProvider.isLoading}'),
               isExpanded: true,
-              value: null, // Reset after each selection
+              value: null,
               hint: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Select product to add'),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  productProvider.isLoading ? 'Syncing catalogue...' : 'Select product to restock',
+                  style: GoogleFonts.poppins(fontSize: 14),
+                ),
               ),
               icon: Padding(
-                padding: EdgeInsets.only(right: 12),
-                child: Icon(Icons.add_circle_outline, color: AppColors.primary),
+                padding: const EdgeInsets.only(right: 12),
+                child: Icon(
+                  productProvider.isLoading ? Icons.sync : Icons.add_circle_outline_rounded, 
+                  color: AppColors.primary
+                ),
               ),
-              items: productProvider.products
-                  .map((p) => p.id)
-                  .toSet()
-                  .map((id) {
-                final p = productProvider.products.firstWhere((prod) => prod.id == id);
-                return DropdownMenuItem(
-                  value: id,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(p.name),
-                  ),
-                );
-              }).toList(),
+              items: productProvider.products.map((p) => DropdownMenuItem(
+                value: p.id,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(p.name, style: GoogleFonts.poppins(fontSize: 14)),
+                ),
+              )).toList(),
               onChanged: (productId) {
                 if (productId != null) {
                   final product = productProvider.products.firstWhere((p) => p.id == productId);
@@ -924,16 +849,16 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
 
   Widget _buildPurchasedItemCard(int index, Map<String, dynamic> item) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -942,111 +867,65 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: AppColors.accentGreen.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.inventory_2_outlined,
-                    size: 20, color: AppColors.primary),
+                child: const Icon(Icons.inventory_2_outlined, size: 18, color: AppColors.primary),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   item['name'],
-                  style:
-                      GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 15),
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textDark),
                 ),
               ),
               if (!_isReadOnly)
                 IconButton(
-                  icon: Icon(Icons.remove_circle_outline,
-                      color: AppColors.error, size: 20),
+                  icon: const Icon(Icons.remove_circle_outline_rounded, color: AppColors.error, size: 20),
                   onPressed: () => _removeItem(index),
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+          ),
           Row(
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Qty (${item['unit'] ?? ''})',
-                        style: GoogleFonts.poppins(
-                            fontSize: 12, color: AppColors.textMedium)),
-                    SizedBox(height: 4),
-                    TextFormField(
-                      controller: item['qtyController'],
-                      enabled: !_isReadOnly,
-                      keyboardType: TextInputType.number,
-                      onChanged: (val) =>
-                          _updateItem(index, quantity: int.tryParse(val) ?? 0),
-                      style: GoogleFonts.poppins(
-                        color: _isReadOnly ? AppColors.textMedium : AppColors.textDark,
-                      ),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 8),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        filled: _isReadOnly,
-                        fillColor: _isReadOnly ? Colors.grey.shade100 : null,
-                      ),
-                    ),
-                  ],
+                flex: 2,
+                child: _buildItemInput(
+                  label: 'Qty (${item['unit']})',
+                  controller: item['qtyController'],
+                  onChanged: (v) => _updateItem(index, quantity: int.tryParse(v) ?? 0),
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
+                flex: 3,
+                child: _buildItemInput(
+                  label: 'Cost Price',
+                  controller: item['costController'],
+                  prefix: 'Rs ',
+                  onChanged: (v) => _updateItem(index, costPrice: double.tryParse(v) ?? 0),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('Cost Price',
-                        style: GoogleFonts.poppins(
-                            fontSize: 12, color: AppColors.textMedium)),
-                    SizedBox(height: 4),
-                    TextFormField(
-                      controller: item['costController'],
-                      enabled: !_isReadOnly,
-                      keyboardType: TextInputType.number,
-                      onChanged: (val) =>
-                          _updateItem(index, costPrice: double.tryParse(val) ?? 0),
-                      style: GoogleFonts.poppins(
-                        color: _isReadOnly ? AppColors.textMedium : AppColors.textDark,
-                      ),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        prefixText: 'Rs ',
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 8),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        filled: _isReadOnly,
-                        fillColor: _isReadOnly ? Colors.grey.shade100 : null,
-                      ),
+                    Text('Total', style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textLight)),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Rs ${((item['quantity'] ?? 0) * (item['costPrice'] ?? 0.0)).toStringAsFixed(0)}',
+                      style: GoogleFonts.poppins(fontWeight: FontWeight.w700, color: AppColors.primary, fontSize: 14),
                     ),
                   ],
                 ),
-              ),
-              SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('Total',
-                      style: GoogleFonts.poppins(
-                          fontSize: 12, color: AppColors.textMedium)),
-                  SizedBox(height: 10),
-                  Text(
-                    'Rs ${( (item['quantity'] ?? 0) * (item['costPrice'] ?? 0.0) ).toStringAsFixed(0)}',
-                    style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                        fontSize: 14),
-                  ),
-                ],
               ),
             ],
           ),
@@ -1055,49 +934,127 @@ class _RecordPurchaseScreenState extends State<RecordPurchaseScreen> {
     );
   }
 
-  BoxDecoration _containerDecoration(IconData icon,
-      {Color? borderColor, Color? bgColor}) {
-    return BoxDecoration(
-      color: bgColor ?? Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: borderColor ?? Colors.grey.shade300),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.02),
-          blurRadius: 10,
-          offset: const Offset(0, 4),
-        )
+  Widget _buildItemInput({required String label, required TextEditingController controller, String? prefix, required Function(String) onChanged}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: GoogleFonts.poppins(fontSize: 11, color: AppColors.textLight, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          enabled: !_isReadOnly,
+          keyboardType: TextInputType.number,
+          onChanged: (v) => onChanged(v),
+          style: GoogleFonts.poppins(fontSize: 13, fontWeight: FontWeight.w600, color: _isReadOnly ? AppColors.textMedium : AppColors.textDark),
+          decoration: InputDecoration(
+            isDense: true,
+            prefixText: prefix,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            filled: true,
+            fillColor: const Color(0xFFF8FAFC),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.primary, width: 1)),
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return Container(
+      width: double.infinity,
+      height: 58,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.25),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: _isSubmitting ? null : _submit,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        ),
+        child: _isSubmitting
+          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+          : Text('Record Transaction', style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+      ),
+    );
+  }
+
+  Widget _buildLockedState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.lock_outline, color: AppColors.textLight, size: 18),
+          const SizedBox(width: 12),
+          Text(
+            'This record is locked for auditing',
+            style: GoogleFonts.poppins(color: AppColors.textLight, fontWeight: FontWeight.w600, fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingState(String message) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+      child: Center(
+        child: Column(
+          children: [
+            const CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+            const SizedBox(height: 16),
+            Text(message, style: GoogleFonts.poppins(color: AppColors.textLight, fontSize: 13)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.grey.shade100)),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(Icons.add_shopping_cart_rounded, size: 48, color: Colors.grey.shade200),
+            const SizedBox(height: 16),
+            Text('No items added yet', style: GoogleFonts.poppins(color: AppColors.textLight, fontSize: 14, fontWeight: FontWeight.w500)),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildLoadingDropdown(String hint) {
     return Container(
-      decoration: _containerDecoration(Icons.sync),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          items: [],
-          onChanged: null,
-          hint: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                SizedBox(width: 12),
-                Text(hint),
-              ],
-            ),
-          ),
-          icon: Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: Icon(Icons.arrow_drop_down, color: Colors.grey),
-          ),
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: _inputBoxDecoration(),
+      child: Row(
+        children: [
+          const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)),
+          const SizedBox(width: 12),
+          Text(hint, style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textLight)),
+        ],
       ),
     );
   }

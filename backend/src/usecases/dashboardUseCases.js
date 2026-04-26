@@ -29,6 +29,7 @@ class GetDashboardData {
             customerCredit,
             toSuppliers,
             totalItemsInStock,
+            totalInventoryValue,
             recentSales,
             recentPurchases
         ] = await Promise.all([
@@ -37,6 +38,7 @@ class GetDashboardData {
             this.customerRepository.getTotalOutstanding(ownerId), // Asset: Money owed to the merchant
             this.supplierRepository.getTotalPayable(ownerId), // Liability: Money merchant owes to vendors
             this.getTotalItemsInStock(ownerId), // Total physical units on hand
+            this.getTotalInventoryValue(ownerId), // Global asset valuation
             this.saleRepository.getAll(ownerId, 5), // Latest 5 outbound transactions
             this.purchaseRepository.getAll(ownerId, 5) // Latest 5 inbound transactions
         ]);
@@ -80,6 +82,7 @@ class GetDashboardData {
             customerCredit,
             toSuppliers,
             totalItemsInStock,
+            totalInventoryValue,
             recentTransactions
         };
     }
@@ -89,6 +92,13 @@ class GetDashboardData {
      */
     async getTotalItemsInStock(ownerId) {
         return this.productRepository.getTotalStockQuantity(ownerId);
+    }
+
+    /**
+     * Helper: Calculates global monetary valuation of all physical stock.
+     */
+    async getTotalInventoryValue(ownerId) {
+        return this.productRepository.getTotalInventoryValue(ownerId);
     }
 }
 

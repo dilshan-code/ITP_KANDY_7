@@ -1,8 +1,8 @@
 // ------------------------------------------------------------------------------
 // File: admin_dashboard_screen.dart
 // Purpose: Executive summary and control center for system administrators.
-// Rationale: Provides real-time visibility into platform metrics (Store counts, 
-//   System Health, Pending Feedback) and serves as the primary navigation hub 
+// Rationale: Provides real-time visibility into platform metrics (Store counts,
+//   System Health, Pending Feedback) and serves as the primary navigation hub
 //   for global governance tasks.
 // ------------------------------------------------------------------------------
 // UI: Flutter Material widgets
@@ -15,6 +15,8 @@ import 'package:frontend/features/admin/presentation/providers/admin_provider.da
 import 'package:frontend/features/auth/domain/entities/owner.dart';
 // State: User feedback state
 import 'package:frontend/features/account/presentation/providers/feedback_provider.dart';
+// Network: ApiClient for environment info
+import 'package:frontend/core/network/api_client.dart';
 // UI: Standardized screen headers
 import 'package:frontend/shared/widgets/screen_header.dart';
 // UI: Placeholder loading states
@@ -22,7 +24,6 @@ import 'package:frontend/shared/widgets/shimmer_loading.dart';
 // UI: Physics-based touch feedback
 // UI: Smooth entrance animations
 import 'package:animate_do/animate_do.dart';
-
 
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
@@ -79,7 +80,6 @@ class AdminDashboardScreen extends StatelessWidget {
       subtitle: 'Overview of ClickBuy partner network',
       onBack: null,
     );
-
   }
 
   Widget _buildStatCards(BuildContext context, AdminProvider provider) {
@@ -119,7 +119,6 @@ class AdminDashboardScreen extends StatelessWidget {
       ],
     );
   }
-
 
   Widget _buildSystemHealth(AdminProvider provider) {
     final mongo = provider.systemHealth;
@@ -184,8 +183,29 @@ class AdminDashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           _buildHealthRow('MongoDB Storage', storage, Colors.indigo),
-          _buildHealthRow('DB Network Load', 'Reads: $reads | Writes: $writes', Colors.green),
+          _buildHealthRow(
+            'DB Network Load',
+            'Reads: $reads | Writes: $writes',
+            Colors.green,
+          ),
           _buildHealthRow('API Server', 'Running', Colors.green),
+          _buildHealthRow(
+            'Environment',
+            ApiClient.isLocalFallback ? 'Local Terminal' : 'Cloud (Replit)',
+            ApiClient.isLocalFallback ? Colors.amber[700]! : Colors.blue,
+          ),
+          if (ApiClient.isLocalFallback)
+            Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              child: Text(
+                'Connected to ${ApiClient.serverIp}',
+                style: TextStyle(
+                  color: Colors.grey[500],
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -264,16 +284,19 @@ class AdminDashboardScreen extends StatelessWidget {
           )
         else
           Column(
-            children: (provider.owners.toList()
-                  // Sorting by creation date to show the newest partners first.
-                  ..sort((a, b) => b.createdAt.compareTo(a.createdAt)))
-                .take(3)
-                .indexed
-                .map((entry) => FadeInLeft(
-                      delay: Duration(milliseconds: 400 + (entry.$1 * 100)),
-                      child: _OwnerMiniTile(owner: entry.$2),
-                    ))
-                .toList(),
+            children:
+                (provider.owners.toList()
+                      // Sorting by creation date to show the newest partners first.
+                      ..sort((a, b) => b.createdAt.compareTo(a.createdAt)))
+                    .take(3)
+                    .indexed
+                    .map(
+                      (entry) => FadeInLeft(
+                        delay: Duration(milliseconds: 400 + (entry.$1 * 100)),
+                        child: _OwnerMiniTile(owner: entry.$2),
+                      ),
+                    )
+                    .toList(),
           ),
       ],
     );
@@ -445,5 +468,3 @@ class _AdminStatCard extends StatelessWidget {
     );
   }
 }
-
-

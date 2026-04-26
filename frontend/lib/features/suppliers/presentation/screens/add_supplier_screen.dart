@@ -112,10 +112,14 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isEdit = widget.supplier != null;
+    
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC), // Premium light background
       appBar: AppBar(
         title: Text(
-          widget.supplier != null ? 'Edit Supplier' : 'Add New Supplier',
+          isEdit ? 'Edit Supplier' : 'Add New Supplier',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
         ),
         leading: AppBackButton(
           onTap: () => Navigator.pop(context),
@@ -124,165 +128,237 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Icon header
-                Center(
-                  child: Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: AppColors.accentGreen,
-                      borderRadius: BorderRadius.circular(20),
+                // --- Section 1: Business Identity ---
+                _buildSectionHeader(Icons.business_center_outlined, 'Business Identity'),
+                const SizedBox(height: 16),
+                _buildFormCard([
+                  _buildLabel('Supplier Name *'),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _nameController,
+                    style: GoogleFonts.poppins(fontSize: 15, color: AppColors.textDark),
+                    decoration: _inputDecoration(
+                      hint: 'e.g. Acme Corporation',
+                      icon: Icons.business_outlined,
                     ),
-                    child: Icon(
-                      Icons.local_shipping_outlined,
-                      size: 36,
-                      color: AppColors.primary,
+                    validator: (v) => ValidationUtils.validateRequired(v, 'Supplier name'),
+                  ),
+                ]),
+
+                const SizedBox(height: 24),
+                // --- Section 2: Contact Information ---
+                _buildSectionHeader(Icons.contact_phone_outlined, 'Contact Details'),
+                const SizedBox(height: 16),
+                _buildFormCard([
+                  _buildLabel('Phone Number *'),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    style: GoogleFonts.poppins(fontSize: 15, color: AppColors.textDark),
+                    decoration: _inputDecoration(
+                      hint: '+94 XX XXX XXXX',
+                      icon: Icons.phone_outlined,
+                    ),
+                    validator: ValidationUtils.validatePhone,
+                  ),
+                  const SizedBox(height: 20),
+                  _buildLabel('Email Address'),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    style: GoogleFonts.poppins(fontSize: 15, color: AppColors.textDark),
+                    decoration: _inputDecoration(
+                      hint: 'supplier@example.com',
+                      icon: Icons.mail_outline,
+                    ),
+                    validator: ValidationUtils.validateEmail,
+                  ),
+                ]),
+
+                const SizedBox(height: 24),
+                // --- Section 3: Logistics & Notes ---
+                _buildSectionHeader(Icons.map_outlined, 'Logistics & Notes'),
+                const SizedBox(height: 16),
+                _buildFormCard([
+                  _buildLabel('Physical Address'),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _addressController,
+                    maxLines: 2,
+                    style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textDark),
+                    decoration: _inputDecoration(
+                      hint: 'Street, City, Postal Code',
+                      icon: Icons.location_on_outlined,
                     ),
                   ),
-                ),
-                SizedBox(height: 32),
-
-                _buildLabel('Supplier Name *'),
-                SizedBox(height: 8),
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter supplier name',
-                    prefixIcon: Icon(
-                      Icons.business_outlined,
-                      color: AppColors.textLight,
+                  const SizedBox(height: 20),
+                  _buildLabel('Additional Remarks'),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _notesController,
+                    maxLines: 3,
+                    style: GoogleFonts.poppins(fontSize: 14, color: AppColors.textDark),
+                    decoration: _inputDecoration(
+                      hint: 'Important notes about this partner...',
+                      icon: Icons.note_outlined,
                     ),
                   ),
-                  validator: (v) =>
-                      ValidationUtils.validateRequired(v, 'Supplier name'),
-                ),
-                SizedBox(height: 20),
+                ]),
 
-                _buildLabel('Phone Number *'),
-                SizedBox(height: 8),
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    hintText: '+94 XX XXX XXXX',
-                    prefixIcon: Icon(
-                      Icons.phone_outlined,
-                      color: AppColors.textLight,
-                    ),
-                  ),
-                  validator: ValidationUtils.validatePhone,
-                ),
-                SizedBox(height: 20),
+                const SizedBox(height: 40),
 
-                _buildLabel('Email'),
-                SizedBox(height: 8),
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    hintText: 'supplier@example.com',
-                    prefixIcon: Icon(
-                      Icons.mail_outline,
-                      color: AppColors.textLight,
-                    ),
-                  ),
-                  validator: ValidationUtils.validateEmail,
-                ),
-                SizedBox(height: 20),
-
-                _buildLabel('Address'),
-                SizedBox(height: 8),
-                TextFormField(
-                  controller: _addressController,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter supplier address',
-                    prefixIcon: Icon(
-                      Icons.location_on_outlined,
-                      color: AppColors.textLight,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20),
-
-                _buildLabel('Notes'),
-                SizedBox(height: 8),
-                TextFormField(
-                  controller: _notesController,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    hintText: 'Additional notes about the supplier...',
-                    prefixIcon: Icon(
-                      Icons.note_outlined,
-                      color: AppColors.textLight,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 32),
-
+                // --- Action Button ---
                 SizedBox(
                   width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                  height: 58,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.25),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
                     ),
-                    child: _isSubmitting
-                        ? SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                widget.supplier != null
-                                    ? Icons.save_outlined
-                                    : Icons.add_circle_outline,
-                                size: 20,
+                    child: ElevatedButton(
+                      onPressed: _isSubmitting ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
                               ),
-                              SizedBox(width: 8),
-                              Text(
-                                widget.supplier != null
-                                    ? 'Update Supplier'
-                                    : 'Add Supplier',
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  isEdit ? Icons.check_circle_outline : Icons.add_business_outlined,
+                                  size: 22,
                                 ),
-                              ),
-                            ],
-                          ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  isEdit ? 'Save Changes' : 'Register Supplier',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
                   ),
                 ),
+                const SizedBox(height: 20),
               ],
             ),
           ),
         ),
       ),
-  );
-}
+    );
+  }
+
+  Widget _buildSectionHeader(IconData icon, String title) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.accentGreen.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: AppColors.primary, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title.toUpperCase(),
+          style: GoogleFonts.poppins(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.2,
+            color: AppColors.textLight.withValues(alpha: 0.8),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormCard(List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({required String hint, required IconData icon}) {
+    return InputDecoration(
+      hintText: hint,
+      prefixIcon: Icon(icon, color: AppColors.textLight.withValues(alpha: 0.5), size: 20),
+      filled: true,
+      fillColor: const Color(0xFFF1F5F9).withValues(alpha: 0.5),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: AppColors.error, width: 1),
+      ),
+    );
+  }
 
   Widget _buildLabel(String text) {
     return Text(
       text,
       style: GoogleFonts.poppins(
         fontWeight: FontWeight.w600,
-        fontSize: 14,
-        color: AppColors.textDark,
+        fontSize: 13,
+        color: AppColors.textDark.withValues(alpha: 0.9),
       ),
     );
   }

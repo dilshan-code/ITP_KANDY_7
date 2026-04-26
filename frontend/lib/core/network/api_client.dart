@@ -16,45 +16,106 @@ import 'package:frontend/core/error/exceptions.dart'; // Custom domain exception
 
 class ApiClient {
   // --- Infrastructure Settings ---
-  // Default: Replit production hostname for real devices.
-  // Developers can override to a local IP via the Server Connection dialog (10s logo hold).
-  static String _serverIp = 'ba408787-5deb-46ee-bb7e-679a94333377-00-3jxj82plhfdn2.sisko.replit.dev';
-  static int _serverPort = 3000; // State: Active server port (Default: 3000)
-  static const String _storageKeyIp = 'backend_server_ip'; // Registry: Key for local persistence
-  static const String _storageKeyPort = 'backend_server_port'; // Registry: Key for port persistence
-  static const String _storageKeyToken = 'backend_auth_token'; // Security: Key for JWT persistence
+  static const String _replitHost = 'ba408787-5deb-46ee-bb7e-679a94333377-00-3jxj82plhfdn2.sisko.replit.dev';
+  static String _serverIp = _replitHost;
+  static int _serverPort = 3000;
+  static bool _isLocalFallback = false; // Flag: Active when using laptop terminal backend
+
+  static const String _storageKeyIp = 'backend_server_ip';
+  static const String _storageKeyPort = 'backend_server_port';
+  static const String _storageKeyToken = 'backend_auth_token';
   
   // --- Multi-Tenant Context ---
-  static String? _token; // Security: Active JWT session token
-  static String? ownerId; // Scope: Current logged-in shop owner ID for data isolation
-  static String? ownerName; // Audit: Owner name for server-side logging and history
+  static String? _token;
+  static String? ownerId;
+  static String? ownerName;
 
   /*
-   * Logic: Infrastructure Configuration.
-   * Rationale: Loads the active server registry from local persistence to 
-   *   resume connectivity after application restarts.
+   * Logic: Infrastructure Initialization.
+   * Rationale: Loads saved config AND performs an intelligent health probe 
+   *   to decide between Replit (Production) and Local (Development) servers.
    */
   static Future<void> init() async {
     try {
-      final prefs = await SharedPreferences.getInstance(); // Access: Local disk storage
-      final savedIp = prefs.getString(_storageKeyIp); // Retrieval: Get the last known IP
+      final prefs = await SharedPreferences.getInstance();
+      
+      // 1. Load saved preferences if they exist
+      final savedIp = prefs.getString(_storageKeyIp);
       if (savedIp != null && savedIp.isNotEmpty) {
-        _serverIp = savedIp; // Update: Apply saved configuration to current session
-        debugPrint('📡 [ApiClient] Loaded saved IP: $_serverIp');
+        _serverIp = savedIp;
       }
       
-      final savedPort = prefs.getInt(_storageKeyPort); // Retrieval: Get the last known Port
+      final savedPort = prefs.getInt(_storageKeyPort);
       if (savedPort != null) {
         _serverPort = savedPort;
-        debugPrint('📡 [ApiClient] Loaded saved Port: $_serverPort');
       }
 
-      _token = prefs.getString(_storageKeyToken); // Retrieval: Load active security token
-      if (_token != null) {
-        debugPrint('🛡️ [ApiClient] Session token loaded from storage.');
+      _token = prefs.getString(_storageKeyToken);
+
+      // 2. Auto-Discovery Logic (Skip in Release Mode for absolute stability)
+      if (!kReleaseMode) {
+        await _performAutoDiscovery();
+      } else {
+        _serverIp = _replitHost; // Force Replit in production
+        debugPrint('📡 [ApiClient] Production Mode: Anchored to Replit Cloud.');
       }
     } catch (e) {
-      debugPrint('❌ [ApiClient] Failed to load saved settings: $e'); // Log: Fault in storage access
+      debugPrint('❌ [ApiClient] Initialization error: $e');
+    }
+  }
+
+  /*
+   * Logic: Intelligent Endpoint Probing.
+   * Rationale: Attempts to reach Replit first. If unreachable AND not on a physical 
+   *   phone, it automatically switches to the local terminal backend.
+   */
+  static Future<void> _performAutoDiscovery() async {
+    debugPrint('📡 [Discovery] Probing backend infrastructure...');
+
+    // A. Check if the currently configured/saved server is alive
+    bool isPrimaryAlive = await _probeHealth(_serverIp, _serverPort);
+    if (isPrimaryAlive) {
+      _isLocalFallback = !_isHostname(_serverIp);
+      return;
+    }
+
+    // B. If primary failed, try the Replit default (if it wasn't already the primary)
+    if (_serverIp != _replitHost) {
+      debugPrint('🔄 [Discovery] Primary failed. Probing Replit Cloud...');
+      if (await _probeHealth(_replitHost, 443)) {
+        _serverIp = _replitHost;
+        _isLocalFallback = false;
+        return;
+      }
+    }
+
+    // C. Fallback to Local Terminal Backend (Web/Emulator only)
+    String localIp = kIsWeb ? 'localhost' : '10.0.2.2';
+    debugPrint('🔄 [Discovery] Replit unreachable. Probing Local Terminal ($localIp)...');
+    
+    if (await _probeHealth(localIp, 3000)) {
+      _serverIp = localIp;
+      _serverPort = 3000;
+      _isLocalFallback = true;
+    } else {
+      debugPrint('⚠️ [Discovery] All backend probes failed. Using last known config.');
+    }
+  }
+
+  /*
+   * Logic: Lightweight Health Probe.
+   * Rationale: Hits the /health endpoint with a strict timeout to verify connectivity.
+   */
+  static Future<bool> _probeHealth(String host, int port) async {
+    try {
+      final scheme = _isHostname(host) ? 'https' : 'http';
+      final portSuffix = (scheme == 'https') ? '' : ':$port';
+      final url = Uri.parse('$scheme://$host$portSuffix/health');
+      
+      final response = await http.get(url).timeout(const Duration(seconds: 3));
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -70,7 +131,6 @@ class ApiClient {
     try {
       final prefs = await SharedPreferences.getInstance(); // Access: Local disk storage
       await prefs.setString(_storageKeyIp, ip); // Commit: Persist new IP to disk
-      debugPrint('✅ [ApiClient] Server IP updated to: $ip');
     } catch (e) {
       debugPrint('❌ [ApiClient] Failed to save IP: $e'); // Log: Persistence failure
     }
@@ -86,7 +146,6 @@ class ApiClient {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_storageKeyPort, port);
-      debugPrint('✅ [ApiClient] Server Port updated to: $port');
     } catch (e) {
       debugPrint('❌ [ApiClient] Failed to save Port: $e');
     }
@@ -113,37 +172,31 @@ class ApiClient {
 
   /*
    * Logic: Dynamic Endpoint Resolution.
-   * Rationale: Constructs the API root by detecting the current execution 
-   *   platform and utilizing the discovered network registry.
+   * Rationale: Constructs the API root by detecting the discovered server 
+   *   type and ensuring the correct protocol/port is utilized.
    */
   static String get baseUrl {
-    // Strategy: Use the live Replit production server for the final APK (Release mode).
-    // This removes the dependency on local Wi-Fi for actual users.
     if (kReleaseMode) {
-      return 'https://ba408787-5deb-46ee-bb7e-679a94333377-00-3jxj82plhfdn2.sisko.replit.dev/api';
+      return 'https://$_replitHost/api';
     }
 
-    // Strategy: Detect if the configured server address is a hostname (e.g. Replit domain)
-    // rather than a bare IP address. Hostnames use HTTPS and don't need a port suffix.
-    if (_isHostname(_serverIp)) {
-      return 'https://$_serverIp/api';
-    }
-
-    if (kIsWeb) {
-      return 'http://localhost:$_serverPort/api'; // Dev: Use dynamic port
-    } else {
-      return 'http://$_serverIp:$_serverPort/api'; // Development/Mobile: Use dynamic port
-    }
+    final isHostname = _isHostname(_serverIp);
+    final scheme = isHostname ? 'https' : 'http';
+    
+    // Logic: Hostnames (Replit) don't use the :3000 port suffix in the public URL
+    final portSuffix = isHostname ? '' : ':$_serverPort';
+    
+    return '$scheme://$_serverIp$portSuffix/api';
   }
 
   /// Detects if the given address is a hostname (e.g. `xyz.replit.dev`) vs a bare IP (e.g. `192.168.1.5`).
   static bool _isHostname(String address) {
-    // A bare IPv4 address is all digits and dots. Anything else is a hostname.
     return address.contains('.') && !RegExp(r'^[\d.]+$').hasMatch(address);
   }
 
   static String get serverIp => _serverIp; // Query: Current active IP for UI displays
   static int get serverPort => _serverPort; // Query: Current active Port
+  static bool get isLocalFallback => _isLocalFallback; // Query: True if using laptop terminal backend
 
   /*
    * Logic: Contextual Header Injection.
@@ -170,11 +223,18 @@ class ApiClient {
   // --- HTTP Methods: REST Implementation ---
 
   // Standard GET: Fetch collection or record
-  static Future<Map<String, dynamic>> get(String path, {Map<String, String>? queryParameters}) async {
+  static Future<Map<String, dynamic>> get(String path, {Map<String, String>? queryParameters, bool cacheBust = true}) async {
     try {
       Uri uri = Uri.parse('$baseUrl$path'); // Resolution: Full endpoint URL
-      if (queryParameters != null && queryParameters.isNotEmpty) {
-        uri = uri.replace(queryParameters: queryParameters); // Filter: Append URL queries (e.g. ?id=1)
+      
+      // Implement cache busting for standard GET requests to prevent stale data
+      final Map<String, dynamic> finalParams = Map<String, dynamic>.from(queryParameters ?? {});
+      if (cacheBust) {
+        finalParams['_t'] = DateTime.now().millisecondsSinceEpoch.toString();
+      }
+
+      if (finalParams.isNotEmpty) {
+        uri = uri.replace(queryParameters: finalParams.cast<String, String>()); // Filter: Append URL queries (e.g. ?id=1)
       }
 
       final response = await http.get(

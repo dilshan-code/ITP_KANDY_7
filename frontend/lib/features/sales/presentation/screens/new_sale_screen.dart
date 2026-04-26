@@ -272,141 +272,174 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                                   FadeInUp(
                                     duration: const Duration(milliseconds: 600),
                                     child: Container(
-                                      padding: const EdgeInsets.all(20),
                                       decoration: BoxDecoration(
                                         color: Colors.white,
                                         borderRadius: const BorderRadius.vertical(
-                                          top: Radius.circular(24),
+                                          top: Radius.circular(32),
                                         ),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withValues(alpha: 0.08),
-                                            blurRadius: 16,
-                                            offset: const Offset(0, -4),
+                                            color: const Color(0xFF0F4C3F).withValues(alpha: 0.08),
+                                            blurRadius: 24,
+                                            offset: const Offset(0, -8),
                                           ),
                                         ],
                                       ),
-                                      child: SafeArea(
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
+                                      child: ClipRRect(
+                                        borderRadius: const BorderRadius.vertical(
+                                          top: Radius.circular(32),
+                                        ),
+                                        child: Stack(
                                           children: [
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      'Total Summary',
-                                                      style: GoogleFonts.poppins(
-                                                        fontSize: 14,
-                                                        color: AppColors.textMedium,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(height: 4),
-                                                    Text(
-                                                      '${provider.totalItems} Items', // Total unit count
-                                                      style: GoogleFonts.poppins(
-                                                        fontWeight: FontWeight.w600,
-                                                        fontSize: 16,
-                                                      ),
-                                                    ),
-                                                  ],
+                                            // Glassmorphic background accent
+                                            Positioned(
+                                              top: -50,
+                                              right: -50,
+                                              child: Container(
+                                                width: 150,
+                                                height: 150,
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.primary.withValues(alpha: 0.03),
+                                                  shape: BoxShape.circle,
                                                 ),
-                                                Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                                  children: [
-                                                    Text(
-                                                      'Total Amount',
-                                                      style: GoogleFonts.poppins(
-                                                        fontSize: 14,
-                                                        color: AppColors.textMedium,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(height: 4),
-                                                    // Live animated total amount display
-                                                    CounterText(
-                                                      value: provider.totalAmount,
-                                                      prefix: 'Rs. ',
-                                                      style: GoogleFonts.poppins(
-                                                        fontWeight: FontWeight.w800,
-                                                        fontSize: 22,
-                                                        color: AppColors.primary,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
+                                              ),
                                             ),
-                                            const SizedBox(height: 20),
-                                            Row(
-                                              children: [
-                                                // Credit Path: For trusted regular customers
-                                                Expanded(
-                                                  child: TactileScale(
-                                                    onTap: () => _showConfirmation(
-                                                      context,
-                                                      provider,
-                                                      'credit',
+                                            Padding(
+                                              padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  // Glassmorphic Summary Bar
+                                                  Container(
+                                                    padding: const EdgeInsets.all(20),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFFF8FAFC),
+                                                      borderRadius: BorderRadius.circular(24),
+                                                      border: Border.all(color: const Color(0xFFE2E8F0)),
                                                     ),
-                                                    child: OutlinedButton(
-                                                      onPressed: null, // Tap handled by TactileScale wrapper
-                                                      style: OutlinedButton.styleFrom(
-                                                        padding: const EdgeInsets.symmetric(
-                                                          vertical: 16,
+                                                    child: Row(
+                                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                      children: [
+                                                        Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            Text(
+                                                              'TOTAL ITEMS',
+                                                              style: GoogleFonts.poppins(
+                                                                fontSize: 10,
+                                                                fontWeight: FontWeight.w800,
+                                                                color: const Color(0xFF94A3B8),
+                                                                letterSpacing: 1.2,
+                                                              ),
+                                                            ),
+                                                            const SizedBox(height: 4),
+                                                            Text(
+                                                              '${provider.totalItems} Units',
+                                                              style: GoogleFonts.poppins(
+                                                                fontWeight: FontWeight.w700,
+                                                                fontSize: 16,
+                                                                color: const Color(0xFF1E293B),
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ),
-                                                        shape: RoundedRectangleBorder(
-                                                          borderRadius: BorderRadius.circular(20),
+                                                        Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                                          children: [
+                                                            Text(
+                                                              'TOTAL AMOUNT',
+                                                              style: GoogleFonts.poppins(
+                                                                fontSize: 10,
+                                                                fontWeight: FontWeight.w800,
+                                                                color: const Color(0xFF94A3B8),
+                                                                letterSpacing: 1.2,
+                                                              ),
+                                                            ),
+                                                            const SizedBox(height: 2),
+                                                            CounterText(
+                                                              value: provider.totalAmount,
+                                                              prefix: 'Rs. ',
+                                                              style: GoogleFonts.poppins(
+                                                                fontWeight: FontWeight.w800,
+                                                                fontSize: 24,
+                                                                color: AppColors.primary,
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ),
-                                                        side: const BorderSide(
-                                                          color: AppColors.primary,
-                                                          width: 2,
-                                                        ),
-                                                        disabledForegroundColor: AppColors.primary,
-                                                      ),
-                                                      child: Text(
-                                                        'Credit Loan',
-                                                        style: GoogleFonts.poppins(
-                                                          fontWeight: FontWeight.w700,
-                                                          fontSize: 16,
-                                                        ),
-                                                      ),
+                                                      ],
                                                     ),
                                                   ),
-                                                ),
-                                                const SizedBox(width: 12),
-                                                // Immediate Settlement Path
-                                                Expanded(
-                                                  flex: 2,
-                                                  child: TactileScale(
-                                                    onTap: () => _showConfirmation(context, provider, 'cash'),
-                                                    child: ElevatedButton(
-                                                      onPressed: null, // Tap handled by TactileScale wrapper
-                                                      style: ElevatedButton.styleFrom(
-                                                        backgroundColor: AppColors.primary,
-                                                        disabledBackgroundColor: AppColors.primary,
-                                                        disabledForegroundColor: Colors.white,
-                                                        foregroundColor: Colors.white,
-                                                        padding: const EdgeInsets.symmetric(
-                                                          vertical: 16,
-                                                        ),
-                                                        shape: RoundedRectangleBorder(
-                                                          borderRadius: BorderRadius.circular(20),
-                                                        ),
-                                                        elevation: 0,
-                                                      ),
-                                                      child: Text(
-                                                        'Pay Cash',
-                                                        style: GoogleFonts.poppins(
-                                                          fontWeight: FontWeight.w700,
-                                                          fontSize: 16,
-                                                          color: Colors.white,
+                                                  const SizedBox(height: 24),
+                                                  Row(
+                                                    children: [
+                                                      Expanded(
+                                                        child: TactileScale(
+                                                          onTap: () => _showConfirmation(context, provider, 'credit'),
+                                                          child: Container(
+                                                            padding: const EdgeInsets.symmetric(vertical: 18),
+                                                            alignment: Alignment.center,
+                                                            decoration: BoxDecoration(
+                                                              color: const Color(0xFFF1F5F9),
+                                                              borderRadius: BorderRadius.circular(20),
+                                                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                                                            ),
+                                                            child: Text(
+                                                              'Credit Loan',
+                                                              style: GoogleFonts.poppins(
+                                                                fontWeight: FontWeight.w700,
+                                                                fontSize: 15,
+                                                                color: const Color(0xFF475569),
+                                                              ),
+                                                            ),
+                                                          ),
                                                         ),
                                                       ),
-                                                    ),
+                                                      const SizedBox(width: 12),
+                                                      Expanded(
+                                                        flex: 2,
+                                                        child: TactileScale(
+                                                          onTap: () => _showConfirmation(context, provider, 'cash'),
+                                                          child: Container(
+                                                            padding: const EdgeInsets.symmetric(vertical: 18),
+                                                            alignment: Alignment.center,
+                                                            decoration: BoxDecoration(
+                                                              gradient: const LinearGradient(
+                                                                colors: [Color(0xFF0F4C3F), Color(0xFF22C55E)],
+                                                                begin: Alignment.topLeft,
+                                                                end: Alignment.bottomRight,
+                                                              ),
+                                                              borderRadius: BorderRadius.circular(20),
+                                                              boxShadow: [
+                                                                BoxShadow(
+                                                                  color: const Color(0xFF22C55E).withValues(alpha: 0.25),
+                                                                  blurRadius: 15,
+                                                                  offset: const Offset(0, 6),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            child: Row(
+                                                              mainAxisAlignment: MainAxisAlignment.center,
+                                                              children: [
+                                                                const Icon(Icons.bolt_rounded, color: Colors.white, size: 20),
+                                                                const SizedBox(width: 8),
+                                                                Text(
+                                                                  'Pay Cash',
+                                                                  style: GoogleFonts.poppins(
+                                                                    fontWeight: FontWeight.w700,
+                                                                    fontSize: 16,
+                                                                    color: Colors.white,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -507,7 +540,9 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       if (saleDetails != null) {
         // Post-sale cleanup: ensure all providers reflect the new system state
         
-        // Refresh product list to show reduced inventory counts
+        // Refresh product list to show reduced inventory counts (with sync delay)
+        await Future.delayed(const Duration(milliseconds: 1000));
+        if (!context.mounted) return;
         context.read<ProductProvider>().fetchProducts();
         
         // Update local sales history cache
