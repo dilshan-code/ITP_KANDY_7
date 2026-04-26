@@ -13,6 +13,7 @@ import 'package:frontend/core/config/cloudinary_config.dart'; // Config: Cloud c
 import 'package:frontend/core/error/exceptions.dart'; // Infrastructure: Custom exceptions
 import 'package:frontend/features/products/domain/entities/product.dart'; // Domain: Entity
 import 'package:frontend/features/products/data/repositories/product_repository_impl.dart'; // Data: Adapter
+import 'package:frontend/core/network/api_client.dart'; // Network: API Client
 
 class ProductProvider extends ChangeNotifier {
   final ProductRepositoryImpl _repository = ProductRepositoryImpl(); // Logic: Backend adapter
@@ -40,13 +41,19 @@ class ProductProvider extends ChangeNotifier {
   List<Product> get lowStockProducts =>
       _products.where((p) => p.isLowStock).toList();
 
-  /// Aggregates the total monetary value of all inventory (sum of inventoryValue).
-  double get totalInventoryValue =>
-      _products.fold(0.0, (sum, p) => sum + p.inventoryValue);
+  // Global stats fetched from dashboard endpoint to ensure accuracy during pagination
+  int _globalTotalItemsInStock = 0;
+  double _globalTotalInventoryValue = 0.0;
+  
+  /// Aggregates the total monetary value of all loaded inventory (global stat if available, fallback to loaded).
+  double get totalInventoryValue => _globalTotalInventoryValue > 0
+      ? _globalTotalInventoryValue
+      : _products.fold(0.0, (sum, p) => sum + p.inventoryValue);
  
-  /// Returns the total unit count across all products.
-  int get totalItemsInStock =>
-      _products.fold(0, (sum, p) => sum + p.stockQuantity);
+  /// Returns the total unit count across all products (global stat if available, fallback to loaded).
+  int get totalItemsInStock => _globalTotalItemsInStock > 0 
+      ? _globalTotalItemsInStock 
+      : _products.fold(0, (sum, p) => sum + p.stockQuantity);
  
   /// Count of products below their minimum stock level (for dashboard badges).
   int get lowStockCount => _products.where((p) => p.isLowStock).length;
@@ -82,6 +89,19 @@ class ProductProvider extends ChangeNotifier {
         limit: _pageSize,
         lastId: lastId,
       );
+
+      // Fetch global stats to ensure accuracy during pagination
+      if (refresh) {
+        try {
+          final dashResult = await ApiClient.get('/dashboard');
+          if (dashResult['data'] != null) {
+            _globalTotalItemsInStock = dashResult['data']['totalItemsInStock'] ?? 0;
+            _globalTotalInventoryValue = (dashResult['data']['totalInventoryValue'] ?? 0.0).toDouble();
+          }
+        } catch (_) {
+          // Silent fallback
+        }
+      }
 
       if (refresh) {
         _products = fetchedProducts;
@@ -169,7 +189,7 @@ class ProductProvider extends ChangeNotifier {
         }
       }
       await _repository.createProduct(data);
-      await fetchProducts(); // Refresh: Sync list with server state
+      await fetchProducts(refresh: true); // Refresh: Mandatory full sync to prevent stale list appending
       return true;
     } catch (e) {
       _error = e.toString();
@@ -192,7 +212,7 @@ class ProductProvider extends ChangeNotifier {
         }
       }
       await _repository.updateProduct(id, data);
-      await fetchProducts(); // Refresh: Sync list with server state
+      await fetchProducts(refresh: true); // Refresh: Mandatory full sync to reflect modifications immediately
       return true;
     } catch (e) {
       _error = e.toString();
@@ -209,7 +229,7 @@ class ProductProvider extends ChangeNotifier {
   Future<bool> deleteProduct(String id) async {
     try {
       await _repository.deleteProduct(id);
-      await fetchProducts(); // Refresh: Sync list with server state
+      await fetchProducts(refresh: true); // Refresh: Mandatory full sync to remove deleted item from local cache
       return true;
     } catch (e) {
       _error = e.toString();

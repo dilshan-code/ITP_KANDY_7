@@ -486,48 +486,67 @@ class _CreditListScreenState extends State<CreditListScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          'Edit Customer',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
+            _buildDialogField(
               controller: nameController,
-              decoration: const InputDecoration(hintText: 'Customer name'),
+              label: 'Customer Name',
+              icon: Icons.person_outline,
             ),
-            SizedBox(height: 12),
-            TextField(
+            const SizedBox(height: 16),
+            _buildDialogField(
               controller: phoneController,
-              decoration: const InputDecoration(hintText: 'Phone number'),
+              label: 'Phone Number',
+              icon: Icons.phone_outlined,
+              keyboardType: TextInputType.phone,
             ),
-            SizedBox(height: 12),
-            TextField(
+            const SizedBox(height: 16),
+            _buildDialogField(
               controller: limitController,
+              label: 'Credit Limit',
+              icon: Icons.account_balance_wallet_outlined,
+              prefixText: 'Rs ',
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                hintText: 'Credit Limit (Rs)',
-                prefixText: 'Rs ',
-              ),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(
+                color: AppColors.textMedium,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
             onPressed: () async {
-              // Patch local edit to the server
               if (nameController.text.isNotEmpty) {
                 final double? limit = double.tryParse(limitController.text);
-                final success =
-                    await Provider.of<CreditProvider>(
-                      context,
-                      listen: false,
-                    ).updateCustomer(customer.id, {
-                      'name': nameController.text.trim(),
-                      'phone': phoneController.text.trim(),
-                      'creditLimit': limit ?? customer.creditLimit,
-                    });
+                final success = await Provider.of<CreditProvider>(
+                  context,
+                  listen: false,
+                ).updateCustomer(customer.id, {
+                  'name': nameController.text.trim(),
+                  'phone': phoneController.text.trim(),
+                  'creditLimit': limit ?? customer.creditLimit,
+                });
                 if (context.mounted) {
                   if (success) {
                     SnackBarUtils.showSnackBar(
@@ -547,9 +566,42 @@ class _CreditListScreenState extends State<CreditListScreen>
                 }
               }
             },
-            child: Text('Update'),
+            child: Text(
+              'Update',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDialogField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    String? prefixText,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: GoogleFonts.poppins(fontSize: 14),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, size: 20, color: AppColors.primary),
+        prefixText: prefixText,
+        labelStyle: GoogleFonts.poppins(color: AppColors.textMedium),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
       ),
     );
   }
@@ -711,35 +763,56 @@ class _CreditListScreenState extends State<CreditListScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          'Add New Customer',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
+            _buildDialogField(
               controller: nameController,
-              decoration: const InputDecoration(hintText: 'Customer name'),
+              label: 'Customer Name',
+              icon: Icons.person_outline,
             ),
-            SizedBox(height: 12),
-            TextField(
+            const SizedBox(height: 16),
+            _buildDialogField(
               controller: phoneController,
-              decoration: const InputDecoration(hintText: 'Phone number'),
+              label: 'Phone Number',
+              icon: Icons.phone_outlined,
+              keyboardType: TextInputType.phone,
             ),
-            SizedBox(height: 12),
-            TextField(
+            const SizedBox(height: 16),
+            _buildDialogField(
               controller: limitController,
+              label: 'Credit Limit',
+              icon: Icons.account_balance_wallet_outlined,
+              prefixText: 'Rs ',
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                hintText: 'Credit Limit (Rs)',
-                prefixText: 'Rs ',
-              ),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.poppins(
+                color: AppColors.textMedium,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
             onPressed: () async {
               if (nameController.text.isNotEmpty) {
                 final double? limit = double.tryParse(limitController.text);
@@ -769,15 +842,12 @@ class _CreditListScreenState extends State<CreditListScreen>
                     );
                   }
                 }
-
-                if (widget.isSelectionMode) {
-                  // Refresh and return the newly created customer (they will be at the end or we can fetch them)
-                  // It's easier just to pop back the map (simulating a customer) or
-                  // pop nothing and let user select from list (simplest for now).
-                }
               }
             },
-            child: Text('Add'),
+            child: Text(
+              'Add Customer',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),

@@ -114,8 +114,8 @@ class MongoOwnerRepository extends IOwnerRepository {
      * Logic: Global Merchant Revocation.
      * Used for GDPR-compliant account deletion or administrative removal.
      */
-    async delete(id) {
-        const result = await this.model.deleteOne({ _id: id });
+    async delete(id, session = null) {
+        const result = await this.model.deleteOne({ _id: id }).session(session);
         return result.deletedCount > 0;
     }
 }

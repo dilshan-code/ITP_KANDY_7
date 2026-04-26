@@ -6,6 +6,7 @@ class ICustomerRepository {
     async create(customerData) { throw new Error('Not implemented'); }
     async update(id, customerData) { throw new Error('Not implemented'); }
     async delete(id) { throw new Error('Not implemented'); }
+    async deleteAllByOwner(ownerId) { throw new Error('Not implemented'); }
 }
 
 module.exports = ICustomerRepository;

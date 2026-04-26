@@ -6,6 +6,7 @@
 //   Serves as the primary defensive tool against system abuse or churn metadata.
 // ------------------------------------------------------------------------------
 import 'package:flutter/material.dart'; // UI: Material framework
+import 'package:google_fonts/google_fonts.dart'; // UI: Premium typography
 import 'package:provider/provider.dart'; // State: Dependency injection system
 import 'package:frontend/core/utils/snackbar_utils.dart'; // Utils: Feedback surface
 import 'package:frontend/features/admin/presentation/providers/admin_provider.dart'; // State: Administrative data source
@@ -217,60 +218,92 @@ class _OverviewPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF163D35), Color(0xFF0F9D58)],
+          colors: [
+            Color(0xFF0F4C3F), // Deep Forest
+            Color(0xFF166534), // Rich Emerald
+          ],
         ),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF163D35).withValues(alpha: 0.15),
+            color: const Color(0xFF166534).withValues(alpha: 0.25),
             blurRadius: 30,
-            offset: const Offset(0, 14),
+            offset: const Offset(0, 15),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          const Text(
-            'Owner account control',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Update owner profiles, suspend risky accounts, and delete records that should no longer stay in the system.',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.85),
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _MiniStat(
-                  label: 'Active',
-                  value: provider.activeOwners.toString(),
-                  tint: const Color(0xFFB7F7CE),
-                  isLoading: provider.isLoading,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Owner account control',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 24),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Monitor system health, manage shop accessibility, and ensure platform integrity across all partner nodes.',
+                style: GoogleFonts.poppins(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  fontSize: 13,
+                  height: 1.5,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _MiniStat(
-                  label: 'Suspended',
-                  value: provider.suspendedOwners.toString(),
-                  tint: const Color(0xFFFFC9D2),
-                  isLoading: provider.isLoading,
-                ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: _MiniStat(
+                      label: 'ACTIVE NODES',
+                      value: provider.activeOwners.toString(),
+                      icon: Icons.check_circle_outline_rounded,
+                      tint: const Color(0xFF4ADE80),
+                      isLoading: provider.isLoading,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _MiniStat(
+                      label: 'SUSPENDED',
+                      value: provider.suspendedOwners.toString(),
+                      icon: Icons.pause_circle_outline_rounded,
+                      tint: const Color(0xFFFCA5A5),
+                      isLoading: provider.isLoading,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -283,12 +316,14 @@ class _OverviewPanel extends StatelessWidget {
 class _MiniStat extends StatelessWidget {
   final String label;
   final String value;
+  final IconData icon;
   final Color tint;
   final bool isLoading;
 
   const _MiniStat({
     required this.label,
     required this.value,
+    required this.icon,
     required this.tint,
     this.isLoading = false,
   });
@@ -296,45 +331,57 @@ class _MiniStat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.13),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(icon, size: 14, color: tint),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  color: Colors.white.withValues(alpha: 0.6),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 value,
-                style: TextStyle(
-                  color: tint,
-                  fontSize: 24,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 26,
                   fontWeight: FontWeight.w800,
+                  height: 1,
                 ),
               ),
+              const SizedBox(width: 4),
               if (isLoading)
-                SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: tint,
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: tint,
+                    ),
                   ),
                 ),
             ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.8),
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
           ),
         ],
       ),
@@ -492,134 +539,167 @@ class _OwnerCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+            color: const Color(0xFF1E293B).withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: statusStyle.background,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Icon(Icons.storefront, color: statusStyle.foreground),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        owner.shopName.isNotEmpty
-                            ? owner.shopName
-                            : 'Unnamed grocery store',
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF16302B),
-                        ),
+            // Header Section: Identity & Status
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          statusStyle.background,
+                          statusStyle.background.withValues(alpha: 0.7),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        owner.name.isNotEmpty ? owner.name : 'Owner name missing',
-                        style: const TextStyle(
-                          color: Color(0xFF516A64),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusStyle.background,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    statusStyle.label,
-                    style: TextStyle(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Icon(
+                      Icons.storefront_rounded,
                       color: statusStyle.foreground,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 12,
+                      size: 28,
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Wrap(
-              runSpacing: 10,
-              spacing: 10,
-              children: [
-                _InfoChip(
-                  icon: Icons.call_outlined,
-                  label: owner.phone.isNotEmpty ? owner.phone : 'Phone missing',
-                ),
-                _InfoChip(
-                  icon: Icons.mail_outline_rounded,
-                  label: owner.email.isNotEmpty ? owner.email : 'No email',
-                ),
-                _InfoChip(
-                  icon: Icons.calendar_month_outlined,
-                  label: 'Registered $registeredDate',
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.start,
-              children: [
-                _ActionButton(
-                  label: owner.isSuspended ? 'Unsuspend' : 'Suspend',
-                  icon: owner.isSuspended 
-                      ? Icons.play_circle_outline_rounded 
-                      : Icons.pause_circle_outline_rounded,
-                  color: owner.isSuspended 
-                      ? AppColors.success 
-                      : AppColors.warning,
-                  onPressed: () => _runAction(
-                    context,
-                    // Administrative suspension: Toggling account access via AdminProvider.
-                    () => context.read<AdminProvider>().suspendOwner(owner.id),
-                    owner.isSuspended 
-                        ? 'Owner unsuspended successfully' 
-                        : 'Owner suspended successfully',
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          owner.shopName.isNotEmpty
+                              ? owner.shopName
+                              : 'Unnamed grocery store',
+                          style: GoogleFonts.poppins(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF1E293B),
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          owner.name.isNotEmpty ? owner.name : 'Owner name missing',
+                          style: GoogleFonts.poppins(
+                            color: const Color(0xFF64748B),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                _ActionButton(
-                  label: 'Update',
-                  icon: Icons.edit_rounded,
-                  color: const Color(0xFF3B82F6),
-                  onPressed: () => _showEditDialog(context),
-                ),
-                _ActionButton(
-                  label: 'Delete',
-                  icon: Icons.delete_outline_rounded,
-                  color: AppColors.error,
-                  onPressed: () => _deleteOwner(context),
-                ),
-              ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: statusStyle.background.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: statusStyle.background),
+                    ),
+                    child: Text(
+                      statusStyle.label.toUpperCase(),
+                      style: GoogleFonts.poppins(
+                        color: statusStyle.foreground,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 10,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Info Section: Contact & Metadata
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                children: [
+                  _InfoRow(
+                    icon: Icons.alternate_email_rounded,
+                    label: owner.email.isNotEmpty ? owner.email : 'No email address',
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  ),
+                  _InfoRow(
+                    icon: Icons.phone_iphone_rounded,
+                    label: owner.phone.isNotEmpty ? owner.phone : 'Phone missing',
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  ),
+                  _InfoRow(
+                    icon: Icons.event_available_rounded,
+                    label: 'Since $registeredDate',
+                  ),
+                ],
+              ),
+            ),
+
+            // Actions Section
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _ActionButton(
+                      label: owner.isSuspended ? 'UNSUSPEND' : 'SUSPEND',
+                      icon: owner.isSuspended 
+                          ? Icons.play_arrow_rounded 
+                          : Icons.block_flipped,
+                      color: owner.isSuspended 
+                          ? const Color(0xFF10B981) 
+                          : const Color(0xFFF59E0B),
+                      onPressed: () => _runAction(
+                        context,
+                        () => context.read<AdminProvider>().suspendOwner(owner.id),
+                        owner.isSuspended 
+                            ? 'Owner successfully unsuspended' 
+                            : 'Owner access suspended',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _IconActionButton(
+                    icon: Icons.edit_note_rounded,
+                    color: const Color(0xFF6366F1),
+                    onPressed: () => _showEditDialog(context),
+                  ),
+                  const SizedBox(width: 8),
+                  _IconActionButton(
+                    icon: Icons.delete_sweep_rounded,
+                    color: const Color(0xFFEF4444),
+                    onPressed: () => _deleteOwner(context),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -701,36 +781,58 @@ class _OwnerStatusStyle {
   });
 }
 
-class _InfoChip extends StatelessWidget {
+class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
 
-  const _InfoChip({required this.icon, required this.label});
+  const _InfoRow({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: const Color(0xFF5E7A73)),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Color(0xFF334155),
-                fontWeight: FontWeight.w600,
-              ),
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: const Color(0xFF94A3B8)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.poppins(
+              color: const Color(0xFF475569),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+class _IconActionButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onPressed;
+
+  const _IconActionButton({
+    required this.icon,
+    required this.color,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TactileScale(
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Icon(icon, size: 20, color: color),
       ),
     );
   }
@@ -756,26 +858,32 @@ class _ActionButton extends StatelessWidget {
     return TactileScale(
       onTap: isActionInProgress ? null : onPressed,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        constraints: const BoxConstraints(minHeight: 36),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isActionInProgress ? color.withValues(alpha: 0.5) : color,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            if (!isActionInProgress)
+              BoxShadow(
+                color: color.withValues(alpha: 0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+          ],
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 16, color: Colors.white),
-            const SizedBox(width: 6),
+            Icon(icon, size: 18, color: Colors.white),
+            const SizedBox(width: 8),
             Text(
               label,
-              style: const TextStyle(
+              style: GoogleFonts.poppins(
                 color: Colors.white,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                letterSpacing: -0.2,
-                height: 1.0,
+                letterSpacing: 0.5,
               ),
             ),
           ],

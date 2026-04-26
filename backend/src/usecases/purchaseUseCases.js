@@ -85,18 +85,27 @@ class CreatePurchase {
                     amount: (parseInt(item.quantity) || 0)
                 }));
 
-                console.log(`[CreatePurchase] Prepared stock updates:`, JSON.stringify(stockUpdates));
+                console.log(`[CreatePurchase] Prepared stock updates for owner ${ownerId}:`, JSON.stringify(stockUpdates));
 
                 if (stockUpdates.length > 0) {
                     const bulkResult = await this.productRepository.bulkUpdateStock(stockUpdates, ownerId, session);
                     console.log(`[CreatePurchase] bulkUpdateStock result:`, JSON.stringify(bulkResult));
                     
+                    // Integrity: Verify that all requested products were actually found and updated.
+                    if (bulkResult.matchedCount < stockUpdates.length) {
+                        console.error(`[CreatePurchase] Stock update mismatch. Expected ${stockUpdates.length}, but only matched ${bulkResult.matchedCount}.`);
+                        // We don't necessarily throw here if we want partial success, but for strict 
+                        // consistency in a purchase, we should probably abort.
+                        throw new Error('Some products in the purchase record could not be found for stock update.');
+                    }
+
                     // Track updated quantities for WAC if multiple items of same product exist
                     const productState = new Map();
 
                     for (const { item, product } of productDocs) {
                         const quantity = parseInt(item.quantity) || 0;
-                        const itemUnitPrice = parseFloat(item.unitPrice) || product.purchasePrice || 0;
+                        // Use item.unitPrice or item.costPrice as fallback, then existing product price
+                        const itemUnitPrice = parseFloat(item.unitPrice || item.costPrice) || product.purchasePrice || 0;
                         
                         // Get current stock from our tracking map or the initial doc
                         const currentProductState = productState.get(product.id) || {
@@ -108,6 +117,7 @@ class CreatePurchase {
                         // Formula: ((Old Stock * Old Price) + (New Quantity * New Price)) / (Total Stock)
                         let newAveragePrice;
                         if (currentProductState.stockQuantity <= 0) {
+                            // If stock is zero or negative, the new purchase price becomes the baseline.
                             newAveragePrice = itemUnitPrice;
                         } else {
                             const totalOldValue = currentProductState.stockQuantity * currentProductState.purchasePrice;
@@ -115,22 +125,24 @@ class CreatePurchase {
                             newAveragePrice = (totalOldValue + totalNewValue) / (currentProductState.stockQuantity + quantity);
                         }
 
-                        // Defensive Check: Prevent NaN
-                        if (isNaN(newAveragePrice)) {
+                        // Defensive Check: Prevent mathematical anomalies (NaN/Infinity) from poisoning the DB.
+                        if (isNaN(newAveragePrice) || !isFinite(newAveragePrice)) {
+                            console.warn(`[CreatePurchase] WAC anomaly detected for ${product.id}. Falling back to item unit price: ${itemUnitPrice}`);
                             newAveragePrice = itemUnitPrice;
                         }
 
+                        // Precision: Round to 2 decimal places for currency.
                         const roundedPrice = Math.round(newAveragePrice * 100) / 100;
                         const newStockSnapshot = currentProductState.stockQuantity + quantity;
 
-                        console.log(`[CreatePurchase] Updating product ${product.id}: OldStock=${currentProductState.stockQuantity}, Added=${quantity}, NewStock=${newStockSnapshot}, NewPrice=${roundedPrice}`);
+                        console.log(`[CreatePurchase] Product ${product.id} sync: OldStock=${currentProductState.stockQuantity}, Added=${quantity}, Result=${newStockSnapshot}, AvgPrice=${roundedPrice}`);
 
                         await this.productRepository.update(product.id, { 
                             purchasePrice: roundedPrice,
                             isLowStock: newStockSnapshot <= (product.minimumStockLevel || 0)
                         }, ownerId, session);
 
-                        // Update local state for next iteration (if same product appears again)
+                        // Update local state for next iteration (if same product appears multiple times in invoice)
                         productState.set(product.id, {
                             stockQuantity: newStockSnapshot,
                             purchasePrice: roundedPrice

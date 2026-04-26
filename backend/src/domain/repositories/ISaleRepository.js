@@ -8,6 +8,7 @@ class ISaleRepository {
     async getTodayTotal(ownerId, timezoneOffset = 0) { throw new Error('Not implemented'); }
     async getTotalRevenue(ownerId) { throw new Error('Not implemented'); }
     async getAllByDateRange(ownerId, startDate, endDate) { throw new Error('Not implemented'); }
+    async deleteAllByOwner(ownerId) { throw new Error('Not implemented'); }
 }
 
 module.exports = ISaleRepository;

@@ -396,7 +396,7 @@ class InventoryScreenState extends State<InventoryScreen> {
                 ),
               ),
               SizedBox(height: 6),
-              // Cumulative value of all stock based on selling price
+              // Cumulative value of all stock based on purchase cost
               CounterText(
                 value: provider.totalInventoryValue,
                 prefix: 'Rs. ',

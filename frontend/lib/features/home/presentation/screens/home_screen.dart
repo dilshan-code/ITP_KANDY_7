@@ -23,7 +23,6 @@ import 'package:frontend/features/notifications/presentation/providers/notificat
 import 'package:frontend/features/credit/presentation/providers/credit_provider.dart'; // State: Credit broadcast sync
 import 'package:frontend/features/suppliers/presentation/providers/supplier_provider.dart'; // State: Supplier broadcast sync
 import 'package:frontend/features/suppliers/presentation/screens/record_purchase_screen.dart'; // Navigation: Quick-add purchase
-import 'package:frontend/shared/widgets/screen_header.dart'; // UI: Reusable page header
 import 'package:frontend/shared/main_shell.dart'; // Navigation: Tab switching
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -68,6 +67,7 @@ class HomeScreenState extends State<HomeScreen> {
         context.read<NotificationProvider>().fetchNotifications();
         context.read<CreditProvider>().fetchCustomers();
         context.read<SupplierProvider>().fetchSuppliers();
+        context.read<ProductProvider>().fetchProducts();
       }
 
       if (mounted) {
@@ -162,16 +162,123 @@ class HomeScreenState extends State<HomeScreen> {
 
   Widget _buildHeader(String ownerName) {
     return Consumer<AuthProvider>(
-      builder: (context, auth, _) => ScreenHeader(
-        title: 'Hi, $ownerName',
-        subtitle: 'CLICKBUY PARTNER',
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 0),
-        action: Row(
-          children: [
-            const NotificationIcon(size: 24),
-          ],
-        ),
-      ),
+      builder: (context, auth, _) {
+        final profilePic = auth.currentOwner?.profilePic;
+        final hasProfilePic = profilePic != null && profilePic.isNotEmpty;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    // Premium Avatar with Gradient Ring
+                    Container(
+                      padding: const EdgeInsets.all(2.5),
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [AppColors.primary, AppColors.accentGreen],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.background,
+                        ),
+                        child: CircleAvatar(
+                          radius: 22,
+                          backgroundColor: AppColors.cardBlueBg,
+                          backgroundImage: hasProfilePic ? NetworkImage(profilePic) : null,
+                          child: !hasProfilePic
+                              ? const Icon(Icons.storefront_rounded, size: 24, color: AppColors.primary)
+                              : null,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    // Greeting & Partner Badge
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          RichText(
+                            text: TextSpan(
+                              style: GoogleFonts.poppins(
+                                fontSize: 22,
+                                color: AppColors.textDark,
+                                letterSpacing: -0.5,
+                              ),
+                              children: [
+                                const TextSpan(
+                                  text: 'Hi, ',
+                                  style: TextStyle(fontWeight: FontWeight.w500),
+                                ),
+                                TextSpan(
+                                  text: ownerName,
+                                  style: const TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                              ],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.verified_rounded, size: 12, color: AppColors.primary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'CLICKBUY PARTNER',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primary,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Elevated Notification Action
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.textDark.withValues(alpha: 0.04),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                  border: Border.all(color: AppColors.divider.withValues(alpha: 0.5)),
+                ),
+                child: const NotificationIcon(size: 24),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

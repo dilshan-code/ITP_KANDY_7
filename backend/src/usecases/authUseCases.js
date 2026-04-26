@@ -1,3 +1,4 @@
+const mongoose = require('mongoose'); // Database driver for handling atomic transactions
 const bcrypt = require('bcryptjs'); // Industry-standard library for secure password hashing and comparison
 const jwt = require('jsonwebtoken'); // Security: Cryptographic token generation for session management
 const { isValidEmail, isValidPhone, isValidPassword } = require('../utils/validationUtils'); // Native verification suite
@@ -456,31 +457,91 @@ class DeleteOwner {
         this.creditTransactionRepository = creditTransactionRepository;
         this.notificationRepository = notificationRepository;
         this.feedbackRepository = feedbackRepository;
+
+        // Integrity Guard: Verify all repositories are present to avoid late-runtime undefined errors
+        this._verifyRepositories();
+    }
+
+    _verifyRepositories() {
+        const repos = {
+            ownerRepository: this.ownerRepository,
+            productRepository: this.productRepository,
+            saleRepository: this.saleRepository,
+            purchaseRepository: this.purchaseRepository,
+            customerRepository: this.customerRepository,
+            supplierRepository: this.supplierRepository,
+            creditTransactionRepository: this.creditTransactionRepository,
+            notificationRepository: this.notificationRepository,
+            feedbackRepository: this.feedbackRepository
+        };
+
+        for (const [name, repo] of Object.entries(repos)) {
+            if (!repo) {
+                console.error(`[PURGE] Critical Configuration Error: ${name} is UNDEFINED in DeleteOwner constructor.`);
+            }
+        }
     }
 
     /**
-     * Executes a coordinated multi-collection delete.
+     * Executes a coordinated multi-collection delete within an atomic transaction.
      * This is an irreversible action.
      */
     async execute(id) {
-        console.log(`[WIPE] Starting full data wipe for owner: ${id}`);
-        
-        // Logic: Mass parallelism. We fire 'deleteMany' commands across the entire platform schema.
-        // This ensures no "orphan data" remains in the DB after an owner is deleted.
-        await Promise.all([
-            this.productRepository.model.deleteMany({ ownerId: id }),
-            this.customerRepository.model.deleteMany({ ownerId: id }),
-            this.supplierRepository.model.deleteMany({ ownerId: id }),
-            this.purchaseRepository.model.deleteMany({ ownerId: id }),
-            this.saleRepository.model.deleteMany({ ownerId: id }),
-            this.creditTransactionRepository.model.deleteMany({ ownerId: id }),
-            this.notificationRepository.model.deleteMany({ ownerId: id }),
-            this.feedbackRepository.model.deleteMany({ ownerId: id })
-        ]);
+        if (!id) throw new Error('Owner ID is required for account deletion');
 
-        console.log(`[WIPE] Related data cleared. Deleting owner record.`);
-        // Note: The owner record is deleted last to maintain referential integrity in logs until the end.
-        return this.ownerRepository.delete(id);
+        console.log(`[PURGE] Starting cascading data removal for Owner: ${id}`);
+
+        const session = await mongoose.startSession();
+        try {
+            return await session.withTransaction(async () => {
+                // --- Phase 1: Associated Data Purge ---
+                // We use repository-level methods to ensure consistent logic across data layers.
+                // Parallel execution for optimal performance during account closure.
+                await Promise.all([
+                    this._safeDeleteAll(this.productRepository, id, session, 'Products'),
+                    this._safeDeleteAll(this.customerRepository, id, session, 'Customers'),
+                    this._safeDeleteAll(this.supplierRepository, id, session, 'Suppliers'),
+                    this._safeDeleteAll(this.purchaseRepository, id, session, 'Purchases'),
+                    this._safeDeleteAll(this.saleRepository, id, session, 'Sales'),
+                    this._safeDeleteAll(this.creditTransactionRepository, id, session, 'CreditTransactions'),
+                    this._safeDeleteAll(this.notificationRepository, id, session, 'Notifications'),
+                    this._safeDeleteAll(this.feedbackRepository, id, session, 'Feedback')
+                ]);
+
+                // --- Phase 2: Master Account Removal ---
+                // Finalize by removing the primary identity record.
+                const success = await this.ownerRepository.delete(id, session);
+                
+                if (success) {
+                    console.log(`[PURGE] Successfully wiped all records for Owner: ${id}`);
+                } else {
+                    console.warn(`[PURGE] Associated data was purged, but master Owner record (${id}) could not be found or deleted.`);
+                }
+                return success;
+            });
+        } catch (error) {
+            console.error(`[PURGE] Transaction failed for Owner ${id}: ${error.message}`);
+            // Propagate the error so the controller can provide meaningful feedback.
+            throw new Error(`Account removal failed: ${error.message}`);
+        } finally {
+            session.endSession();
+        }
+    }
+
+    /**
+     * Logic: Defensive Execution.
+     * Safely triggers a repository deletion method if it exists.
+     */
+    async _safeDeleteAll(repo, id, session, label) {
+        if (!repo) {
+            console.warn(`[PURGE] Skipping ${label} removal: Repository is missing from dependency injection.`);
+            return;
+        }
+        if (typeof repo.deleteAllByOwner !== 'function') {
+            console.warn(`[PURGE] Skipping ${label} removal: Repository implementation for ${label} is missing 'deleteAllByOwner'.`);
+            return;
+        }
+        return repo.deleteAllByOwner(id, session);
     }
 }
 

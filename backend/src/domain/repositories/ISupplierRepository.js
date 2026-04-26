@@ -8,6 +8,7 @@ class ISupplierRepository {
     async delete(id) { throw new Error('Not implemented'); }
     async getTotalPayable(ownerId) { throw new Error('Not implemented'); }
     async countActive(ownerId) { throw new Error('Not implemented'); }
+    async deleteAllByOwner(ownerId) { throw new Error('Not implemented'); }
 }
 
 module.exports = ISupplierRepository;

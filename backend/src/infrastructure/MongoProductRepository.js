@@ -71,14 +71,47 @@ class MongoProductRepository extends IProductRepository {
     /**
      * Logic: Global Asset Valuation.
      * Sums up the total physical units available for a specific merchant.
+     * Clamped: Negative stock (e.g. from over-sales) is treated as 0 for valuation.
      */
     async getTotalStockQuantity(ownerId) {
         // Use an Aggregation Pipeline for server-side mathematical summation.
         const result = await this.model.aggregate([
             { $match: { ownerId } }, // Filter to merchant's scope
-            { $group: { _id: null, total: { $sum: "$stockQuantity" } } } // Sum the stock quantity field
+            { 
+                $group: { 
+                    _id: null, 
+                    total: { 
+                        $sum: { $max: [0, "$stockQuantity"] } 
+                    } 
+                } 
+            } 
         ]);
         return result.length > 0 ? result[0].total : 0;
+    }
+
+    /**
+     * Logic: Global Monetary Valuation.
+     * Calculates the total value of all stock based on purchase cost (purchasePrice * stockQuantity).
+     * Clamped: Negative stock is treated as 0 value to prevent negative asset balance.
+     */
+    async getTotalInventoryValue(ownerId) {
+        const result = await this.model.aggregate([
+            { $match: { ownerId } },
+            { 
+                $group: { 
+                    _id: null, 
+                    totalValue: { 
+                        $sum: { 
+                            $multiply: [
+                                { $ifNull: ["$purchasePrice", 0] }, 
+                                { $max: [0, { $ifNull: ["$stockQuantity", 0] }] }
+                            ] 
+                        } 
+                    } 
+                } 
+            }
+        ]);
+        return result.length > 0 ? result[0].totalValue : 0;
     }
 
     /**
