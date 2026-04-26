@@ -132,3 +132,20 @@ scratch/
 IT2150_Assignment_5.pdf
 assignment_text.txt
 Final_Project_Report/ClickBuy_Final_Report.md
+
+# Firebase / Google Services
+google-services.json
+**/android/app/google-services.json
+GoogleService-Info.plist
+**/ios/Runner/GoogleService-Info.plist
+
+# Private keys / Certificates / Secrets
+*.keystore
+*.jks
+*.p12
+*.pem
+key.properties
+local.properties
+.env
+.env.*
+!.env.example
