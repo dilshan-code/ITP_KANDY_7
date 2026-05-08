@@ -10,8 +10,9 @@ ShopBook is a modern, full-stack application designed to streamline inventory ma
   <img src="./docs/screenshots/credit.png" width="30%" alt="Customer Credit" />
 </p>
 <p align="center">
-  <img src="./docs/screenshots/admin.png" width="45%" alt="Admin Dashboard" />
-  <img src="./docs/screenshots/profile.png" width="45%" alt="User Profile" />
+  <img src="./docs/screenshots/profile.png" width="30%" alt="User Profile" />
+  <img src="./docs/screenshots/admin.png" width="30%" alt="Admin Dashboard" />
+  <img src="./docs/screenshots/owner_manage.png" width="30%" alt="Owner Management" />
 </p>
 
 ## 🚀 Key Features
