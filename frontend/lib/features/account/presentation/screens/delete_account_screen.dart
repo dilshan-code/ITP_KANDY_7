@@ -133,7 +133,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'You are about to permanently delete your ClickBuy account. All your data will be wiped from our systems.',
+                    'You are about to permanently delete your ShopBook account. All your data will be wiped from our systems.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.poppins(
                       fontSize: 14,

@@ -54,7 +54,7 @@ class _DatabaseBackupScreenState extends State<DatabaseBackupScreen> {
     try {
       final now = DateTime.now();
       final dateStr = DateFormat('yyyy-MM-dd_HH-mm-ss').format(now);
-      final fileName = 'clickbuy_backup_$dateStr.zip';
+      final fileName = 'shopbook_backup_$dateStr.zip';
       
       // 1. Fetch from backend using simple http.get
       final url = Uri.parse('${ApiClient.baseUrl}/admin/backup?t=${now.millisecondsSinceEpoch}');
@@ -124,7 +124,7 @@ class _DatabaseBackupScreenState extends State<DatabaseBackupScreen> {
     // ignore: deprecated_member_use
     await Share.shareXFiles(
       [XFile(file.path, name: fileName, mimeType: 'application/zip')],
-      subject: 'ClickBuy Database Backup',
+      subject: 'ShopBook Database Backup',
     );
 
     if (mounted) {

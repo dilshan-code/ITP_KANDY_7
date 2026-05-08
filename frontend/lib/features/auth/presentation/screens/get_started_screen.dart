@@ -1,4 +1,4 @@
-﻿// ------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // File: get_started_screen.dart
 // Purpose: Primary Onboarding and Acquisition Gateway.
 // Rationale: High-impact marketing layout designed to convert new users 
@@ -36,7 +36,7 @@ class GetStartedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AuthBackground(
-      showLogo: true, // Config: Enable the standard ClickBuy branding overlay
+      showLogo: true, // Config: Enable the standard ShopBook branding overlay
       child: Column(
         children: [
           const SizedBox(height: 8),

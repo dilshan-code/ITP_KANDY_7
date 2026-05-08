@@ -43,7 +43,7 @@ class MongoFeedbackRepository extends IFeedbackRepository {
     /**
      * Logic: Administrative Triage.
      * Fetches ALL feedback from ALL merchants, ordered newest first.
-     * Note: This is a global view intended for ClickBuy system administrators.
+     * Note: This is a global view intended for ShopBook system administrators.
      */
     async getAll(limit = 100) {
         // Fetch records with a limit and .lean() optimization.

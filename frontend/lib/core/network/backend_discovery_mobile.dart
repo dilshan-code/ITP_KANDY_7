@@ -106,7 +106,7 @@ class BackendDiscoveryImpl {
     try {
       final String message = utf8.decode(dg.data);
       final Map<String, dynamic> data = jsonDecode(message);
-      if (data['service'] == 'clickbuy' && data['ip'] != null) {
+      if (data['service'] == 'shopbook' && data['ip'] != null) {
         final String foundIp = data['ip'];
         final int foundPort = data['port'] ?? 3000; // Handshake: Use port from heartbeat
         

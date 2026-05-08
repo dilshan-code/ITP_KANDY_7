@@ -25,6 +25,7 @@ import 'package:frontend/shared/widgets/app_back_button.dart'; // UI: Standardiz
 import 'package:frontend/shared/widgets/tactile_scale.dart'; // UI: Interaction physics
 import 'package:animate_do/animate_do.dart'; // UI: Motion design framework
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // Auth: User context
+import 'package:url_launcher/url_launcher.dart'; // External: Native communication triggers
 
 /// CreditDetailScreen: An in-depth financial ledger for a specific customer.
 /// Displays a unified chronological view of sales, payments, and credit adjustments.
@@ -39,6 +40,32 @@ class CreditDetailScreen extends StatefulWidget {
 class _CreditDetailScreenState extends State<CreditDetailScreen> {
   late Customer _currentCustomer;
   final ScrollController _scrollController = ScrollController();
+
+  void _handleCall() async {
+    final Uri url = Uri.parse('tel:${_currentCustomer.phone}');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    } else {
+      if (mounted) SnackBarUtils.showSnackBar(context, 'Could not launch dialer', isError: true);
+    }
+  }
+
+  void _handleWhatsApp() async {
+    // Basic international format check
+    String phone = _currentCustomer.phone.replaceAll(RegExp(r'\D'), '');
+    if (!phone.startsWith('94') && phone.length == 9) {
+      phone = '94$phone';
+    } else if (phone.startsWith('0')) {
+      phone = '94${phone.substring(1)}';
+    }
+    
+    final Uri url = Uri.parse('https://wa.me/$phone');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) SnackBarUtils.showSnackBar(context, 'Could not launch WhatsApp', isError: true);
+    }
+  }
 
   @override
   void initState() {
@@ -82,14 +109,6 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
           margin: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
         ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.edit_rounded),
-            onPressed: () => _showEditCustomerDialog(context),
-          ),
-          IconButton(
-            icon: Icon(Icons.delete_outline_rounded, color: AppColors.error),
-            onPressed: () => _showDeleteConfirmation(context),
-          ),
           IconButton(
             icon: const ModernPdfIcon(),
             onPressed: () {
@@ -179,159 +198,157 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                         gradient: const LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [Color(0xFF0F4C3F), Color(0xFF166534), Color(0xFF22C55E)],
+                          colors: [
+                            Color(0xFF0F172A), // Slate 900
+                            Color(0xFF1E293B), // Slate 800
+                            Color(0xFF334155), // Slate 700
+                          ],
                         ),
-                        borderRadius: BorderRadius.circular(32),
+                        borderRadius: BorderRadius.circular(36),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF0F4C3F).withValues(alpha: 0.15),
-                            blurRadius: 24,
-                            offset: const Offset(0, 8),
+                            color: const Color(0xFF0F172A).withValues(alpha: 0.2),
+                            blurRadius: 30,
+                            offset: const Offset(0, 15),
                           ),
                         ],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(32),
+                        borderRadius: BorderRadius.circular(36),
                         child: Stack(
                           children: [
-                            // Decorative depth circles
+                            // Abstract Premium Patterns
                             Positioned(
-                              top: -60,
-                              right: -60,
+                              top: -40,
+                              right: -40,
                               child: Container(
-                                width: 200,
-                                height: 200,
+                                width: 180,
+                                height: 180,
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.05),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: -40,
-                              left: -40,
-                              child: Container(
-                                width: 120,
-                                height: 120,
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.05),
+                                  color: Colors.white.withValues(alpha: 0.03),
                                   shape: BoxShape.circle,
                                 ),
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.all(28),
+                              padding: const EdgeInsets.all(32),
                               child: Column(
                                 children: [
-                                  // Identity Block
-                                  Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.2),
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
-                                    ),
-                                    child: CircleAvatar(
-                                      radius: 36,
-                                      backgroundColor: Colors.white,
-                                      child: Text(
-                                        _currentCustomer.name.isNotEmpty
-                                            ? _currentCustomer.name[0].toUpperCase()
-                                            : '?',
-                                        style: GoogleFonts.poppins(
-                                          color: const Color(0xFF0F4C3F),
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 32,
+                                  // Premium Identity Block
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(3),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: Colors.white.withValues(alpha: 0.2),
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        child: CircleAvatar(
+                                          radius: 32,
+                                          backgroundColor: Colors.white.withValues(alpha: 0.1),
+                                          child: Text(
+                                            _currentCustomer.name.isNotEmpty
+                                                ? _currentCustomer.name[0].toUpperCase()
+                                                : '?',
+                                            style: GoogleFonts.poppins(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 28,
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    _currentCustomer.name,
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
-                                      letterSpacing: -0.5,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      _currentCustomer.phone,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.white.withValues(alpha: 0.9),
+                                      const SizedBox(width: 18),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              _currentCustomer.name,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.w800,
+                                                color: Colors.white,
+                                                letterSpacing: -0.5,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              _currentCustomer.phone,
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.white.withValues(alpha: 0.6),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
+                                      _buildHeaderBadge(
+                                        _currentCustomer.totalOutstanding <= 0 ? 'CLEAN' : 'DEBTOR',
+                                        _currentCustomer.totalOutstanding <= 0 ? Colors.greenAccent.shade700 : Colors.orange,
+                                      ),
+                                    ],
                                   ),
                                   const SizedBox(height: 32),
-                                  // Glassmorphic Statistics
+                                  // Modern Stats Grid
                                   Row(
                                     children: [
                                       Expanded(
-                                        child: _buildStatNode(
-                                          'BALANCE',
+                                        child: _buildPremiumStatNode(
+                                          'TOTAL DEBT',
                                           'Rs.${_currentCustomer.totalOutstanding.toStringAsFixed(0)}',
                                           Icons.account_balance_wallet_rounded,
+                                          _currentCustomer.totalOutstanding > 0 ? Colors.orange : Colors.greenAccent.shade700,
                                         ),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
-                                        child: _buildStatNode(
-                                          'LIMIT',
+                                        child: _buildPremiumStatNode(
+                                          'CREDIT LIMIT',
                                           'Rs.${_currentCustomer.creditLimit.toStringAsFixed(0)}',
                                           Icons.speed_rounded,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: _buildStatNode(
-                                          'STATUS',
-                                          _currentCustomer.totalOutstanding <= 0 ? 'CLEAR' : _currentCustomer.status.toUpperCase(),
-                                          Icons.shield_rounded,
+                                          Colors.blue,
                                         ),
                                       ),
                                     ],
                                   ),
-                                  if (_currentCustomer.totalOutstanding > 0) ...[
-                                    const SizedBox(height: 28),
-                                    TactileScale(
-                                      onTap: () => _showSettleConfirmation(context),
-                                      child: Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
-                                        alignment: Alignment.center,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(16),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(alpha: 0.1),
-                                              blurRadius: 12,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Text(
-                                          'SETTLE FULL BALANCE',
-                                          style: GoogleFonts.poppins(
-                                            color: const Color(0xFF0F4C3F),
-                                            fontWeight: FontWeight.w800,
-                                            fontSize: 14,
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
+                                  const SizedBox(height: 28),
+                                  // Quick Action Row
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      _buildCircularAction(
+                                        onTap: _handleCall,
+                                        icon: Icons.phone_rounded,
+                                        label: 'Call',
                                       ),
-                                    ),
-                                  ],
+                                      _buildCircularAction(
+                                        onTap: _handleWhatsApp,
+                                        icon: Icons.chat_bubble_rounded,
+                                        label: 'WhatsApp',
+                                      ),
+                                      _buildCircularAction(
+                                        onTap: () => _showEditCustomerDialog(context),
+                                        icon: Icons.edit_rounded,
+                                        label: 'Edit',
+                                      ),
+                                      _buildCircularAction(
+                                        onTap: () => _showDeleteConfirmation(context),
+                                        icon: Icons.delete_outline_rounded,
+                                        label: 'Delete',
+                                      ),
+                                      _buildCircularAction(
+                                        onTap: () => _showSettleConfirmation(context),
+                                        icon: Icons.check_circle_rounded,
+                                        label: 'Settle',
+                                        isPrimary: true,
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),
@@ -404,39 +421,111 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
     );
   }
 
-  Widget _buildStatNode(String label, String value, IconData icon) {
+  Widget _buildHeaderBadge(String text, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.poppins(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: color,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPremiumStatNode(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: Colors.white.withValues(alpha: 0.7)),
-          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(height: 16),
           Text(
             value,
             style: GoogleFonts.poppins(
-              fontSize: 15,
+              fontSize: 18,
               fontWeight: FontWeight.w800,
               color: Colors.white,
-              letterSpacing: -0.2,
+              letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             label,
             style: GoogleFonts.poppins(
-              fontSize: 9,
-              fontWeight: FontWeight.w700,
-              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.4),
               letterSpacing: 0.5,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCircularAction({
+    required VoidCallback onTap,
+    required IconData icon,
+    required String label,
+    bool isPrimary = false,
+  }) {
+    return Column(
+      children: [
+        TactileScale(
+          onTap: onTap,
+          child: Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: isPrimary ? Colors.white : Colors.white.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+              boxShadow: isPrimary ? [
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                )
+              ] : null,
+            ),
+            child: Icon(
+              icon,
+              color: isPrimary ? const Color(0xFF0F172A) : Colors.white,
+              size: 24,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: Colors.white.withValues(alpha: 0.7),
+          ),
+        ),
+      ],
     );
   }
 
@@ -784,19 +873,23 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Delete Customer'),
+        title: Text('Delete Customer', style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
         content: Text(
           _currentCustomer.totalOutstanding > 0
               ? 'Warning: This customer has Rs ${_currentCustomer.totalOutstanding.toStringAsFixed(0)} outstanding credit. Are you sure you want to delete them?'
               : 'Are you sure you want to delete ${_currentCustomer.name}?',
+          style: GoogleFonts.poppins(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel'),
+            child: Text('Cancel', style: GoogleFonts.poppins(color: Colors.grey)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
             onPressed: () async {
               final id = _currentCustomer.id;
               final success = await Provider.of<CreditProvider>(
@@ -821,7 +914,7 @@ class _CreditDetailScreenState extends State<CreditDetailScreen> {
                 }
               }
             },
-            child: Text('Delete', style: GoogleFonts.poppins(color: Colors.white)),
+            child: Text('Delete', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
           ),
         ],
       ),

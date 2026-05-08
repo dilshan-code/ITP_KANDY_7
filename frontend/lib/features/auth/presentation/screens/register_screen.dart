@@ -219,7 +219,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           const SizedBox(height: 8),
           // Sub-headline: Value proposition.
           Text(
-            'Join the ClickBuy owner community today.',
+            'Join the ShopBook owner community today.',
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
               fontSize: 14,

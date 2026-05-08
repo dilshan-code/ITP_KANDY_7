@@ -1,7 +1,7 @@
 {
-  "name": "clickbuy-backend",
+  "name": "shopbook-backend",
   "version": "1.0.0",
-  "description": "ClickBuy Grocery Shop Manager Backend API",
+  "description": "ShopBook Grocery Shop Manager Backend API",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

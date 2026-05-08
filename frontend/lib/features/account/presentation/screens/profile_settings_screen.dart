@@ -52,7 +52,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
     // Logic: Proactive synchronization.
     // Rationale: Pulls latest data from the backend to reflect any administrative changes
-    //   made by ClickBuy staff while the user was away.
+    //   made by ShopBook staff while the user was away.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await context.read<AuthProvider>().refreshProfile();
       
@@ -151,7 +151,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
    */
   Future<void> _pickImage() async {
     // UI: Allow user to choose input source
-    final source = await showModalBottomSheet<ImageSource>(
+
+    final source = await showModalBottomSheet<dynamic>(
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
@@ -181,6 +182,11 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
               title: Text('Choose from Gallery', style: GoogleFonts.poppins(fontWeight: FontWeight.w500)),
               onTap: () => Navigator.pop(context, ImageSource.gallery),
             ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+              title: Text('Remove Photo', style: GoogleFonts.poppins(fontWeight: FontWeight.w500, color: Colors.redAccent)),
+              onTap: () => Navigator.pop(context, 'remove'),
+            ),
             const SizedBox(height: 8),
           ],
         ),
@@ -190,10 +196,26 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     if (source == null) return;
     if (!mounted) return;
 
+    if (source == 'remove') {
+      final success = await context.read<AuthProvider>().removeProfilePicture();
+      if (mounted) {
+        if (success) {
+          SnackBarUtils.showSnackBar(context, 'Profile picture removed');
+        } else {
+          SnackBarUtils.showSnackBar(
+            context,
+            context.read<AuthProvider>().error ?? 'Failed to remove image',
+            isError: true,
+          );
+        }
+      }
+      return;
+    }
+
     try {
       final croppedFile = await ImageHelper.pickAndCropImage(
         context: context,
-        source: source,
+        source: source as ImageSource,
         isProfile: true,
       );
 
@@ -510,37 +532,89 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
           Positioned(
             bottom: 4,
             right: 4,
-            child: GestureDetector(
-              onTap: isLoading ? null : _pickImage,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 3),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
+            child: Row(
+              children: [
+                if (owner?.profilePic != null && owner!.profilePic!.isNotEmpty)
+                  GestureDetector(
+                    onTap: isLoading ? null : () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text('Remove Photo', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                          content: Text('Are you sure you want to remove your profile photo?', style: GoogleFonts.poppins()),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: Text('Cancel', style: GoogleFonts.poppins(color: AppColors.textMedium)),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: Text('Remove', style: GoogleFonts.poppins(color: Colors.redAccent, fontWeight: FontWeight.w600)),
+                            ),
+                          ],
                         ),
-                      )
-                    : const Icon(
-                        Icons.camera_alt_rounded,
+                      );
+                      if (confirm == true && mounted) {
+                        await context.read<AuthProvider>().removeProfilePicture();
+                        if (mounted) SnackBarUtils.showSnackBar(context, 'Profile picture removed');
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
                         color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.2), width: 1),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: Colors.redAccent,
                         size: 20,
                       ),
-              ),
+                    ),
+                  ),
+                if (owner?.profilePic != null && owner!.profilePic!.isNotEmpty)
+                  const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: isLoading ? null : _pickImage,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 3),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.camera_alt_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

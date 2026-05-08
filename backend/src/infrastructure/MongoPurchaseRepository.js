@@ -71,12 +71,10 @@ class MongoPurchaseRepository extends IPurchaseRepository {
      * Fetches purchases within a specific date window for reporting purposes.
      */
     async getAllByDateRange(ownerId, startDate, endDate) {
-        // Optimization: Use .lean() and exclude heavy line-item arrays for report summaries.
         const docs = await this.model.find({
             ownerId,
             createdAt: { $gte: startDate, $lte: endDate }
         })
-        .select('-items')
         .sort({ createdAt: -1 })
         .lean();
 

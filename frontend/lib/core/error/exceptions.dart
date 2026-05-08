@@ -1,10 +1,10 @@
-﻿/**
+/**
  * Error Layer: Custom Application Exceptions.
- * Defines a structural hierarchy for all error states within the ClickBuy app.
+ * Defines a structural hierarchy for all error states within the ShopBook app.
  * Each exception type maps to a specific technical failure or business logic violation.
  */
 
-/// Root Exception: The base class for all custom errors in ClickBuy.
+/// Root Exception: The base class for all custom errors in ShopBook.
 /// Inherits from standard Exception to ensure compatibility with try-catch blocks.
 class AppException implements Exception {
   final String message; // UI: User-friendly description of what went wrong

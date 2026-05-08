@@ -1,4 +1,4 @@
-﻿// ------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // File: restart_widget.dart
 // Purpose: Global Application State Reset and Recovery Handler.
 // Rationale: Provides a "Hard Reset" mechanism for the entire application 
@@ -9,7 +9,7 @@
 import 'package:flutter/material.dart'; // Core: Interaction with the Flutter framework
 
 class RestartWidget extends StatefulWidget {
-  // child: The root application widget (e.g., ClickBuyApp).
+  // child: The root application widget (e.g., ShopBookApp).
   final Widget child;
 
   const RestartWidget({super.key, required this.child});

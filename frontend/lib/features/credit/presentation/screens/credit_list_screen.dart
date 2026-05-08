@@ -15,6 +15,7 @@ import 'package:frontend/features/credit/presentation/providers/credit_provider.
 import 'package:frontend/features/credit/domain/entities/customer.dart'; // Domain: Customer model
 import 'package:frontend/features/credit/presentation/screens/credit_detail_screen.dart'; // Navigation: Customer ledger
 import 'package:frontend/features/credit/presentation/utils/export_utils.dart'; // PDF: Batch credit export
+import 'package:frontend/core/utils/validation_utils.dart'; // Util: Form field validators
 import 'package:frontend/shared/widgets/modern_pdf_icon.dart'; // UI: Brand-consistent PDF trigger icon
 import 'package:frontend/features/auth/presentation/providers/auth_provider.dart'; // State: Identity management
 import 'package:frontend/shared/widgets/screen_header.dart'; // UI: Reusable page header
@@ -317,16 +318,17 @@ class _CreditListScreenState extends State<CreditListScreen>
                           }
                         },
                         child: Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(16),
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: Colors.grey.shade100),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.03),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 15,
+                                offset: const Offset(0, 8),
                               ),
                             ],
                           ),
@@ -334,59 +336,75 @@ class _CreditListScreenState extends State<CreditListScreen>
                             children: [
                               Row(
                                 children: [
-                                  CircleAvatar(
-                                    radius: 24,
-                                    backgroundColor:
-                                        customer.totalOutstanding > 0
-                                        ? AppColors
-                                              .accentGreen // Alert color for debtors
-                                        : Colors
-                                              .blue
-                                              .shade50, // Neutral color for clear accounts
-                                    child: Text(
-                                      customer.name.isNotEmpty
-                                          ? customer.name[0]
-                                                .toUpperCase() // Initial-based avatar
-                                          : '?',
-                                      style: GoogleFonts.poppins(
+                                  // Premium Avatar Design
+                                  Container(
+                                    padding: const EdgeInsets.all(2.5),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
                                         color: customer.totalOutstanding > 0
-                                            ? AppColors.primary
-                                            : Colors.blue,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 18,
+                                            ? AppColors.error.withValues(alpha: 0.2)
+                                            : AppColors.primary.withValues(alpha: 0.2),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: CircleAvatar(
+                                      radius: 26,
+                                      backgroundColor: customer.totalOutstanding > 0
+                                          ? AppColors.error.withValues(alpha: 0.05)
+                                          : AppColors.primary.withValues(alpha: 0.05),
+                                      child: Text(
+                                        customer.name.isNotEmpty
+                                            ? customer.name[0].toUpperCase()
+                                            : '?',
+                                        style: GoogleFonts.poppins(
+                                          color: customer.totalOutstanding > 0
+                                              ? AppColors.error
+                                              : AppColors.primary,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 20,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 14),
-                                  // Customer Identity: Displays name and real-time balance
+                                  const SizedBox(width: 16),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          customer
-                                              .name, // The registered buyer name
-                                          style: GoogleFonts.poppins(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 15,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          customer.totalOutstanding > 0
-                                              ? 'Rs ${customer.totalOutstanding.toStringAsFixed(0)} active credit'
-                                              : 'All clear / Paid', // UX: Positive reinforcement for clear accounts
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 13,
-                                            color: customer.totalOutstanding > 0
-                                                ? AppColors.textMedium
-                                                : AppColors.primary,
-                                            fontWeight:
-                                                customer.totalOutstanding > 0
-                                                ? FontWeight.normal
-                                                : FontWeight.w600,
-                                          ),
+                                        Wrap(
+                                          crossAxisAlignment: WrapCrossAlignment.center,
+                                          spacing: 8,
+                                          children: [
+                                            Text(
+                                              customer.name,
+                                              style: GoogleFonts.poppins(
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 16,
+                                                color: AppColors.textDark,
+                                                letterSpacing: -0.3,
+                                              ),
+                                            ),
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  Icons.phone_rounded,
+                                                  size: 12,
+                                                  color: AppColors.textLight,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  customer.phone,
+                                                  style: GoogleFonts.poppins(
+                                                    fontSize: 12,
+                                                    color: AppColors.textLight,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
@@ -397,73 +415,60 @@ class _CreditListScreenState extends State<CreditListScreen>
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 12),
-                              const Divider(
-                                height: 1,
-                                color: Color(0xFFF1F5F9),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  TextButton.icon(
-                                    onPressed: () => _showEditCustomerDialog(
-                                      context,
-                                      customer,
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'OUTSTANDING',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.textLight,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Rs ${customer.totalOutstanding.toStringAsFixed(0)}',
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800,
+                                            color: customer.totalOutstanding > 0 
+                                                ? AppColors.error 
+                                                : AppColors.textDark,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    icon: const Icon(
-                                      Icons.edit_rounded,
-                                      size: 18,
+                                    Row(
+                                      children: [
+                                        _buildCompactActionButton(
+                                          onTap: () => _showEditCustomerDialog(context, customer),
+                                          icon: Icons.edit_rounded,
+                                          label: 'Edit',
+                                          color: Colors.blue,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        _buildCompactActionButton(
+                                          onTap: () => _showDeleteConfirmation(context, customer),
+                                          icon: Icons.delete_outline_rounded,
+                                          label: 'Delete',
+                                          color: Colors.red,
+                                        ),
+                                      ],
                                     ),
-                                    label: Text(
-                                      'Edit',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: Colors.green.shade700,
-                                      backgroundColor: Colors.green.shade50,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 8,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  TextButton.icon(
-                                    onPressed: () => _showDeleteConfirmation(
-                                      context,
-                                      customer,
-                                    ),
-                                    icon: const Icon(
-                                      Icons.delete_outline_rounded,
-                                      size: 18,
-                                    ),
-                                    label: Text(
-                                      'Delete',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: Colors.red.shade700,
-                                      backgroundColor: Colors.red.shade50,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 8,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -483,6 +488,7 @@ class _CreditListScreenState extends State<CreditListScreen>
     final limitController = TextEditingController(
       text: customer.creditLimit.toStringAsFixed(0),
     );
+    final editFormKey = GlobalKey<FormState>();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -491,30 +497,34 @@ class _CreditListScreenState extends State<CreditListScreen>
           'Edit Customer',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildDialogField(
-              controller: nameController,
-              label: 'Customer Name',
-              icon: Icons.person_outline,
-            ),
-            const SizedBox(height: 16),
-            _buildDialogField(
-              controller: phoneController,
-              label: 'Phone Number',
-              icon: Icons.phone_outlined,
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 16),
-            _buildDialogField(
-              controller: limitController,
-              label: 'Credit Limit',
-              icon: Icons.account_balance_wallet_outlined,
-              prefixText: 'Rs ',
-              keyboardType: TextInputType.number,
-            ),
-          ],
+        content: Form(
+          key: editFormKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDialogField(
+                controller: nameController,
+                label: 'Customer Name',
+                icon: Icons.person_outline,
+                validator: (v) => ValidationUtils.validateName(v, fieldName: 'Name'),
+              ),
+              const SizedBox(height: 16),
+              _buildDialogField(
+                controller: phoneController,
+                label: 'Phone Number',
+                icon: Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              _buildDialogField(
+                controller: limitController,
+                label: 'Credit Limit',
+                icon: Icons.account_balance_wallet_outlined,
+                prefixText: 'Rs ',
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -537,7 +547,7 @@ class _CreditListScreenState extends State<CreditListScreen>
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
             onPressed: () async {
-              if (nameController.text.isNotEmpty) {
+              if (editFormKey.currentState!.validate()) {
                 final double? limit = double.tryParse(limitController.text);
                 final success = await Provider.of<CreditProvider>(
                   context,
@@ -582,10 +592,12 @@ class _CreditListScreenState extends State<CreditListScreen>
     required IconData icon,
     TextInputType? keyboardType,
     String? prefixText,
+    String? Function(String?)? validator,
   }) {
-    return TextField(
+    return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      validator: validator,
       style: GoogleFonts.poppins(fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
@@ -740,17 +752,51 @@ class _CreditListScreenState extends State<CreditListScreen>
       color = AppColors.warning;
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
         text,
         style: GoogleFonts.poppins(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
           color: color,
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompactActionButton({
+    required VoidCallback onTap,
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -760,6 +806,7 @@ class _CreditListScreenState extends State<CreditListScreen>
     final nameController = TextEditingController();
     final phoneController = TextEditingController();
     final limitController = TextEditingController(text: '5000');
+    final addFormKey = GlobalKey<FormState>();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -768,30 +815,34 @@ class _CreditListScreenState extends State<CreditListScreen>
           'Add New Customer',
           style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildDialogField(
-              controller: nameController,
-              label: 'Customer Name',
-              icon: Icons.person_outline,
-            ),
-            const SizedBox(height: 16),
-            _buildDialogField(
-              controller: phoneController,
-              label: 'Phone Number',
-              icon: Icons.phone_outlined,
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 16),
-            _buildDialogField(
-              controller: limitController,
-              label: 'Credit Limit',
-              icon: Icons.account_balance_wallet_outlined,
-              prefixText: 'Rs ',
-              keyboardType: TextInputType.number,
-            ),
-          ],
+        content: Form(
+          key: addFormKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDialogField(
+                controller: nameController,
+                label: 'Customer Name',
+                icon: Icons.person_outline,
+                validator: (v) => ValidationUtils.validateName(v, fieldName: 'Name'),
+              ),
+              const SizedBox(height: 16),
+              _buildDialogField(
+                controller: phoneController,
+                label: 'Phone Number',
+                icon: Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              _buildDialogField(
+                controller: limitController,
+                label: 'Credit Limit',
+                icon: Icons.account_balance_wallet_outlined,
+                prefixText: 'Rs ',
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -814,7 +865,7 @@ class _CreditListScreenState extends State<CreditListScreen>
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
             onPressed: () async {
-              if (nameController.text.isNotEmpty) {
+              if (addFormKey.currentState!.validate()) {
                 final double? limit = double.tryParse(limitController.text);
                 final newCustomerRef = {
                   'name': nameController.text.trim(),

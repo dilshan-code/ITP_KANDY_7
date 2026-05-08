@@ -147,7 +147,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                       hint: 'e.g. Acme Corporation',
                       icon: Icons.business_outlined,
                     ),
-                    validator: (v) => ValidationUtils.validateRequired(v, 'Supplier name'),
+                    validator: (v) => ValidationUtils.validateName(v, fieldName: 'Supplier name'),
                   ),
                 ]),
 

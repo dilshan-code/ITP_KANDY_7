@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken'); // Security: Cryptographic token generation
 const { isValidEmail, isValidPhone, isValidPassword } = require('../utils/validationUtils'); // Native verification suite
 const otpStoreService = require('../services/otpStoreService'); // Security: Shared verification gateway
 
-const JWT_SECRET = process.env.JWT_SECRET || 'clickbuy_fallback_secret_dont_use_in_prod';
+const JWT_SECRET = process.env.JWT_SECRET || 'shopbook_fallback_secret_dont_use_in_prod';
 const JWT_EXPIRES_IN = '30d'; // Logic: Long-lived mobile session profile
 
 /**

@@ -37,7 +37,7 @@ const authMiddleware = async (req, res, next) => {
     }
 
     try {
-        const JWT_SECRET = process.env.JWT_SECRET || 'clickbuy_fallback_secret_dont_use_in_prod';
+        const JWT_SECRET = process.env.JWT_SECRET || 'shopbook_fallback_secret_dont_use_in_prod';
         
         // Security: Cryptographically verify the token.
         const decoded = jwt.verify(token, JWT_SECRET);

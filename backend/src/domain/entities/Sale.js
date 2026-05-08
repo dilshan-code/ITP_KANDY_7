@@ -1,6 +1,6 @@
 /**
  * Domain Layer: Sale Entity.
- * Represents a completed customer transaction in the ClickBuy ecosystem.
+ * Represents a completed customer transaction in the ShopBook ecosystem.
  * Encapsulates the details of products sold, fiscal totals, and payment settlement status.
  */
 class Sale {

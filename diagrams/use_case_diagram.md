@@ -1,6 +1,6 @@
-# 🛠️ ClickBuy: System Use Case Architecture
+# 🛠️ ShopBook: System Use Case Architecture
 
-**ClickBuy** is a modern, full-stack application designed to streamline inventory management, sales tracking, and customer credit for small to medium-sized grocery stores. The following Unified Modeling Language (UML) Use Case Diagram outlines the core functional requirements and the primary interactions between the end-user (Shop Owner) and the system.
+**ShopBook** is a modern, full-stack application designed to streamline inventory management, sales tracking, and customer credit for small to medium-sized grocery stores. The following Unified Modeling Language (UML) Use Case Diagram outlines the core functional requirements and the primary interactions between the end-user (Shop Owner) and the system.
 
 ---
 
@@ -18,7 +18,7 @@ flowchart LR
     Admin(("Shop Owner <br/> Manager")):::actor
 
     %% System Boundary
-    subgraph ClickBuy ["ClickBuy Application Boundary"]
+    subgraph ShopBook ["ShopBook Application Boundary"]
         direction TB
 
         %% Authentication & User Identity 
@@ -66,7 +66,7 @@ flowchart LR
     end
 
     %% Apply boundary style
-    class ClickBuy boundary
+    class ShopBook boundary
 
     %% Primary Actor Interactions
     Admin --> auth
@@ -95,7 +95,7 @@ flowchart LR
 
 ### 📋 Feature-Level Breakdown
 
-The diagram above translates into the following key actionable use cases designed specifically for the **ClickBuy** ecosystem:
+The diagram above translates into the following key actionable use cases designed specifically for the **ShopBook** ecosystem:
 
 1. **Security & Identity (Auth)**
    - **Login / Register**: Owners can authenticate uniquely using dual login capabilities (Email or Phone).
@@ -128,4 +128,4 @@ The diagram above translates into the following key actionable use cases designe
    - **Push Notifications**: Unified status updates across the merchant dashboard.
 
 ---
-*Technical Specification - ClickBuy Group Project.*
+*Technical Specification - ShopBook Group Project.*

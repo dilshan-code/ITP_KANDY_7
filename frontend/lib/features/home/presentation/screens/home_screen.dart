@@ -92,7 +92,7 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
-    final ownerName = authProvider.currentOwner?.name ?? 'ClickBuy Partner';
+    final ownerName = authProvider.currentOwner?.name ?? 'ShopBook Partner';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -242,7 +242,7 @@ class HomeScreenState extends State<HomeScreen> {
                                 const Icon(Icons.verified_rounded, size: 12, color: AppColors.primary),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'CLICKBUY PARTNER',
+                                  'SHOPBOOK PARTNER',
                                   style: GoogleFonts.poppins(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,

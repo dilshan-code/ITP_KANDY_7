@@ -107,7 +107,7 @@ class AdminController {
     async downloadBackup(req, res) {
         try {
             const dateStr = new Date().toISOString().split('T')[0];
-            const fileName = `clickbuy_backup_${dateStr}.zip`;
+            const fileName = `shopbook_backup_${dateStr}.zip`;
 
             // Set headers for file download
             res.setHeader('Content-Type', 'application/zip');

@@ -3,7 +3,7 @@ const BackupDatabase = require('./src/usecases/BackupDatabase');
 const fs = require('fs');
 
 async function testBackup() {
-    await mongoose.connect('mongodb://127.0.0.1:27017/clickbuy');
+    await mongoose.connect('mongodb://127.0.0.1:27017/shopbook');
     console.log('Connected to DB');
 
     const backup = new BackupDatabase();

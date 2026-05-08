@@ -96,7 +96,7 @@ void main() {
     
     // Verify initial render: Splash screen should be visible
     expect(find.byType(SplashScreen), findsOneWidget);
-    expect(find.text('ClickBuy'), findsOneWidget); // Logo/App name check
+    expect(find.text('ShopBook'), findsOneWidget); // Logo/App name check
     
     // Simulate time passing to trigger navigation logic
     await tester.pump(const Duration(milliseconds: 100)); // Short tick

@@ -15,15 +15,15 @@ describe('Report Use Cases', () => {
             getAll: jest.fn().mockResolvedValue([
                 {
                     id: 'sale1', totalAmount: 1000, createdAt: today, status: 'completed',
-                    items: [{ productId: 'p1', name: 'Rice', quantity: 5, price: 200 }]
+                    items: [{ productId: 'p1', name: 'Rice', quantity: 5, price: 200, purchasePrice: 150 }]
                 },
                 {
                     id: 'sale2', totalAmount: 600, createdAt: yesterday, status: 'completed',
-                    items: [{ productId: 'p2', name: 'Sugar', quantity: 3, price: 200 }]
+                    items: [{ productId: 'p2', name: 'Sugar', quantity: 3, price: 200, purchasePrice: 120 }]
                 },
                 {
                     id: 'sale3', totalAmount: 400, createdAt: today, status: 'completed',
-                    items: [{ productId: 'p1', name: 'Rice', quantity: 2, price: 200 }]
+                    items: [{ productId: 'p1', name: 'Rice', quantity: 2, price: 200, purchasePrice: 150 }]
                 }
             ]),
             getTotalRevenue: jest.fn().mockResolvedValue(2000),
@@ -34,15 +34,15 @@ describe('Report Use Cases', () => {
             getAllByDateRange: jest.fn().mockResolvedValue([
                 {
                     id: 'sale1', totalAmount: 1000, createdAt: today, status: 'completed',
-                    items: [{ productId: 'p1', name: 'Rice', quantity: 5, price: 200 }]
+                    items: [{ productId: 'p1', name: 'Rice', quantity: 5, price: 200, purchasePrice: 150 }]
                 },
                 {
                     id: 'sale2', totalAmount: 600, createdAt: yesterday, status: 'completed',
-                    items: [{ productId: 'p2', name: 'Sugar', quantity: 3, price: 200 }]
+                    items: [{ productId: 'p2', name: 'Sugar', quantity: 3, price: 200, purchasePrice: 120 }]
                 },
                 {
                     id: 'sale3', totalAmount: 400, createdAt: today, status: 'completed',
-                    items: [{ productId: 'p1', name: 'Rice', quantity: 2, price: 200 }]
+                    items: [{ productId: 'p1', name: 'Rice', quantity: 2, price: 200, purchasePrice: 150 }]
                 }
             ]),
         };
@@ -61,9 +61,9 @@ describe('Report Use Cases', () => {
 
         mockProductRepository = {
             getAll: jest.fn().mockResolvedValue([
-                { _id: 'p1', name: 'Rice', sellingPrice: 200, purchasePrice: 150, stockQuantity: 50, minimumStockLevel: 10, isLowStock: false },
-                { _id: 'p2', name: 'Sugar', sellingPrice: 200, purchasePrice: 120, stockQuantity: 3, minimumStockLevel: 5, isLowStock: true },
-                { _id: 'p3', name: 'Tea', sellingPrice: 300, purchasePrice: 250, stockQuantity: 0, minimumStockLevel: 5, isLowStock: true }
+                { id: 'p1', _id: 'p1', name: 'Rice', sellingPrice: 200, purchasePrice: 150, stockQuantity: 50, minimumStockLevel: 10, isLowStock: false },
+                { id: 'p2', _id: 'p2', name: 'Sugar', sellingPrice: 200, purchasePrice: 120, stockQuantity: 3, minimumStockLevel: 5, isLowStock: true },
+                { id: 'p3', _id: 'p3', name: 'Tea', sellingPrice: 300, purchasePrice: 250, stockQuantity: 0, minimumStockLevel: 5, isLowStock: true }
             ]),
             getLowStockCount: jest.fn().mockResolvedValue(2),
         };

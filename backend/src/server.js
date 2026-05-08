@@ -1,5 +1,5 @@
 /**
- * ClickBuy API Gateway & Orchestration Layer (server.js)
+ * ShopBook API Gateway & Orchestration Layer (server.js)
  * This is the entry point of the backend system. It handles Dependency Injection,
  * HTTP routing, environment configuration, database bootstrapping, and system lifecycle management.
  * Follows Clean Architecture principles to keep business logic isolated from infrastructure.
@@ -264,7 +264,7 @@ async function ensureAdminUser() {
             const newAdmin = new Owner({
                 _id: adminId, // Logic: Hardcoded ID for master identity consistency
                 name: 'System Administrator',
-                shopName: 'ClickBuy Network',
+                shopName: 'ShopBook Network',
                 phone: '+94000000000',
                 email: adminEmail,
                 password: hashedPassword,
@@ -342,7 +342,7 @@ app.use(express.json()); // Parsing: Automatically convert string bodies into JS
 app.get('/', (req, res) => {
     res.send(`
         <div style="font-family: sans-serif; text-align: center; padding-top: 50px;">
-            <h1 style="color: #4CAF50;">✅ ClickBuy Backend is Online</h1>
+            <h1 style="color: #4CAF50;">✅ ShopBook Backend is Online</h1>
             <p>Infrastructure: Node.js / Express / MongoDB / Firebase</p>
             <p>API Endpoint: <code>/api</code></p>
             <p>Health Check: <code>/health</code></p>
@@ -380,9 +380,9 @@ app.get('/health', (req, res) => {
  * Binds the Express application to the physical network interface.
  */
 const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ ClickBuy API Gateway active at http://0.0.0.0:${PORT}`);
+    console.log(`✅ ShopBook API Gateway active at http://0.0.0.0:${PORT}`);
     if (process.env.REPL_ID) {
-        console.log(`🚀 [SYSTEM] ClickBuy Backend successfully deployed on Replit (Production)`);
+        console.log(`🚀 [SYSTEM] ShopBook Backend successfully deployed on Replit (Production)`);
     } else {
         console.log(`💻 [SYSTEM] running in local development mode.`);
     }

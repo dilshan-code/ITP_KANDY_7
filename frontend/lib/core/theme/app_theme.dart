@@ -1,7 +1,7 @@
 // ------------------------------------------------------------------------------
 // File: app_theme.dart
 // Purpose: Deterministic Design System and Visual Identity.
-// Rationale: Orchestrates the global aesthetic of the ClickBuy application 
+// Rationale: Orchestrates the global aesthetic of the ShopBook application 
 //   using Material 3 guidelines. Centered on the Poppins typography system 
 //   and the Emerald Green brand palette to ensure a premium, modern, 
 //   and cohesive user experience across all modules.

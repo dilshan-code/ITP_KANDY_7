@@ -1,6 +1,6 @@
-# ClickBuy - Data Flow Diagram (DFD) Reference
+# ShopBook - Data Flow Diagram (DFD) Reference
 
-This document provides a Data Flow Diagram (DFD) for the ClickBuy Grocery Shop Manager system, reflecting the final architectural refinements for university submission.
+This document provides a Data Flow Diagram (DFD) for the ShopBook Grocery Shop Manager system, reflecting the final architectural refinements for university submission.
 
 ## Level 0: Context Diagram
 The Context Diagram shows the system as a single process and its interactions with external entities.
@@ -8,7 +8,7 @@ The Context Diagram shows the system as a single process and its interactions wi
 ```mermaid
 graph TD
     Manager((Store Manager))
-    System["ClickBuy System <br/> (Replit Hosted)"]
+    System["ShopBook System <br/> (Replit Hosted)"]
     DB[(MongoDB Atlas)]
     CDN[Cloudinary Media]
     Auth[Firebase Phone Auth]
@@ -44,7 +44,7 @@ graph TD
     Manager((Store Manager))
     DB[(MongoDB Atlas)]
 
-    subgraph ClickBuy System
+    subgraph ShopBook System
         P1[Authentication Module]
         P2[Inventory Management]
         P3[Sales & Transactions]
@@ -116,4 +116,4 @@ graph TD
 - **Notifications**: Log of system-generated alerts.
 
 ---
-*Technical Specification - ClickBuy Group Project.*
+*Technical Specification - ShopBook Group Project.*

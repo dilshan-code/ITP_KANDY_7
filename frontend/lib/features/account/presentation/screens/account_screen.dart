@@ -101,7 +101,7 @@ class AccountScreen extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                auth.currentOwner?.shopName ?? 'ClickBuy Store',
+                                auth.currentOwner?.shopName ?? 'ShopBook Store',
                                 style: GoogleFonts.poppins(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,

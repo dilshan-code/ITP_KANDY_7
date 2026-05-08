@@ -161,7 +161,7 @@ class AdminAccountScreen extends StatelessWidget {
           _buildSettingsItem(
             icon: Icons.logout,
             title: 'Logout',
-            subtitle: 'Sign out from ClickBuy Admin',
+            subtitle: 'Sign out from ShopBook Admin',
             iconColor: Colors.redAccent,
             onTap: () {
               auth.logout();

@@ -79,7 +79,7 @@ class GetBusinessReport {
                     productSales[item.productId].revenue += ((item.unitPrice || item.price || 0) * (item.quantity || 0));
 
                     const costPrice = item.purchasePrice !== undefined ? item.purchasePrice : 
-                                     (products.find(p => p._id === item.productId)?.purchasePrice || 0);
+                                     (products.find(p => (p.id === item.productId || p._id === item.productId))?.purchasePrice || 0);
                     saleCost += (costPrice * (item.quantity || 0));
                 });
             }

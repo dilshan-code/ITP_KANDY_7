@@ -100,6 +100,21 @@ class ValidationUtils {
   }
 
   /*
+   * Logic: Identity Validation.
+   * Rationale: Enforces a minimum length of 3 characters for names (Customers/Suppliers)
+   *   to prevent data ambiguity and accidental single-character entries.
+   */
+  static String? validateName(String? value, {String fieldName = 'Name'}) {
+    if (value == null || value.trim().isEmpty) {
+      return '$fieldName is required';
+    }
+    if (value.trim().length < 3) {
+      return '$fieldName must be at least 3 characters';
+    }
+    return null;
+  }
+
+  /*
    * Logic: Financial Data Consistency (Price).
    * Rationale: Prevents zero-value or negative item definitions to ensure 
    *   accurate accounting across Sales and Purchase modules.

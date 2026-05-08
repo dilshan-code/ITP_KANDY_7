@@ -95,7 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
         context.read<NotificationProvider>().createNotification(
           type: 'success',
           title: 'Login Successful',
-          message: 'Welcome back to ClickBuy Owner Portal!',
+          message: 'Welcome back to ShopBook Owner Portal!',
         );
       }
 
