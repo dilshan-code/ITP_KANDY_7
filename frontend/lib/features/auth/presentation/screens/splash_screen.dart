@@ -183,7 +183,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 const SizedBox(height: 32),
                 // Heading: Main Product Identity.
                 Text(
-                  'ClickBuy',
+                  'ShopBook',
                   style: GoogleFonts.poppins(
                     fontSize: 42,
                     fontWeight: FontWeight.w900,

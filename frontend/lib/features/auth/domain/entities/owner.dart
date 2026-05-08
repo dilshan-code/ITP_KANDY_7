@@ -1,6 +1,6 @@
 /**
  * Auth Domain Entity: Owner.
- * Represents the primary identity of a shop manager within the ClickBuy ecosystem.
+ * Represents the primary identity of a shop manager within the ShopBook ecosystem.
  * Rationale: Acts as the root object for data isolation; most backend records (Products, Sales) are linked to an Owner ID.
  */
 class Owner {

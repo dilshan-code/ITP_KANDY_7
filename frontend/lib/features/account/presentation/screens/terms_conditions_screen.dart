@@ -1,6 +1,6 @@
 // ------------------------------------------------------------------------------
 // File: terms_conditions_screen.dart
-// Purpose: Legal service agreement for ClickBuy shop-owner partnerships.
+// Purpose: Legal service agreement for ShopBook shop-owner partnerships.
 // Rationale: Mandated by the registration flow to ensure informed legal consent
 //   before account creation. Presented as a static, scrollable clause list.
 // ------------------------------------------------------------------------------
@@ -26,7 +26,7 @@ class TermsConditionsScreen extends StatelessWidget {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
-          // Documentation focus: Summarizing the legal partnership requirements between ClickBuy and shop owners.
+          // Documentation focus: Summarizing the legal partnership requirements between ShopBook and shop owners.
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -49,7 +49,7 @@ class TermsConditionsScreen extends StatelessWidget {
             const SizedBox(height: 24),
             _buildSection(
               '1. Introduction',
-              'Welcome to ClickBuy. By registering as a Shop Owner, you agree to comply with and be bound by the following terms and conditions. Please review them carefully.',
+              'Welcome to ShopBook. By registering as a Shop Owner, you agree to comply with and be bound by the following terms and conditions. Please review them carefully.',
             ),
             _buildSection(
               '2. Account Responsibilities',
@@ -69,7 +69,7 @@ class TermsConditionsScreen extends StatelessWidget {
             ),
             _buildSection(
               '6. System Availability',
-              'While we strive for 100% uptime, ClickBuy does not guarantee uninterrupted access to the service. We reserve the right to perform maintenance or updates that may temporarily affect availability.',
+              'While we strive for 100% uptime, ShopBook does not guarantee uninterrupted access to the service. We reserve the right to perform maintenance or updates that may temporarily affect availability.',
             ),
             _buildSection(
               '7. Account Termination',
@@ -77,12 +77,12 @@ class TermsConditionsScreen extends StatelessWidget {
             ),
             _buildSection(
               '8. Changes to Terms',
-              'ClickBuy reserves the right to modify these terms at any time. Significant changes will be notified to you via the app or email.',
+              'ShopBook reserves the right to modify these terms at any time. Significant changes will be notified to you via the app or email.',
             ),
             const SizedBox(height: 40),
             Center(
               child: Text(
-                'Thank you for partnering with ClickBuy!',
+                'Thank you for partnering with ShopBook!',
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,

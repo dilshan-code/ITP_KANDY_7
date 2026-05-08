@@ -83,7 +83,7 @@ class DiscoveryService {
                 
                 // Construct the "Heartbeat" payload.
                 const message = JSON.stringify({
-                    service: 'clickbuy', // Signature for the mobile app to recognize us
+                    service: 'shopbook', // Signature for the mobile app to recognize us
                     ip: ip, // Our reachable address
                     port: this.port, // Logic: Tell the phone which port we are listening on
                     timestamp: Date.now() // For health tracking

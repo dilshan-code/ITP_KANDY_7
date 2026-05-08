@@ -38,14 +38,14 @@ void main() {
   //   synchronously via the SplashScreen's bootstrap logic.
   runApp(
     const RestartWidget(
-      child: ClickBuyApp(), // The main application entry widget
+      child: ShopBookApp(), // The main application entry widget
     ),
   );
 }
 
 
-class ClickBuyApp extends StatelessWidget {
-  const ClickBuyApp({super.key});
+class ShopBookApp extends StatelessWidget {
+  const ShopBookApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +74,7 @@ class ClickBuyApp extends StatelessWidget {
       ],
 
       child: MaterialApp(
-        title: 'ClickBuy - Shop Manager', // App title for system task switcher
+        title: 'ShopBook - Shop Manager', // App title for system task switcher
         debugShowCheckedModeBanner: false, // Remove the "Debug" banner in the corner
         theme: AppTheme.lightTheme, // Apply out custom sleek light theme
         themeMode: ThemeMode.light, // Forces light mode for consistency

@@ -77,9 +77,9 @@ class RequestOtp {
         }
 
         const info = await transporter.sendMail({
-            from: `"ClickBuy Support" <${process.env.EMAIL_USER}>`,
+            from: `"ShopBook Support" <${process.env.EMAIL_USER}>`,
             to: email,
-            subject: "ClickBuy - Your Verification Code",
+            subject: "ShopBook - Your Verification Code",
             // Priority headers to signal transactional nature
             headers: {
                 "X-Priority": "1 (Highest)",
@@ -88,7 +88,7 @@ class RequestOtp {
                 "X-Auto-Response-Suppress": "All",
                 "X-Entity-Ref-ID": `otp-${Date.now()}`
             },
-            text: `Your ClickBuy verification code is: ${pin}. It expires in 5 minutes.`,
+            text: `Your ShopBook verification code is: ${pin}. It expires in 5 minutes.`,
             html: `
                 <div style="max-width: 500px; margin: 0 auto; font-family: 'Segoe UI', Arial, sans-serif;">
                     <!-- HEADER: Dark gradient -->
@@ -97,7 +97,7 @@ class RequestOtp {
                         <!-- Brand name -->
                         <div style="margin-top: 12px; font-size: 22px; font-weight: 700;
                              letter-spacing: 1.5px;">
-                            <span style="color: #ffffff;">Click</span><span style="color: #00B894;">Buy</span>
+                            <span style="color: #ffffff;">Shop</span><span style="color: #00B894;">Book</span>
                         </div>
                         <div style="color: #a0aec0; font-size: 11px; margin-top: 4px;
                              letter-spacing: 2px; text-transform: uppercase;">
@@ -137,7 +137,7 @@ class RequestOtp {
                             Ref: ${Date.now().toString().slice(-6)} • ${new Date().toLocaleTimeString()}
                         </p>
                         <p style="color: #4a5568; font-size: 10px; margin: 4px 0 0 0;">
-                            © ${new Date().getFullYear()} ClickBuy — All rights reserved
+                            © ${new Date().getFullYear()} ShopBook — All rights reserved
                         </p>
                     </div>
                 </div>

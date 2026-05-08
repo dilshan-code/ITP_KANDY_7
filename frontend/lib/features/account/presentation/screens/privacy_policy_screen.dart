@@ -33,7 +33,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'How ClickBuy Protects Your Business Data',
+              'How ShopBook Protects Your Business Data',
               style: GoogleFonts.poppins(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -56,15 +56,15 @@ class PrivacyPolicyScreen extends StatelessWidget {
             ),
             _buildSection(
               '2. How We Use Your Data',
-              'Your data is used to provide the core functionality of the ClickBuy app: tracking stock, processing sales, and managing customer debts. We may also use anonymized, aggregated data to improve our services and system performance.',
+              'Your data is used to provide the core functionality of the ShopBook app: tracking stock, processing sales, and managing customer debts. We may also use anonymized, aggregated data to improve our services and system performance.',
             ),
             _buildSection(
               '3. Data Storage & Security',
-              'ClickBuy uses industry-standard encryption and secure cloud-based servers (MongoDB Atlas) to store your store data. Your account is protected by your password, and we recommend using a strong, unique password for your partnership account.',
+              'ShopBook uses industry-standard encryption and secure cloud-based servers (MongoDB Atlas) to store your store data. Your account is protected by your password, and we recommend using a strong, unique password for your partnership account.',
             ),
             _buildSection(
               '4. Customer Data Management',
-              'As a shop owner, you are the controller of your customers\' data recorded in this app. ClickBuy acts as a processor. You agree to obtain any necessary consent from your customers for recording their credit transactions.',
+              'As a shop owner, you are the controller of your customers\' data recorded in this app. ShopBook acts as a processor. You agree to obtain any necessary consent from your customers for recording their credit transactions.',
             ),
             _buildSection(
               '5. Data Sharing',

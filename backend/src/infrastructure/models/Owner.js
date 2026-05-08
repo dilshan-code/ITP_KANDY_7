@@ -1,6 +1,6 @@
 /**
  * Infrastructure Layer: MongoDB Schema for Merchant Identities (Owners).
- * handles the core authentication and profile management for ClickBuy merchants.
+ * handles the core authentication and profile management for ShopBook merchants.
  */
 
 const mongoose = require('mongoose');
@@ -33,5 +33,5 @@ OwnerSchema.virtual('id').get(function() {
 // JSON Configuration: Ensure the virtual 'id' is sent to the Flutter client.
 OwnerSchema.set('toJSON', { virtuals: true });
 
-// Module Export: Global identity model for the ClickBuy network.
+// Module Export: Global identity model for the ShopBook network.
 module.exports = mongoose.model('Owner', OwnerSchema);

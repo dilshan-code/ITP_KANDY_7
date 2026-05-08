@@ -291,7 +291,7 @@ class _RecentTransactionsScreenState extends State<RecentTransactionsScreen> {
 const BASE_URL = 'http://localhost:3000';
 
 /**
- * Security Audit Script: ClickBuy Backend (JWT Version).
+ * Security Audit Script: ShopBook Backend (JWT Version).
  * Uses native fetch (Node 18+) to simulate various attack vectors.
  */
 

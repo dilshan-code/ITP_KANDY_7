@@ -52,7 +52,7 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
 
     // Logic: Proactive synchronization.
     // Rationale: Pulls latest data from the backend to reflect any administrative changes
-    //   made by ClickBuy staff while the user was away.
+    //   made by ShopBook staff while the user was away.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await context.read<AuthProvider>().refreshProfile();
       

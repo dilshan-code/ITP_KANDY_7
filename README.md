@@ -1,6 +1,14 @@
-# ClickBuy - Grocery Shop Manager
+# ShopBook - Grocery Shop Manager
 
-ClickBuy is a modern, full-stack application designed to streamline inventory management, sales tracking, and customer credit for small to medium-sized grocery stores. It features a premium, iOS-inspired mobile interface and a robust Node.js backend.
+ShopBook is a modern, full-stack application designed to streamline inventory management, sales tracking, and customer credit for small to medium-sized grocery stores. It features a premium, iOS-inspired mobile interface and a robust Node.js backend.
+
+## 📸 UI Gallery
+
+<p align="center">
+  <img src="./docs/screenshots/dashboard.png" width="30%" alt="Dashboard Screen" />
+  <img src="./docs/screenshots/inventory.png" width="30%" alt="Inventory Screen" />
+  <img src="./docs/screenshots/analytics.png" width="30%" alt="Analytics Screen" />
+</p>
 
 ## 🚀 Key Features
 
@@ -55,7 +63,7 @@ small_store_app/
 - **MongoDB Connection**: 
     > [!IMPORTANT]
     > Create a `.env` file in the `backend/` directory. You can use `.env.example` as a template.
-    > Example: `MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/clickbuy`
+    > Example: `MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/shopbook`
     > 
     > **Blocked by Atlas?**: If the server exits immediately, your IP may not be whitelisted. 
     > Run `node src/utils/checkIp.js` in the `backend` folder to find your IP and add it to the Atlas console.
@@ -76,7 +84,7 @@ small_store_app/
 
 ### Setup & URL Switching
 
-ClickBuy features an intelligent backend discovery system that automatically switches between local development and production environments.
+ShopBook features an intelligent backend discovery system that automatically switches between local development and production environments.
 
 1. **Backend (Local)**:
    ```bash
@@ -99,10 +107,10 @@ ClickBuy features an intelligent backend discovery system that automatically swi
    - `https://ba408787-5deb-46ee-bb7e-679a94333377-00-3jxj82plhfdn2.sisko.replit.dev/api`
 
 > [!TIP]
-> **Dynamic Backend Discovery**: ClickBuy features an automated UDP discovery service that identifies the backend server's IP address on your local network. 
+> **Dynamic Backend Discovery**: ShopBook features an automated UDP discovery service that identifies the backend server's IP address on your local network. 
 > 
 > **Developer Note (Server Connection)**: To ensure a premium user experience, the server connection settings icon is hidden by default from pre-login screens. 
-> - **To access settings**: Long-press (hold) the **ClickBuy Logo** on the Login screen for **10 seconds**.
+> - **To access settings**: Long-press (hold) the **ShopBook Logo** on the Login screen for **10 seconds**.
 > - **Re-activation**: Developers can re-activate the visible gear icon by toggling the `showSettingsIcon` flag in `login_screen.dart` and setting `visible: true` in other auth screens.
 
 ## 📖 Documentation & Maintenance

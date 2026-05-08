@@ -184,7 +184,7 @@ class _AuthLogo extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'ClickBuy', // Brand voice
+          'ShopBook', // Brand voice
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.w900,

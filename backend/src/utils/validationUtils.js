@@ -1,11 +1,11 @@
 /**
  * Backend Utility: Global Validation Suite.
- * Enforces business-critical data integrity constraints for the ClickBuy ecosystem.
+ * Enforces business-critical data integrity constraints for the ShopBook ecosystem.
  */
 
 /**
  * Logic: Email Integrity.
- * ClickBuy currently enforces a Gmail-only policy for merchant accounts for standardized recovery.
+ * ShopBook currently enforces a Gmail-only policy for merchant accounts for standardized recovery.
  */
 const isValidEmail = (email) => {
     if (!email) return true; // Stability: Allow empty if field is optional in specific contexts.

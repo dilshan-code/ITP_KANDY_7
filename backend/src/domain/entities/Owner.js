@@ -58,5 +58,5 @@ class Owner {
     }
 }
 
-// Module Export: Global identity representation for the ClickBuy business network.
+// Module Export: Global identity representation for the ShopBook business network.
 module.exports = Owner;

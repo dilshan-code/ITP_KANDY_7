@@ -77,7 +77,7 @@ class AdminDashboardScreen extends StatelessWidget {
   Widget _buildHeader(BuildContext context, AdminProvider provider) {
     return ScreenHeader(
       title: 'Admin Dashboard',
-      subtitle: 'Overview of ClickBuy partner network',
+      subtitle: 'Overview of ShopBook partner network',
       onBack: null,
     );
   }

@@ -112,7 +112,6 @@ class MongoSaleRepository extends ISaleRepository {
             ownerId,
             createdAt: { $gte: startDate, $lte: endDate }
         })
-        .select('-items') // Pro-tip: Exclude items for summary audit logs
         .sort({ createdAt: -1 })
         .lean();
 

@@ -37,9 +37,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
   Future<void> _launchEmail() async {
     final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
-      path: 'clickbuy.grocery.lk@gmail.com',
+      path: 'shopbook.grocery.lk@gmail.com',
       query: _encodeQueryParameters(<String, String>{
-        'subject': 'ClickBuy Support Request',
+        'subject': 'ShopBook Support Request',
       }),
     );
 
@@ -213,7 +213,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                     ),
                     _buildFAQItem(
                       'Can I manage multiple shops?',
-                      'Currently, ClickBuy supports one shop per account for focused management.',
+                      'Currently, ShopBook supports one shop per account for focused management.',
                     ),
                     _buildFAQItem(
                       'How do credit limits work?',

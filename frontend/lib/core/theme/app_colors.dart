@@ -1,7 +1,7 @@
-﻿// ------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // File: app_colors.dart
 // Purpose: Deterministic Design System Color Tokens.
-// Rationale: Defines the centralized visual palette for the ClickBuy design 
+// Rationale: Defines the centralized visual palette for the ShopBook design 
 //   system. Built on an Emerald Green brand identity with a Slate-based 
 //   neutral scale to ensure cross-module visual consistency and premium 
 //   aesthetic harmony.

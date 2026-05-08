@@ -1,12 +1,12 @@
-# 🏗️ ClickBuy: System Architecture
+# 🏗️ ShopBook: System Architecture
 
-This document outlines the high-level technical architecture of **ClickBuy**, a distributed grocery shop management system. It details the interaction between the mobile client, the cloud-hosted backend, and various third-party integration services.
+This document outlines the high-level technical architecture of **ShopBook**, a distributed grocery shop management system. It details the interaction between the mobile client, the cloud-hosted backend, and various third-party integration services.
 
 ---
 
 ## 🏛️ Architectural Overview
 
-ClickBuy follows a **Multi-Tier Client-Server Architecture**, optimized for real-time inventory tracking and cross-platform reliability.
+ShopBook follows a **Multi-Tier Client-Server Architecture**, optimized for real-time inventory tracking and cross-platform reliability.
 
 ```mermaid
 graph TD
@@ -109,4 +109,4 @@ graph TD
     *   API generates a secure ZIP stream for the client to download locally.
 
 ---
-*Technical Specification - ClickBuy Group Project.*
+*Technical Specification - ShopBook Group Project.*

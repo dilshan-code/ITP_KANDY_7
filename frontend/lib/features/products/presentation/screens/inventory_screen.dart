@@ -116,8 +116,6 @@ class InventoryScreenState extends State<InventoryScreen> {
                 ),
                 FadeInUp(duration: const Duration(milliseconds: 500), child: _buildSearchBar()),
                 FadeInUp(duration: const Duration(milliseconds: 600), delay: const Duration(milliseconds: 200), child: _buildFilterChips()),
-                const SizedBox(height: 12),
-                FadeInUp(duration: const Duration(milliseconds: 700), delay: const Duration(milliseconds: 400), child: _buildCategoryFilters()),
                 Expanded(
                   child: provider.isLoading
                       ? _buildShimmerLoading()
@@ -191,7 +189,6 @@ class InventoryScreenState extends State<InventoryScreen> {
                                         child: FadeInAnimation(
                                           child: Column(
                                             children: [
-                                              SizedBox(height: 16),
                                               _buildInventoryValueCard(provider),
                                               const SizedBox(height: 16),
                                             ],
@@ -316,7 +313,7 @@ class InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildFilterChips() {
-    final filters = ['All Items', 'Low Stock'];
+    final filters = ['All Items', 'Low Stock', 'Categories'];
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 0, 8),
       child: SizedBox(
@@ -324,11 +321,21 @@ class InventoryScreenState extends State<InventoryScreen> {
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           itemCount: filters.length,
-          separatorBuilder: (context, index) => SizedBox(width: 10),
+          separatorBuilder: (context, index) => const SizedBox(width: 10),
           itemBuilder: (context, index) {
-            final isSelected = _selectedFilter == filters[index];
+            final filterName = filters[index];
+            final isSelected = filterName == 'Categories' 
+                ? _selectedCategories.isNotEmpty 
+                : _selectedFilter == filterName;
+            
             return GestureDetector(
-              onTap: () => setState(() => _selectedFilter = filters[index]),
+              onTap: () {
+                if (filterName == 'Categories') {
+                  _showAllCategoriesBottomSheet(context);
+                } else {
+                  setState(() => _selectedFilter = filterName);
+                }
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 18,
@@ -349,13 +356,28 @@ class InventoryScreenState extends State<InventoryScreen> {
                         ]
                       : null,
                 ),
-                child: Text(
-                  filters[index],
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isSelected ? Colors.white : AppColors.textMedium,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      filterName == 'Categories' && _selectedCategories.isNotEmpty
+                          ? 'Categories (${_selectedCategories.length})'
+                          : filterName,
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected ? Colors.white : AppColors.textMedium,
+                      ),
+                    ),
+                    if (filterName == 'Categories') ...[
+                      const SizedBox(width: 6),
+                      Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 16,
+                        color: isSelected ? Colors.white : AppColors.textLight,
+                      ),
+                    ],
+                  ],
                 ),
               ),
             );
@@ -449,82 +471,73 @@ class InventoryScreenState extends State<InventoryScreen> {
 
 
 
-  Widget _buildCategoryFilters() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'CATEGORIES',
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textMedium,
-                  letterSpacing: 1.0,
-                ),
+  void _showAllCategoriesBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.55,
+              decoration: const BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
               ),
-              if (_selectedCategories.isNotEmpty)
-                GestureDetector(
-                  onTap: () => setState(() => _selectedCategories.clear()),
-                  child: Text(
-                    'Clear All',
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                ),
-            ],
-          ),
-          SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: ProductCategories.list.map((category) {
-              final isSelected = _selectedCategories.contains(category);
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    if (isSelected) {
-                      _selectedCategories.remove(category);
-                    } else {
-                      _selectedCategories.add(category);
-                    }
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary.withValues(alpha: 0.05) : AppColors.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isSelected ? AppColors.primary : Colors.grey.shade200,
-                      width: 1.5,
-                    ),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.1),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                  const SizedBox(height: 24),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Categories',
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                        if (_selectedCategories.isNotEmpty)
+                          TextButton(
+                            onPressed: () {
+                              setState(() => _selectedCategories.clear());
+                              setModalState(() {});
+                            },
+                            child: Text(
+                              'Clear Selection',
+                              style: GoogleFonts.poppins(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ]
-                        : null,
+                          ),
+                      ],
+                    ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Transform.scale(
-                        scale: 0.8,
-                        child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: Checkbox(
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      itemCount: ProductCategories.list.length,
+                      itemBuilder: (context, index) {
+                        final category = ProductCategories.list[index];
+                        final isSelected = _selectedCategories.contains(category);
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: CheckboxListTile(
                             value: isSelected,
                             onChanged: (v) {
                               setState(() {
@@ -534,33 +547,64 @@ class InventoryScreenState extends State<InventoryScreen> {
                                   _selectedCategories.remove(category);
                                 }
                               });
+                              setModalState(() {});
                             },
+                            title: Text(
+                              category,
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                                color: isSelected ? AppColors.primary : AppColors.textDark,
+                              ),
+                            ),
                             activeColor: AppColors.primary,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            side: BorderSide(color: Colors.grey.shade400),
+                            tileColor: isSelected 
+                              ? AppColors.primary.withValues(alpha: 0.05)
+                              : AppColors.surface,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                            controlAffinity: ListTileControlAffinity.trailing,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Apply Filter',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                      Text(
-                        category,
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected ? AppColors.primary : AppColors.textDark,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
+
 
   Widget _buildShimmerLoading() {
     return ListView.builder(

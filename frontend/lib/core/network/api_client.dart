@@ -12,7 +12,7 @@ import 'dart:async'; // Library for asynchronous control (Futures, Timers, Timeo
 import 'package:http/http.dart' as http; // Primary external HTTP client for Dart
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint, kReleaseMode; // Utility flags, console logging, and mode detection
 import 'package:shared_preferences/shared_preferences.dart'; // Local persistence for server configuration
-import 'package:frontend/core/error/exceptions.dart'; // Custom domain exceptions for ClickBuy
+import 'package:frontend/core/error/exceptions.dart'; // Custom domain exceptions for ShopBook
 
 class ApiClient {
   // --- Infrastructure Settings ---

@@ -1,8 +1,24 @@
 # 🛠️ Project Bug & Fix Logs
 
-A professional record of technical challenges encountered and resolved during the development of the **ClickBuy** application. Categorized by date to track evolution and stability.
+A professional record of technical challenges encountered and resolved during the development of the **ShopBook** application. Categorized by date to track evolution and stability.
 
 ---
+
+## 📅 May 08, 2026
+> *Focus: Final Rebranding Audit and Technical Integrity*
+
+### `[FIXED]` Syntax Error in HelpSupportScreen URI
+- **Issue**: After renaming "ClickBuy" to "ShopBook", the `HelpSupportScreen` email launcher contained a malformed `Uri` constructor with a duplicated `query` parameter, preventing the app from compiling.
+- **Fix**: Removed the redundant `query` key from the `Uri.mailto` call.
+- **Context**: Structural rebranding edits can occasionally introduce subtle syntax duplication. This fix restores the functional integrity of the support email flow.
+
+### `[REBRANDED]` Project-Wide "ShopBook" Identity
+- **Issue**: Lingering references to the legacy name "ClickBuy" were present in code comments, documentation, and the Android manifest.
+- **Fix**: Conducted a comprehensive audit and purged all "ClickBuy" artifacts, replacing them with "ShopBook" branding across all layers (Manifest, Theme, Providers, and Docs).
+- **Context**: Ensures a professional and consistent brand identity throughout the entire codebase.
+
+---
+
 
 ## 📅 April 22, 2026
 > *Focus: Navigation Safety, Supplier Accounting Accuracy, and Granular Reporting*
@@ -28,7 +44,7 @@ A professional record of technical challenges encountered and resolved during th
 - **Context**: Moving from "Total-only" to "Itemized" reporting transforms the app into a professional auditing tool capable of handling complex business logistics.
 
 ### `[FIXED]` OTP Email Content Polish
-- **Issue**: The OTP verification email contained a non-standard cart emoji in the "ClickBuy" brand label, which triggered some spam filters and looked unprofessional.
+- **Issue**: The OTP verification email contained a non-standard cart emoji in the "ShopBook" brand label, which triggered some spam filters and looked unprofessional.
 - **Fix**: Stripped the emoji from the email template in `otpUseCases.js`.
 - **Context**: Clean, text-only branding in automated emails improves deliverability and maintains a professional corporate identity.
 
@@ -51,7 +67,7 @@ A professional record of technical challenges encountered and resolved during th
 ### `[FIXED]` Sudden "Server Connection" Dialog Popups
 - **Issue**: The "Server Connection" setup dialog was automatically popping up whenever a network request failed during Login or Registration, which felt intrusive and confusing for regular users.
 - **Fix**: Disabled the auto-triggering logic in `LoginScreen`, `RegisterScreen`, `ResetPasswordScreen`, and `PublicSupportScreen`.
-- **Context**: The dialog is now strictly a developer/admin tool, accessible only via a hidden 10-second long-press on the ClickBuy logo. This ensures a cleaner, "app-like" experience for store owners.
+- **Context**: The dialog is now strictly a developer/admin tool, accessible only via a hidden 10-second long-press on the ShopBook logo. This ensures a cleaner, "app-like" experience for store owners.
 
 ### `[FIXED]` Replit Backend Connectivity on Mobile
 - **Issue**: Mobile devices failed to connect to the Replit backend in debug mode because the `ApiClient` was biased towards `http://{IP}:{PORT}` formatting, which is incompatible with Replit's SSL hostnames.
