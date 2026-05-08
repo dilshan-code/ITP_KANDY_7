@@ -621,6 +621,35 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /*
+   * Logic: Profile Image Revocation.
+   * Rationale: Resets the profile image link to null/empty in the backend.
+   */
+  Future<bool> removeProfilePicture() async {
+    if (_currentOwner == null) return false;
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      // Step: Reset the profile picture link to an empty string in the cloud DB.
+      final success = await updateProfile({'profilePic': ''});
+      _isLoading = false;
+      notifyListeners();
+      return success;
+    } catch (e) {
+      if (e is AppException) {
+        _error = e.message;
+        _technicalDetails = e.details;
+      } else {
+        _error = e.toString();
+      }
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /*
    * Logic: Permanent Account Purge.
    * Rationale: Executes a DELETE request for the user's primary ID.
    */
